@@ -1,76 +1,60 @@
-# Default values ---------------------------------------------------------------
-default <- list(
-  
-  "supported_input" = c("xlsx", ""),
-  
-  "latent_names" = c("image", "expect", "prodq", 
-                     "servq", "value", "epsi", "loyal"),
-  
-  "missing_values" = c("NA", " ", "", "#DIV/0!", "#NULL!", "#NAVN?", "#NAME?"),
-  
-  "sheet_names" = list(
-                 "long" = c("data", "raw data", "entities", 
-                            "measurement model", "config"),
-                 "short" = c("df", "cd", "hd", "rd", "ents", "mm", "cf")),
-  
-  "beamer_tmp" = list(
-                 "dir" = "rmd/beamer",
-                 "files" = c("beamer_preamble.tex", 
-                             "beamer_template.tex")),
-  
-  "beamer_thm" = list(
-                 "dir" = "rmd/beamer",
-                 "files" = c("beamercolorthememetropolis.sty", 
-                             "beamerfontthememetropolis.sty", 
-                             "beamerthemem.sty", "logo.eps"))
-)
-
-# Check input path -------------------------------------------------------------
-check_input_path <- function(path) {
-  
-  if (!all(is.character(path), length(path) == 1L))
-    stop(paste("Path should be a string of length", 1L), call. = FALSE)
-  
-  # Expand path and check if file exists
-  path <- normalizePath(path, "/", mustWork = FALSE)
-  
-  if (!file.exists(path))
-    stop(paste0("The file or path does not exist:\n", path), call. = FALSE)
-  
-  # Check if the extension is supported
-  ext <- tolower(tools::file_ext(path))
-  
-  if (!ext %in% default$supported_input)
-    stop(paste0(ext, " is not a supported extension for input files."), call. = FALSE)
-  
-  return(path)
+# Functions for cleaning survey data -------------------------------------------
+rescale_score <- function(var) {
+  suppressWarnings(ifelse(test %in% 1:10, (as.numeric(test)-1)*(100/9), NA))
 }
 
+clean_score <- function(var) {
+  gsub("([0-9]+).*$", "\\1", var)
+}
 
-# Read all/specified sheets in a .xlsx file to a list --------------------------
-#' @export
-read_sheets <- function(path, sheets=NULL) {
+# Clean missing values from a data.frame
+clean_missing <- function(df) {
   
-  # Load workbook
-  wb <- openxlsx::loadWorkbook(path)
-  sh <- openxlsx::sheets(wb)
+  if (all(!is.null(df), nrow(df) > 0L)) {
+    df <- lapply(df, function(x) ifelse(x %in% default$missing_values, NA, x))
+    df <- as.data.frame(df, stringsAsFactors=FALSE)
+  }
   
-  # If sheets are specified, read only these
-  if (!is.null(sheets))
-    sh <- sh[tolower(sh) %in% tolower(sheets)]
+  return(df)
+}
 
-  # Check if any sheets exist
-  if (length(sh) == 0L)
-    stop("The specified sheets were not found in the workbook:\n", 
-         paste0("'", sheets, "'", collapse=" "), call. = FALSE)
+# Lowercase all columnnames
+tolower_cols <- function(df) {
+  names(df) <- tolower(names(df))
+  df
+}
+
+# Functions to validate paths --------------------------------------------------
+
+expand_path <- function(path) {
   
-  # Read data to list and set names
-  lst <- suppressWarnings(lapply(sh, openxlsx::readWorkbook, xlsxFile = wb))
-  lst <- setNames(lst, sh)
+  if (grepl("^(/|[A-Za-z]:|\\\\|~)", path))
+    path <- normalizePath(path, "/", mustWork = FALSE)
   
-  # Set all list entries to be data.frames
-  lst <- lapply(lst, as.data.frame, stringsAsFactor = FALSE)
+  sub("/$", "", path)
+}
+
+is_valid_path <- function(...) {
   
-  # Return
-  return(lst)
+  paths <- list(...)
+  paths <- vapply(paths, expand_path, character(1))
+  
+  valid <- vapply(paths, function(x) {is.character(x) && length(x) == 1L}, logical(1))
+  exists <- vapply(paths, file.exists, logical(1)) 
+  
+  all(valid, exists)
+
+}
+
+# Functions to validate extensions ---------------------------------------------
+
+has_extension <- function(path, ext) {
+  tolower(tools::file_ext(path)) == ext
+}
+
+is_valid_ext <- function(...) {
+  
+  exts <- vapply(list(...), tools::file_ext, character(1))
+  all(exts %in% default$input_formats)
+  
 }

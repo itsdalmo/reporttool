@@ -8,3 +8,4 @@ Maintainer: Kristian D. Olsen <kristian@doingit.no>
 Description: Useful tools for reporting in EPSI.
 License: CC-BY-SA 4.0 International
 Suggests: testthat
+Imports: openxlsx
