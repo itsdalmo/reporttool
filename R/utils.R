@@ -1,4 +1,4 @@
-# Functions for cleaning survey data -------------------------------------------
+# Functions to clean data -------------------------------------------
 rescale_score <- function(var) {
   suppressWarnings(ifelse(test %in% 1:10, (as.numeric(test)-1)*(100/9), NA))
 }
