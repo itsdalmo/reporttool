@@ -18,7 +18,7 @@
 #' @export
 #' @examples #' x <- get_input("input.xlsx", "contrast.csv")
 
-get_input <- function(input, contrast = NULL, historic = NULL, encoding = "latin1") {
+get_data <- function(input, contrast = NULL, historic = NULL, encoding = "latin1") {
   
   lst <- file_input(input, encoding)
   
@@ -60,9 +60,10 @@ get_input <- function(input, contrast = NULL, historic = NULL, encoding = "latin
 
 read_sheets <- function(path, sheets = NULL, clean.missing = FALSE) {
   
-  # Check path
-  if(!all(is_valid_path(path), has_extension(path, "xlsx")))
-    stop("The path does not exist or is not a 'xlsx' file", call. = FALSE)
+  path <- validate_path(path)
+  
+  if(!has_extension(path, "xlsx"))
+    stop("The specified path does not direct to a 'xlsx' file:\n", path, call. = FALSE)
   
   # Load workbook
   wb <- openxlsx::loadWorkbook(path)
@@ -73,15 +74,15 @@ read_sheets <- function(path, sheets = NULL, clean.missing = FALSE) {
     sh <- sh[tolower(sh) %in% tolower(sheets)]
   
   # Check if any/specified sheets exist
-  if (length(sh) == 0L)
-    stop("The specified sheets were not found in the workbook:\n", 
-         paste0("'", sheets, "'", collapse=" "), call. = FALSE)
+  if (identical(length(sh), 0L))
+    stop("None of the specified sheets were not found in the workbook:\n", 
+         paste0("'", sheets, "'", collapse="\n"), call. = FALSE)
   
   # Read data to list and set names
   lst <- suppressWarnings(lapply(sh, openxlsx::readWorkbook, xlsxFile = wb))
   names(lst) <- sh
   
-  # Set all list entries to be data.frame/clean NA
+  # Set all list entries to be data.frame and/or clean NA
   if (isTRUE(clean.missing)) {
     lst <- lapply(lst, clean_missing)
     
@@ -97,31 +98,29 @@ read_sheets <- function(path, sheets = NULL, clean.missing = FALSE) {
 
 # Input wrappers ---------------------------------------------------------------
 
-file_input <- function(path, encoding) {
+read_input <- function(path, encoding = "latin1") {
   
-  # Check input
-  if(!is_valid_ext(path))
-    stop(paste("The path", path, "does not lead to a valid input format"), call. = FALSE)
+  path <- validate_path(path)
   
-  if(!is_valid_path(path))
-    stop(paste("The path", path, "is not valid"), call. = FALSE)
+  if (!is_supported_ext(path))
+    stop("Path does not direct to a supported format:\n", path, call. = FALSE)
   
   # Pick input-function based on extension
   switch(tools::file_ext(path),
-         csv = csv_input(path, encoding),
-         xlsx = xlsx_input(path),
-         dir_input(path, encoding))
+         csv = read_csv(path, encoding),
+         xlsx = read_xlsx(path),
+         read_dir(path, encoding))
 }
 
-csv_input <- function(path, encoding) {
+read_csv <- function(path, encoding) {
+  
+  if (!has_extension(path, "csv"))
+    stop("The specified path does not direct to a 'csv' file: \n", path, call. = FALSE)
   
   args <- list(file = path, 
                fileEncoding = encoding, 
                stringsAsFactor = FALSE,
                na.strings = default$missing_values)
-  
-  if (!has_extension(path, "csv"))
-    stop("The specified path does not direct to a 'csv' file\n", call. = FALSE)
   
   df <- do.call(read.csv2, args)
  
@@ -135,10 +134,7 @@ csv_input <- function(path, encoding) {
   return(df)
 }
 
-xlsx_input <- function(path) {
-  
-  if (!has_extension(path, "xlsx"))
-    stop("The specified path does not direct to a 'xlsx' file\n", call. = FALSE)
+read_xlsx <- function(path) {
   
   lst <- read_sheets(path, sheets = default$sheet_names$long, clean.missing = TRUE)
   
@@ -149,10 +145,10 @@ xlsx_input <- function(path) {
   return(lst)
 }
 
-dir_input <- function(path, encoding) {
+read_dir <- function(path, encoding) {
   
   if (!has_extension(path, ""))
-    stop("The specified path does not direct to a directory", call. = FALSE)
+    stop("The specified path is not a directory:\n", path, call. = FALSE)
   
-  stop(paste("Directory input is not yet supported\n", path), call. = FALSE)
+  stop("Directory input is not yet supported\n", path, call. = FALSE)
 }

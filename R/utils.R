@@ -20,39 +20,39 @@ clean_missing <- function(df) {
 
 # Lowercase all columnnames
 tolower_cols <- function(df) {
-  names(df) <- tolower(names(df))
+  
+  if(!is.null(names(df)))
+    names(df) <- tolower(names(df))
+  
   df
 }
 
-# Functions to validate paths --------------------------------------------------
+# Function to validate paths --------------------------------------------------
 
-expand_path <- function(path) {
+validate_path <- function(path) {
   
-  if (grepl("^(/|[A-Za-z]:|\\\\|~)", path))
+  if (!all(is.character(path), length(path) == 1L))
+    stop("Path is not in valid format (character(1)):\n", path, call. = FALSE)
+  
+  if (!grepl("^(/|[A-Za-z]:|\\\\|~)", path))
     path <- normalizePath(path, "/", mustWork = FALSE)
   
-  sub("/$", "", path)
-}
-
-is_valid_path <- function(...) {
+  # Remove trailing slashes from path
+  path <- sub("/$", "", path)
   
-  paths <- list(...)
-  paths <- vapply(paths, expand_path, character(1))
+  if (!file.exists(path))
+    stop("Path does not exist:\n", path, call. = FALSE)
   
-  valid <- vapply(paths, function(x) {is.character(x) && length(x) == 1L}, logical(1))
-  exists <- vapply(paths, file.exists, logical(1)) 
-  
-  all(valid, exists)
-
+  path
 }
 
 # Functions to validate extensions ---------------------------------------------
 
 has_extension <- function(path, ext) {
-  tolower(tools::file_ext(path)) == ext
+  identical(tolower(tools::file_ext(path)), ext)
 }
 
-is_valid_ext <- function(...) {
+is_supported_ext <- function(...) {
   
   exts <- vapply(list(...), tools::file_ext, character(1))
   all(exts %in% default$input_formats)
