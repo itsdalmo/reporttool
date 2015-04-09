@@ -18,16 +18,19 @@
 #' @export
 #' @examples #' x <- get_input("input.xlsx", "contrast.csv")
 
-get_data <- function(input, contrast = NULL, historic = NULL, encoding = "latin1") {
+list_input <- function(input, contrast = NULL, historic = NULL, encoding = "latin1") {
   
-  lst <- file_input(input, encoding)
+  if (!has_extension(input, "xlsx"))
+    stop("For now, input has to be a xlsx file.", call. = FALSE)
+  
+  lst <- read_data(input, encoding)
   
   # Add contrast data (and overwrite if necessary)
   if (!is.null(contrast)) {
     if ("contrast data" %in% names(lst))
       message("Overwriting existing contrast data with:\n", contrast)
     
-    lst[["contrast data"]] <- file_input(contrast, encoding)[[1]]
+    lst[["contrast data"]] <- read_data(contrast, encoding)[[1]]
   }
   
   # Add historical data (and overwrite if necessary)
@@ -35,7 +38,7 @@ get_data <- function(input, contrast = NULL, historic = NULL, encoding = "latin1
     if ("historic data" %in% names(lst))
       message("Overwriting existing historic data with:\n", historic)
     
-    lst[["historic data"]] <- file_input(historic, encoding)[[1]]
+    lst[["historic data"]] <- read_data(historic, encoding)[[1]]
   }
   
   return(lst)
@@ -98,7 +101,7 @@ read_sheets <- function(path, sheets = NULL, clean.missing = FALSE) {
 
 # Input wrappers ---------------------------------------------------------------
 
-read_input <- function(path, encoding = "latin1") {
+read_data <- function(path, encoding = "latin1") {
   
   path <- validate_path(path)
   

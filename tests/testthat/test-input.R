@@ -1,128 +1,95 @@
-# # Data types
-# sdir <- system.file("tests/testthat", package="reporttool")
-# xlsx <- file.path(dir, "test.xlsx")
-# csv2 <- file.path(dir, "semicolon.csv")
-# csv <- file.path(dir, "colon.csv")
-# 
+# Test input  ------------------------------------------------------------------
+path <- system.file("tests/testthat", package = "reporttool")
 
+xlsx <- file.path(path, "test.xlsx")
+csv2 <- file.path(path, "semicolon.csv")
+csv <- file.path(path, "colon.csv") 
+docx <- file.path(path, "invalid.docx")
 
 context("Funs  - read_sheets")
 test_that("Handles input and returns expected format", {
   
-  fp <- system.file("tests/testthat/test.xlsx", package="reporttool")
+  # Input
+  df <- read_sheets(xlsx)
   sh <- c("raw Data", "measurement model")
-  
-  # Check format
-  df <- read_sheets(fp)
   
   expect_true(is.list(df))
   expect_true(all(vapply(df, is.data.frame, logical(1))))
   
   # Check result
-  expect_equal(sh, names(df))
-  expect_equal(read_sheets(fp, sh), df)
+  expect_identical(sh, names(df))
+  expect_identical(read_sheets(xlsx, sh), df)
   expect_true(is.na(df[[2]][1,3]))
   
   # Clean missing
-  df <- read_sheets(fp, clean.missing = TRUE)
+  df <- read_sheets(xlsx, clean.missing = TRUE)
   expect_true(all(is.na(df[[1]][1:9,2:4])))
   
   # Error handeling
-  expect_error(read_sheets(dirname(fp)))
-  expect_error(read_sheets(fp, sheets = "exists_not"))
+  expect_error(read_sheets(path))
+  expect_error(read_sheets(xlsx, sheets = "invalid sheet"))
   
 })
 
 context("Input - basic wrappers")
 test_that("read_xlsx handles input and returns expected format", {
   
-  fp <- system.file("tests/testthat/test.xlsx", package="reporttool")
+  # Check format
+  df <- read_xlsx(xlsx)
   sh <- c("raw Data", "measurement model")
   
-  # Check format
-  df <- read_xlsx(fp)
-  
-  expect_true(is.list(df))
-  expect_true(all(vapply(df, is.data.frame, logical(1))))
   expect_true(all(is.na(df[[1]][1:9,2:4])))
-  expect_true(all(tolower(sh) %in% names(df)))
+  expect_identical(tolower(sh), names(df))
   
 })
 
 test_that("read_csv handles input and returns expected format", {
   
-  # Files
-  semi <- system.file("tests/testthat/semicolon.csv", package="reporttool")
-  colon <- system.file("tests/testthat/colon.csv", package="reporttool")
-  
   enc <- "latin1"
   
   # Check that semi/colon yield same result
-  expect_equal(read_csv(semi, enc), read_csv(colon, enc))
+  expect_equal(read_csv(csv2, enc), read_csv(csv, enc))
   
   # Check results
-  df <- read_csv(semi, enc)
+  df <- read_csv(csv2, enc)
   
   expect_true(is.data.frame(df))
   expect_true(all(is.na(df[1:9,2:4])))
   
   # Error handeling
-  expect_error(read_sheets(dirname(semi)))
+  expect_error(read_sheets(path))
 })
 
 test_that("read_dir handles input and returns expected format", {
   
-  # Files
-  fp <- system.file("tests/testthat/test.xlsx", package="reporttool")
-  dp <- dirname(fp)
+  expect_error(read_dir(path))
   
-  # Error handeling
-  expect_error(read_dir(fp))
-  expect_error(read_dir(dp))
 })
 
 context("Input - switch function")
-test_that("read_input handles input and returns expected format", {
+test_that("read_data handles input and returns expected format", {
   
-  fp <- system.file("tests/testthat/test.xlsx", package="reporttool")
+  df <- read_data(xlsx)[[1]]
   
-  df <- read_input(fp)
-  expect_true(is.data.frame(df[[1]]))
+  expect_equal(read_data(csv2), df)
+  expect_equal(read_data(csv), df)
   
-  # Check csv format
-  semi <- system.file("tests/testthat/semicolon.csv", package="reporttool")
-  expect_equal(df[[1]], read_input(semi))
-
-  # Check errorhandeling
-  fp <- system.file("test/testthat/invalid.docx", package="reporttool")
-  expect_error(read_input(fp))
-  
+  expect_error(read_data(docx))
 })
 
-context("Funs  - get_input")
+context("Funs  - list_input")
 test_that("Handles input and returns expected format", {
   
-  fp <- system.file("tests/testthat/test.xlsx", package="reporttool")
-  semi <- system.file("tests/testthat/semicolon.csv", package="reporttool")
-  sh <- c("raw Data", "measurement model")
-  
-  # Check format
-  df <- read_sheets(fp)
+  df <- list_input(xlsx, xlsx, xlsx)
+  sh <- c("raw data", "measurement model", "contrast data", "historic data")
   
   expect_true(is.list(df))
+  expect_true(all(sh %in% names(df)))
   expect_true(all(vapply(df, is.data.frame, logical(1))))
   
-  # Check result
-  expect_equal(sh, names(df))
-  expect_equal(read_sheets(fp, sh), df)
-  expect_true(is.na(df[[2]][1,3]))
+  expect_equal(df[[1]], df[[3]])
+  expect_equal(df[[1]], df[[4]])
   
-  # Clean missing
-  df <- read_sheets(fp, clean.missing = TRUE)
-  expect_true(all(is.na(df[[1]][1:9,2:4])))
-  
-  # Error handeling
-  expect_error(read_sheets(dirname(fp)))
-  expect_error(read_sheets(fp, sheets = "exists_not"))
+  expect_error(list_input(csv))
   
 })
