@@ -27,24 +27,6 @@ tolower_cols <- function(df) {
   df
 }
 
-# Function to validate paths --------------------------------------------------
-
-validate_path <- function(path) {
-  
-  if (!all(is.character(path), length(path) == 1L))
-    stop("Path is not in valid format (character(1)):\n", path, call. = FALSE)
-  
-  if (!grepl("^(/|[A-Za-z]:|\\\\|~)", path))
-    path <- normalizePath(path, "/", mustWork = FALSE)
-  
-  # Remove trailing slashes from path
-  path <- sub("/$", "", path)
-  
-  if (!file.exists(path))
-    stop("Path does not exist:\n", path, call. = FALSE)
-  
-  path
-}
 
 # Functions to validate extensions ---------------------------------------------
 
@@ -57,4 +39,23 @@ is_supported_ext <- function(...) {
   exts <- vapply(list(...), tools::file_ext, character(1))
   all(exts %in% default$input_formats)
   
+}
+
+# Misc -------------------------------------------------------------------------
+isFALSE <- function(x) identical(x, FALSE)
+
+validate_path <- function(path) {
+  
+  if (!all(is.character(path), length(path) == 1L)) {
+    stop("Path is not in valid format (character(1)):\n", path, call. = FALSE)
+  }
+  
+  if (!grepl("^(/|[A-Za-z]:|\\\\|~)", path)) {
+    path <- normalizePath(path, "/", mustWork = FALSE)
+  }
+  
+  # Remove trailing slashes from path
+  path <- sub("/$", "", path)
+  
+  path
 }

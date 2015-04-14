@@ -80,7 +80,7 @@ test_that("read_data handles input and returns expected format", {
 context("Funs  - list_input")
 test_that("Handles input and returns expected format", {
   
-  df <- list_input(xlsx, xlsx, xlsx)
+  df <- list_input(xlsx, xlsx, csv)
   sh <- c("raw data", "measurement model", "contrast data", "historic data")
   
   expect_true(is.list(df))
