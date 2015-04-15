@@ -1,7 +1,8 @@
 #' Write common file formats
 #'
 #' A simple wrapper for writing common data formats. The specific format is
-#' specified by the extension given in the file argument (default is .xlsx).
+#' specified by the extension given in the filename. If no filename is given,
+#' data will be written to output.xlsx in the current working directory.
 #'
 #' @param x The data to be written. Can be a data.frame or a list (of df's).
 #' @param file Path and extension for saving the data.
@@ -11,7 +12,7 @@
 #' @import tools
 #' @export
 #' @examples 
-#' write_data(x, file = "test.xlsx)
+#' write_data(x, file = "test.xlsx")
 
 write_data <- function(x, file = NULL, encoding = "latin1") {
   
@@ -95,13 +96,13 @@ write_sheets <- function(df, wb, sheet="analysis", row=1L, append=TRUE) {
                                             skipEmptyRows = FALSE))
   } else if (sheet_exists) {
     openxlsx::removeWorksheet(wb, sheet)
-    openxlsx::addWorksheet(wb, sheet)
+    openxlsx::addWorksheet(wb, sheetName = sheet)
   } else {
     openxlsx::addWorksheet(wb, sheetName = sheet)
   }
   
   # Add data to the workbook
-  if (length(names(df)) == 0L) {
+  if (is.null(names(df)) || identical(names(df), character(0))) {
     warning(sheet, ": No columnames in data. An empty sheet was created", call. = FALSE)
   } else {
     openxlsx::writeData(wb, sheet, df, startRow = row, headerStyle = openxlsx_style)
@@ -110,7 +111,8 @@ write_sheets <- function(df, wb, sheet="analysis", row=1L, append=TRUE) {
 
 #' Write to Windows clipboard
 #'
-#' Wrapper for writing to Windows clipboard
+#' Wrapper for writing to windows clipboard with the most-used defaults for a
+#' scandinavian locale.
 #'
 #' @param df The data to write.
 #' @param encoding The encoding to use when writing.
@@ -120,7 +122,7 @@ write_sheets <- function(df, wb, sheet="analysis", row=1L, append=TRUE) {
 #' @examples 
 #' x %>% write_clipboard()
 
-write_clipboard <- function(df, encoding) {
+write_clipboard <- function(df, encoding = "latin1") {
   
   if (!Sys.info()[1] == "Windows") {
     stop("Writing to clipboard requires Windows OS")
@@ -138,6 +140,7 @@ write_clipboard <- function(df, encoding) {
               file = "clipboard-128",
               sep = "\t",
               na = "",
+              dec = ",",
               row.names = FALSE,
               fileEncoding = encoding)
 }
@@ -195,6 +198,7 @@ write_txt <- function(lst, file, encoding) {
                 file = paste0(file.path(file, nm), ".txt"),
                 sep = ",",
                 na = "",
+                dec = ".",
                 row.names = FALSE,
                 fileEncoding = encoding,
                 quote = FALSE)}, 

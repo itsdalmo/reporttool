@@ -1,7 +1,8 @@
 #' Read common data formats
 #'
 #' A simple wrapper for reading data. Currently supports
-#' csv, csv2 and xlsx. (TODO: .txt and study-directories).
+#' csv, csv2 and xlsx. The function also lowercases all list and column names,
+#' and cleans common strings for missing values.
 #'
 #' @param file Path to a csv, csv2 or xlsx file.
 #' @param encoding The encoding to use for txt and csv-files.
@@ -85,11 +86,11 @@ read_sheets <- function(file, sheets = NULL, clean.missing = FALSE) {
     lst <- lapply(lst, clean_missing)
   }
   
+  lst <- lapply(lst, as.data.frame, stringsAsFactors = FALSE)
+
   # If only one sheet was read, return a data.frame instead
   if (length(lst) == 1L) {
-    lst <- lapply(lst, as.data.frame, stringsAsFactors = FALSE)
-  } else {
-    lst <- data.frame(lst[[1]])
+    lst <- as.data.frame(lst[[1]])
   }
 
   # Return
@@ -121,16 +122,20 @@ read_sheets <- function(file, sheets = NULL, clean.missing = FALSE) {
 get_input <- function(input, contrast = NULL, historic = NULL, encoding = "latin1") {
   
   if (!has_extension(input, "xlsx"))
-    stop("For now, input has to be a xlsx file.", call. = FALSE)
+    stop("Input has to be a xlsx file.", call. = FALSE)
   
   lst <- read_data(input, encoding)
+  
+  if (!inherits(lst, "list")) {
+    lst <- list("input" = lst)
+  }
   
   # Add contrast data (and overwrite if necessary)
   if (!is.null(contrast)) {
     if ("contrast data" %in% names(lst))
       message("Overwriting existing contrast data with:\n", contrast)
     
-    lst[["contrast data"]] <- read_data(contrast, encoding)[[1]]
+    lst[["contrast data"]] <- read_data(contrast, encoding)
   }
   
   # Add historical data (and overwrite if necessary)
@@ -138,7 +143,7 @@ get_input <- function(input, contrast = NULL, historic = NULL, encoding = "latin
     if ("historic data" %in% names(lst))
       message("Overwriting existing historic data with:\n", historic)
     
-    lst[["historic data"]] <- read_data(historic, encoding)[[1]]
+    lst[["historic data"]] <- read_data(historic, encoding)
   }
   
   return(lst)
@@ -176,7 +181,10 @@ read_xlsx <- function(file) {
   df <- read_sheets(file, clean.missing = TRUE)
   
   # Lowercase names
-  df <- lapply(df, tolower_cols)
+  if (inherits(df, "list")) {
+    df <- lapply(df, tolower_cols)
+  } 
+  
   names(df) <- tolower(names(df))
   
   return(df)

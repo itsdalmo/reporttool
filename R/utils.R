@@ -1,45 +1,56 @@
-# Functions to clean data -------------------------------------------
-rescale_score <- function(var) {
-  suppressWarnings(ifelse(test %in% 1:10, (as.numeric(test)-1)*(100/9), NA))
-}
+#' Utilities
+#'
+#' A few wrappers to make a common tasks less verbose.
+#' 
+#' @section List of utilities:
+#' 
+#' \describe{
+#'    \item{\code{clean_missing}}{Takes a \code{data.frame} and cleans
+#'    the default missing value strings. See \code{defaults.R} for these
+#'    strings.}
+#'
+#'    \item{\code{clean_score}}{Takes vectors representing likert scales and
+#'    cleans text descriptions. E.g. "10 Very happy" becomes "10".}
+#'
+#'    \item{\code{rescale_score}}{Takes vectors representing 10-point likert 
+#'    scales and transforms them to 100-point scales. (x-1)*(100/9)}
+#' }
+#'
+#' @param df A \code{data.frame}
+#' @param na.strings Optional: Provide a list of strings to convert to NA.
+#' @param var A numeric or character vector.
+#' @author Kristian D. Olsen
+#' @return \code{clean_missing} returns a \code{data.frame}, \code{clean_score}
+#' returns a vector of the same type (typically character) and \code{rescale_score} 
+#' returns a numeric vector.
+#' @export
+#' @examples 
+#' df <- clean_missing(df)
+#' df$Q3 <- clean_score(df$Q3)
+#' df$Q3 <- rescale_score(df$Q3)
 
-clean_score <- function(var) {
-  gsub("([0-9]+).*$", "\\1", var)
-}
-
-# Clean missing values from a data.frame
-clean_missing <- function(df) {
+clean_missing <- function(df, na.strings = default$missing_values) {
   
   if (all(!is.null(df), nrow(df) > 0L)) {
-    df <- lapply(df, function(x) ifelse(x %in% default$missing_values, NA, x))
+    df <- lapply(df, function(x) ifelse(x %in% na.strings, NA, x))
     df <- as.data.frame(df, stringsAsFactors=FALSE)
   }
   
   return(df)
 }
 
-# Lowercase all columnnames
-tolower_cols <- function(df) {
-  
-  if(!is.null(names(df)))
-    names(df) <- tolower(names(df))
-  
-  df
+#' @rdname clean_missing
+#' @export
+clean_score <- function(var) {
+  gsub("([0-9]+).*$", "\\1", var)
 }
 
-
-# Functions to validate extensions ---------------------------------------------
-
-has_extension <- function(path, ext) {
-  identical(tolower(tools::file_ext(path)), ext)
+#' @rdname clean_missing
+#' @export
+rescale_score <- function(var) {
+  suppressWarnings(ifelse(test %in% 1:10, (as.numeric(test)-1)*(100/9), NA))
 }
 
-is_supported_ext <- function(...) {
-  
-  exts <- vapply(list(...), tools::file_ext, character(1))
-  all(exts %in% default$input_formats)
-  
-}
 
 # Misc -------------------------------------------------------------------------
 isFALSE <- function(x) identical(x, FALSE)
@@ -58,4 +69,23 @@ validate_path <- function(path) {
   path <- sub("/$", "", path)
   
   path
+}
+
+has_extension <- function(path, ext) {
+  identical(tolower(tools::file_ext(path)), ext)
+}
+
+is_supported_ext <- function(...) {
+  exts <- vapply(list(...), tools::file_ext, character(1))
+  all(exts %in% default$input_formats)
+}
+
+# Lowercase all columnnames
+tolower_cols <- function(df) {
+  
+  if(!is.null(names(df))) {
+    names(df) <- tolower(names(df))
+  }
+  
+  df
 }

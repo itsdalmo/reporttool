@@ -4,7 +4,7 @@
 \alias{write_clipboard}
 \title{Write to Windows clipboard}
 \usage{
-write_clipboard(df, encoding)
+write_clipboard(df, encoding = "latin1")
 }
 \arguments{
 \item{df}{The data to write.}
@@ -12,7 +12,8 @@ write_clipboard(df, encoding)
 \item{encoding}{The encoding to use when writing.}
 }
 \description{
-Wrapper for writing to Windows clipboard
+Wrapper for writing to windows clipboard with the most-used defaults for a
+scandinavian locale.
 }
 \note{
 This function only works on Windows, and the data-size cannot exceeed 128kb.

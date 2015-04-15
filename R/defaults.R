@@ -3,6 +3,8 @@ default <- list(
   
   "input_formats" = c("xlsx", "csv", ""),
   
+  "output_formats" = c("xlsx", "csv", "txt", ""),
+  
   "latent_names" = c("image", "expect", "prodq", 
                      "servq", "value", "epsi", "loyal"),
   

@@ -15,13 +15,14 @@ write_data(x, file = NULL, encoding = "latin1")
 }
 \description{
 A simple wrapper for writing common data formats. The specific format is
-specified by the extension given in the file argument (default is .xlsx).
+specified by the extension given in the filename. If no filename is given,
+data will be written to output.xlsx in the current working directory.
 }
 \note{
 Writing .xlsx requires that the openxlsx package is installed.
 }
 \examples{
-write_data(x, file = "test.xlsx)
+write_data(x, file = "test.xlsx")
 }
 \author{
 Kristian D. Olsen
