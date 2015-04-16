@@ -4,7 +4,7 @@
 \alias{get_input}
 \title{Collate one or more files to a list (for an EPSI-object).}
 \usage{
-get_input(input, contrast = NULL, historic = NULL, encoding = "latin1")
+get_input(file, save = TRUE, assign = TRUE, envir = parent.frame())
 }
 \arguments{
 \item{input}{file to a directory or xlsx-file with the input data}
