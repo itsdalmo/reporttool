@@ -71,3 +71,16 @@ copy_beamer_theme <- function(dir=NULL) {
   
   invisible()
 }
+
+#' @rdname beamer_template
+#' @export 
+
+generate_beamer <- function(entity, md, dir, envir) {
+  
+  rmarkdown::render(file.path(dir, "Markdown", paste0(entity, ".Rmd")),
+                    output_format = "all",
+                    intermediates_dir = file.path(dir, "Markdown"),
+                    output_dir = file.path(dir, "Reports"),
+                    quiet = TRUE,
+                    envir = envir)
+}

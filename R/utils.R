@@ -90,7 +90,7 @@ validate_path <- function(path) {
     path <- normalizePath(path, "/", mustWork = FALSE)
   }
   
-  # Remove trailing slashes from path
+  # Remove trailing slashes for Windows-users
   path <- sub("/$", "", path)
   
   path

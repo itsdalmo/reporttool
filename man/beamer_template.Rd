@@ -3,12 +3,15 @@
 \name{beamer_template}
 \alias{beamer_template}
 \alias{copy_beamer_theme}
+\alias{generate_beamer}
 \title{Beamer template}
 \usage{
 beamer_template(dev = "cairo_pdf", toc = TRUE, keep_tex = FALSE,
   slide_level = NULL)
 
 copy_beamer_theme(dir = NULL)
+
+generate_beamer(entity, md, dir, envir)
 }
 \arguments{
 \item{dev}{Defaults to cairo_pdf. Set to 'pdf' if you do not have the
