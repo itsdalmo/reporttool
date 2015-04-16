@@ -32,4 +32,3 @@ reporttool <- list(
                 "beamerfontthememetropolis.sty", 
                 "beamerthemem.sty", "logo.eps"))
 )
-

@@ -3,6 +3,7 @@
 \name{clean_missing}
 \alias{clean_missing}
 \alias{clean_score}
+\alias{get_sheet_names}
 \alias{ordered_replace}
 \alias{rescale_score}
 \title{Utilities}
@@ -14,6 +15,8 @@ clean_score(var)
 rescale_score(var)
 
 ordered_replace(x, by, y)
+
+get_sheet_names(file)
 }
 \arguments{
 \item{df}{A \code{data.frame}}
@@ -34,6 +37,10 @@ A few wrappers to make a common tasks less verbose.
 
 
 \describe{
+   \item{\code{get_sheet_names}}{Takes the path to a .xlsx file and returns
+   the sheetnames in the file if any sheets exist. Quicker than using
+   openxlsx::loadWorkbook() and names().}
+
    \item{\code{ordered_replace}}{Replace \code{x} with \code{y} where \code{x}
    matches \code{by}. Matches and replacements retain the original order of
    \code{x}.}

@@ -41,7 +41,7 @@ read_data <- function(file, encoding = "latin1") {
 #'
 #' @param file The path to the .xlsx file.
 #' @param sheets Optional: Specify the sheets to be read.
-#' @param clean.na Set to TRUE to clean typical NA-strings from .xlsx file.
+#' @param clean.missing Set to TRUE to clean typical NA-strings from .xlsx file.
 #' @author Kristian D. Olsen
 #' @return A list containing data.frames matching the sheets in the .xlsx file.
 #' If only one sheet is read, the function returns a data.frame instead.
@@ -63,26 +63,21 @@ read_sheets <- function(file, sheets = NULL, clean.missing = FALSE) {
     stop("The specified path does not direct to a 'xlsx' file:\n", file, call. = FALSE)
   }
 
-  # Load workbook
-  wb <- openxlsx::loadWorkbook(file)
-  sh <- openxlsx::sheets(wb)
+  # Get the sheetnames to be read
+  wb <- get_sheet_names(file)
   
-  # If sheets are specified, read only these
   if (!is.null(sheets)) {
-    sh <- sh[tolower(sh) %in% tolower(sheets)]
+    sheets <- wb[tolower(wb) %in% tolower(sheets)]
+  } else {
+    sheets <- wb
   }
   
-  # Check if any/specified sheets exist
-  if (length(sh) == 0L) {
-    stop("The specified sheets were not found in the workbook", call. = FALSE)
-  }
-
   # Read data to list and set names
-  lst <- suppressWarnings(lapply(sh, openxlsx::read.xlsx, xlsxFile = wb))
-  names(lst) <- sh
+  lst <- lapply(sheets, openxlsx::read.xlsx, xlsxFile = file)
+  names(lst) <- sheets
   
   # Set all list entries to be data.frame and/or clean NA
-  if (isTRUE(clean.missing)) {
+  if (clean.missing) {
     lst <- lapply(lst, clean_missing)
   }
   
@@ -95,7 +90,6 @@ read_sheets <- function(file, sheets = NULL, clean.missing = FALSE) {
 
   # Return
   return(lst)
-  
 }
 
 #' Collate one or more files to a list (for an EPSI-object).

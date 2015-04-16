@@ -5,6 +5,10 @@
 #' @section List of utilities:
 #' 
 #' \describe{
+#'    \item{\code{get_sheet_names}}{Takes the path to a .xlsx file and returns
+#'    the sheetnames in the file if any sheets exist. Quicker than using
+#'    openxlsx::loadWorkbook() and names().}  
+#' 
 #'    \item{\code{ordered_replace}}{Replace \code{x} with \code{y} where \code{x}
 #'    matches \code{by}. Matches and replacements retain the original order of
 #'    \code{x}.} 
@@ -76,6 +80,35 @@ ordered_replace <- function(x, by, y) {
   return(x)  
 }
 
+#  Copied from sourcecode
+#' @rdname clean_missing
+#' @export 
+get_sheet_names <- function(file) {
+  
+  xmlDir <- file.path(tempdir(), "_excelXMLRead")
+  xmlFiles <- unzip(file, exdir = xmlDir)
+  
+  on.exit(unlink(xmlDir, recursive = TRUE), add = TRUE)
+  
+  worksheets <- xmlFiles[grepl("/worksheets/sheet[0-9]", xmlFiles, perl = TRUE)]
+  workbook <- xmlFiles[grepl("workbook.xml$", xmlFiles, perl = TRUE)]
+  
+  if(length(worksheets) == 0) {
+    stop("Workbook has no worksheets")
+  }
+
+  ## get workbook names
+  workbook <- unlist(readLines(workbook, warn = FALSE, encoding = "UTF-8"))
+  sheets <- unlist(regmatches(workbook, gregexpr("<sheet .*/sheets>", workbook, perl = TRUE)))
+  
+  ## make sure sheetId is 1 based
+  sheetrId <- as.integer(unlist(regmatches(sheets, gregexpr('(?<=r:id="rId)[0-9]+', sheets, perl = TRUE)))) 
+  sheetrId <- sheetrId - min(sheetrId) + 1L
+  
+  sheets <- unlist(regmatches(sheets, gregexpr('(?<=name=")[^"]+', sheets, perl = TRUE)))
+  
+  return(sheets)
+}
 
 # Misc -------------------------------------------------------------------------
 isFALSE <- function(x) identical(x, FALSE)

@@ -11,7 +11,7 @@ read_sheets(file, sheets = NULL, clean.missing = FALSE)
 
 \item{sheets}{Optional: Specify the sheets to be read.}
 
-\item{clean.na}{Set to TRUE to clean typical NA-strings from .xlsx file.}
+\item{clean.missing}{Set to TRUE to clean typical NA-strings from .xlsx file.}
 }
 \value{
 A list containing data.frames matching the sheets in the .xlsx file.
