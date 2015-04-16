@@ -119,36 +119,36 @@ read_sheets <- function(file, sheets = NULL, clean.missing = FALSE) {
 #' @examples 
 #' x <- get_input("input.xlsx", "contrast.csv")
 
-get_input <- function(input, contrast = NULL, historic = NULL, encoding = "latin1") {
-  
-  if (!has_extension(input, "xlsx"))
-    stop("Input has to be a xlsx file.", call. = FALSE)
-  
-  lst <- read_data(input, encoding)
-  
-  if (!inherits(lst, "list")) {
-    lst <- list("input" = lst)
-  }
-  
-  # Add contrast data (and overwrite if necessary)
-  if (!is.null(contrast)) {
-    if ("contrast data" %in% names(lst))
-      message("Overwriting existing contrast data with:\n", contrast)
-    
-    lst[["contrast data"]] <- read_data(contrast, encoding)
-  }
-  
-  # Add historical data (and overwrite if necessary)
-  if (!is.null(historic)) {
-    if ("historic data" %in% names(lst))
-      message("Overwriting existing historic data with:\n", historic)
-    
-    lst[["historic data"]] <- read_data(historic, encoding)
-  }
-  
-  return(lst)
-  
-}
+# get_input <- function(input, contrast = NULL, historic = NULL, encoding = "latin1") {
+#   
+#   if (!has_extension(input, "xlsx"))
+#     stop("Input has to be a xlsx file.", call. = FALSE)
+#   
+#   lst <- read_data(input, encoding)
+#   
+#   if (!inherits(lst, "list")) {
+#     lst <- list("input" = lst)
+#   }
+#   
+#   # Add contrast data (and overwrite if necessary)
+#   if (!is.null(contrast)) {
+#     if ("contrast data" %in% names(lst))
+#       message("Overwriting existing contrast data with:\n", contrast)
+#     
+#     lst[["contrast data"]] <- read_data(contrast, encoding)
+#   }
+#   
+#   # Add historical data (and overwrite if necessary)
+#   if (!is.null(historic)) {
+#     if ("historic data" %in% names(lst))
+#       message("Overwriting existing historic data with:\n", historic)
+#     
+#     lst[["historic data"]] <- read_data(historic, encoding)
+#   }
+#   
+#   return(lst)
+#   
+# }
 
 # Input wrappers ---------------------------------------------------------------
 
