@@ -78,7 +78,7 @@ read_sheets <- function(file, sheets = NULL, clean.missing = FALSE) {
   }
 
   # Read data to list and set names
-  lst <- suppressWarnings(lapply(sh, openxlsx::readWorkbook, xlsxFile = wb))
+  lst <- suppressWarnings(lapply(sh, openxlsx::read.xlsx, xlsxFile = wb))
   names(lst) <- sh
   
   # Set all list entries to be data.frame and/or clean NA
@@ -161,7 +161,7 @@ read_csv <- function(file, encoding) {
   args <- list(file = file, 
                fileEncoding = encoding, 
                stringsAsFactors = FALSE,
-               na.strings = default$missing_values)
+               na.strings = reporttool$missing_values)
   
   df <- do.call(read.csv2, args)
  

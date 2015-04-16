@@ -5,6 +5,10 @@
 #' @section List of utilities:
 #' 
 #' \describe{
+#'    \item{\code{ordered_replace}}{Replace \code{x} with \code{y} where \code{x}
+#'    matches \code{by}. Matches and replacements retain the original order of
+#'    \code{x}.} 
+#'
 #'    \item{\code{clean_missing}}{Takes a \code{data.frame} and cleans
 #'    the default missing value strings. See \code{defaults.R} for these
 #'    strings.}
@@ -29,7 +33,7 @@
 #' df$Q3 <- clean_score(df$Q3)
 #' df$Q3 <- rescale_score(df$Q3)
 
-clean_missing <- function(df, na.strings = default$missing_values) {
+clean_missing <- function(df, na.strings = reporttool$missing_values) {
   
   if (all(!is.null(df), nrow(df) > 0L)) {
     df <- lapply(df, function(x) ifelse(x %in% na.strings, NA, x))
@@ -49,6 +53,27 @@ clean_score <- function(var) {
 #' @export
 rescale_score <- function(var) {
   suppressWarnings(ifelse(test %in% 1:10, (as.numeric(test)-1)*(100/9), NA))
+}
+
+#' @rdname clean_missing
+#' @export
+ordered_replace <- function(x, by, y) {
+  
+  # Use setnames for y and by
+  if (length(by) == length(y)) {
+    y <- setNames(by, y)
+  } else {
+    stop("'y' and 'by' must have same length.", call. = FALSE)
+  }
+  
+  # Replace x by y (based on 'by')
+  if (any(x %in% y)) {
+    x[x %in% y] <- names(y)[vapply(x, function(x) match(x, y), numeric(1))]
+  } else {
+    warning("x had no matches in y; no values replaced", call. = FALSE)
+  }
+  
+  return(x)  
 }
 
 
@@ -77,7 +102,7 @@ has_extension <- function(path, ext) {
 
 is_supported_ext <- function(...) {
   exts <- vapply(list(...), tools::file_ext, character(1))
-  all(exts %in% default$input_formats)
+  all(exts %in% reporttool$input_formats)
 }
 
 # Lowercase all columnnames

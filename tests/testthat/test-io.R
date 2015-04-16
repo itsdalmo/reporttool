@@ -73,6 +73,7 @@ test_that("Read/write works with lists of data", {
 test_that("Read/write .csv works and returns expected result", {
   
   # Read
+  xlsx <- read_data("xlsx.xlsx")
   csv <- read_data("csv.csv")
   csv2 <- read_data("csv2.csv")
   

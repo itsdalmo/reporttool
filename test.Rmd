@@ -1,0 +1,1202 @@
+---
+title: "Foreldretilfredshet"
+subtitle: "REPLACE_ENTITY"
+author: "EPSI Norge"
+date: "REPLACE_DATE"
+output: 
+  epsitools::report_template:
+    toc: TRUE
+---
+
+```{r, error=FALSE, results='hide'}
+
+# Reading and manipulating data
+suppressMessages(require(epsitools))
+suppressMessages(require(openxlsx))
+suppressMessages(require(dplyr))
+suppressMessages(require(tidyr))
+suppressMessages(require(magrittr))
+suppressMessages(require(lubridate))
+
+# Plotting
+suppressMessages(require(ggplot2))
+suppressMessages(require(RColorBrewer))
+suppressMessages(require(grid))
+suppressMessages(require(scales))
+
+# Latex tables and string formatting
+suppressMessages(require(xtable))
+suppressMessages(require(stringr))
+
+# Hardcoding (na.strings, latents, colors and respondent cutoff for missing values)
+missingvalues <- c("NA", " ", "", "#DIV/0!", "#NULL!", "#NAVN?", "#NAME?")
+latents <- c("image", "expect", "prodq", "servq", "value", "epsi", "loyal")
+ggcolors <- c("#F8766D", "#00BFC4", "#D89000", "#00BF7D", "#9590FF", "#A3A500", "#EA8331")
+mv <- .3
+
+# Set relative path, and entity for study
+input <- "REPLACE_DATA"
+entity <- "REPLACE_ENTITY"
+
+df <- read.xlsx(input, sheet = "data") %>% data.frame(stringsAsFactors = FALSE)
+cd <- read.xlsx(input, sheet = "contrast data") %>% data.frame(stringsAsFactors = FALSE)
+hd <- read.xlsx(input, sheet = "historic data") %>% data.frame(stringsAsFactors = FALSE)
+mm <- read.xlsx(input, sheet = "measurement model") %>% data.frame(stringsAsFactors = FALSE)
+cf <- read.xlsx(input, sheet = "config") %>% data.frame(stringsAsFactors = FALSE)
+
+# Lowercase columns for reliable referencing.
+names(df) <- tolower(names(df))
+names(cd) <- tolower(names(cd))
+names(hd) <- tolower(names(hd))
+names(mm) <- tolower(names(mm))
+names(cf) <- tolower(names(cf))
+
+# Set missing values
+df[] %<>% sapply(function(x) ifelse(x %in% missingvalues, NA, x))
+cd[] %<>% sapply(function(x) ifelse(x %in% missingvalues, NA, x))
+hd[] %<>% sapply(function(x) ifelse(x %in% missingvalues, NA, x))
+mm[] %<>% sapply(function(x) ifelse(x %in% missingvalues, NA, x))
+cf[] %<>% sapply(function(x) ifelse(x %in% missingvalues, NA, x))
+
+# Replace names of mainentity and subentity
+if ("mainentity" %in% tolower(mm$latent)) {
+  names(df)[names(df) %in% tolower(mm$manifest[mm$latent == "mainentity"])] <- "mainentity"
+  names(cd)[names(cd) %in% tolower(mm$manifest[mm$latent == "mainentity"])] <- "mainentity"
+  names(hd)[names(hd) %in% tolower(mm$manifest[mm$latent == "mainentity"])] <- "mainentity"
+}
+
+if ("subentity" %in% tolower(mm$latent)) {
+  names(df)[names(df) %in% tolower(mm$manifest[mm$latent == "subentity"])] <- "subentity"
+  names(cd)[names(cd) %in% tolower(mm$manifest[mm$latent == "subentity"])] <- "subentity"
+  names(hd)[names(hd) %in% tolower(mm$manifest[mm$latent == "subentity"])] <- "subentity"
+}
+
+# Check if weights (w) exist in the data and add a 'natural' weight if not.
+if (nrow(df) > 0 && is.null(df$w)) 
+  df$w <- 1
+
+if (nrow(df) > 0 && !is.null(df$w)) 
+  df$w <- as.numeric(df$w)
+
+if (nrow(cd) > 0 && is.null(cd$w)) 
+  cd$w <- 1
+
+if (nrow(cd) > 0 && !is.null(cd$w)) 
+  cd$w <- as.numeric(cd$w)
+
+# Replace {XX} in question text with a shortname for the entity (FIX)
+# mm %<>% mutate(text = gsub("\\{XX\\}", "TB", text))
+
+# Remove common suffixes in entity names (e.g, "barnehage")
+if (!is.na(cf$replacement[cf$original == "entity_short"]))
+  entity_short <- sub(paste0(" ?", cf$replacement[cf$original == "entity_short"], "[^ ]+ ?"), "", entity, ignore.case=TRUE)
+
+# Get the names for averages
+ent_sum <- cf$replacement[cf$original == "average"]
+ctr_sum <- cf$replacement[cf$original == "contrast_average"]
+stu_sum <- cf$replacement[cf$original == "study_average"]
+
+
+# See if the entity has any historical data and/or contrast data exists (True/False):
+historical <- entity %in% hd$mainentity
+contrast <- ifelse(nrow(cd) > 0, TRUE, FALSE)
+subentities <- "subentity" %in% names(df)
+
+# Check if any statements should be plotted (metric or categorical)
+statement_metric <- "statement_metric" %in% tolower(mm$latent)
+statement_categorical <- "statement_categorical" %in% tolower(mm$latent)
+
+# Check variables for open answers in complaints
+open_noncomplaint <- "open_noncomplaint" %in% tolower(mm$latent)
+open_wouldcomplain <- "open_wouldcomplain" %in% tolower(mm$latent)
+```
+
+
+```{r, error=FALSE, results='hide'}
+# Convert date columns and get collection dates
+df %<>% mutate_each(funs(dt = convertToDateTime(as.numeric(.))), start_date, end_date) %>%
+        mutate_each(funs(dt = ymd_hms(.)), start_date, end_date)
+
+survey <- df %>% 
+          filter(mainentity == entity) %>%
+          summarise(start = format(min(start_date, na.rm=TRUE), "%e. %b. %Y"),
+                    end = format(max(start_date, na.rm=TRUE), "%e. %b. %Y"),
+                    time = min(start_date, na.rm=TRUE)) %>%
+          mutate(month = format(time, "%m"), year = format(time, "%Y")) %>% 
+          mutate(period = paste(ifelse(month <= 6, 
+                                cf$replacement[cf$original == "spring"], 
+                                cf$replacement[cf$original == "fall"]),
+                                year))
+  
+# Response information
+respondents <- df %>%
+               filter(mainentity == entity) %>%
+               mutate(total = n()) %>%
+               filter(percent_missing <= mv) %>%
+               mutate(valid = n()) %>%
+               summarise(total = mean(total, na.rm=TRUE), valid = mean(valid, na.rm=TRUE)) %>%
+               mutate(valid_percent = round((valid/total)*100, digits=0))
+  
+# Response per subentity (if specified)
+if (subentities)
+    valid_sub <- df %>%
+                 filter(mainentity == entity & percent_missing <= mv) %>%
+                 group_by(subentity) %>%
+                 summarise(valid = n()) %>%
+                 mutate(valid = paste(subentity, valid))
+
+# Remove incomplete observations
+df %<>% filter(percent_missing <= mv)
+
+# Number of latents and model questions     
+lat_info <- mm %>%
+            filter(tolower(latent) %in% latents) %>% 
+            count(latent) %>%
+            summarise(low = min(n), high = max(n), model = sum(n), 
+                      total = nrow(mm %>% filter(grepl(paste0("^", c("q", "b", "k"), collapse=("|")), manifest, ignore.case=TRUE))))
+```
+
+# Forord
+## Gjennomføring
+
+- Datainnsamling gjennomført på web i perioden `r survey$start` til `r survey$end`, og er gjort via Research.net[^1].
+- Respondentene kan potensielt motta 3 e-poster – hvorav den første er en standard utsendelse, samt 2 påminnelser til de som ikke svarte på den første utsendelsen og evt. den første påminnelsen.
+- Totalt antall respondenter var `r respondents$total`, og av disse var `r paste(respondents$valid_percent, "%")` av besvarelsene godkjente (et godkjent svar har færre enn `r paste0(mv*100, "%")` "vet ikke"-svar på modellspørsmål).
+`r if (subentities) paste0("- ", "Svar per ", tolower(cf$replacement[cf$original == "subentity"]), ": ", paste(valid_sub$valid, collapse = ", "))`
+- Det er hentet inn svar på `r lat_info$model` spørsmål som bygger opp under hovedanalysen. I tillegg til dette så har det vært stilt inntil `r lat_info$total-lat_info$model` spørsmål som bidrar med ytterligere innsikt i tilfredsheten til respondentene (totalt `r lat_info$total`). 
+- Tilsvarende studier gjennomføres ved en rekke andre norske barnehager.
+- Alle resultatene som presenteres i denne rapporten er overlevert for bruk ved `r entity`.
+- Du står selv fritt til å dele resultatene med andre.
+- I motsetning til de nasjonale studiene så vil ikke resultatene fra den enkelte barnehage bli publisert i det offentlige rom av EPSI. 
+- EPSIs nasjonale studie av offentlige tjenester (inkl. private og kommunale barnehager) er en separat studie, og resultatene som formidles via EPSIs hjemmesider[^2] kan fritt siteres.
+
+[^1]: [http://surveymonkey.com](http://surveymonkey.com)
+[^2]: [http://epsi-norway.org](http://epsi-norway.org)
+
+## Skala og svar
+
+- Indeksen for kundetilfredshet, det sentrale målet i disse målingene, kan ta en verdi mellom 0 og 100. Jo høyere verdi desto bedre anser de faktiske kundene (de foresatte) at barnehagen oppfyller deres krav og forventninger. 
+- Spørsmålene svares på en skala fra 1 til 10, hvor 1 betyr ”helt uenig” eller ”veldig misfornøyd” og hvor 10 betyr ”helt enig” eller ”veldig fornøyd”.
+- Resultatene gjøres i etterkant om til en 100-punkts skala.
+
+- Som en tommelfingerregel så kan man si at:
+    - Målinger under 60 er lavt/veldig lavt, 
+    - Målinger fra 60 – 75 er gjennomsnittlig  
+    - Målinger over 75 anses som høyt/veldig høyt. 
+
+- Se www.epsi-norway.org for mer informasjon om metode og modell, eller om EPSI for øvrig.
+
+## Aspekter i EPSI modellen
+
+- **`r cf$replacement[tolower(cf$original) == "image"]`** (`r mm$manifest[tolower(mm$latent) %in% "image"]`)  er målt for å gi en forståelse av hvordan respondentene oppfatter at `r entity` vurderes av andre som har kjennskap til barnehagen. 
+
+- **`r cf$replacement[tolower(cf$original) == "expect"]`** (`r mm$manifest[tolower(mm$latent) %in% "expect"]`) er et mål på hva kundene forventer å få ut av kundeforholdet.
+
+- **`r cf$replacement[tolower(cf$original) == "prodq"]`** (`r mm$manifest[tolower(mm$latent) %in% "prodq"]`) fanger respondentens opplevelse av tjeneste- og produkttilbudet.
+
+- **`r cf$replacement[tolower(cf$original) == "servq"]`** (`r mm$manifest[tolower(mm$latent) %in% "servq"]`) har fokus på forholdet mellom kunden og de ansatte når det gjelder opplevelsen av service og det mer mellommenneskelige.
+
+- **`r cf$replacement[tolower(cf$original) == "value"]`** (`r mm$manifest[tolower(mm$latent) %in% "value"]`) er utformet for å fange opp forholdet mellom hva som er oppnådd (levert) og prisen / kostnaden for å få dette, sett fra kundens ståsted. 
+
+- **`r cf$replacement[tolower(cf$original) == "epsi"]`** (KTI) er det sentrale målet i modellen, og reflekterer hvorvidt kundene opplever at deres krav og forventninger blir oppfylt. Resultatet for barnehagen beregnes på bakgrunn av `r length(mm$manifest[tolower(mm$latent) %in% "epsi"])` spørsmål (`r mm$manifest[tolower(mm$latent) %in% "epsi"]`).
+
+- **`r cf$replacement[tolower(cf$original) == "loyal"]`** (`r mm$manifest[tolower(mm$latent) %in% "loyal"]`) måler eksempelvis hvorvidt respondenten ville valgt samme tjeneste eller produkt dersom vedkommende måtte velge på nytt. Forskning viser at lojalitet i stor grad er påvirket av kundetilfredsheten.
+
+- Generelt så er det viktig med en balanse mellom forventninger og opplevd kvalitet (selve leveransen). Med andre ord, dersom gapet mellom hva kundene forventer og hvordan de opplever kvaliteten (negativt gap) blir for stor så vil det ha negativ betydning på tilfredsheten med barnehagen.
+
+
+
+# Kundeprofil for `r entity`
+
+```{r}
+# Frametitle
+cat("##", "","\n", sep=" ")
+
+# Gather the data for plotting
+pd <- df %>%
+      select(mainentity, one_of(latents)) %>%
+      filter(mainentity == entity) %>%
+      group_by(mainentity) %>%
+      summarise_each(funs(m = mean(as.numeric(.), na.rm=T)))
+
+# Add the contrast (average of the current or previous study)
+if (contrast) {
+  pd <- cd %>%
+        select(one_of(latents), w) %>%
+        summarise_each(funs(wm = weighted.mean(as.numeric(.), w=w, na.rm=T)), -w) %>%
+        mutate(mainentity = ctr_sum) %>%
+        bind_rows(pd, .)
+} else {
+  pd <- df %>%
+        select(one_of(latents), w) %>%
+        summarise_each(funs(wm = weighted.mean(as.numeric(.), w=w, na.rm=T)), -w) %>%
+        mutate(mainentity = stu_sum) %>%
+        bind_rows(pd, .)
+}
+
+# Change to 'long' format for ggplot,
+# and replace variable names with proper labels.
+pd <- pd %>% 
+      gather(latent, score, -mainentity) %>%
+      mutate(latent = as.character(latent)) %>%
+      left_join(cf, by = c("latent" = "original")) %>%
+      mutate(latent = factor(replacement, levels=unique(replacement))) %>%
+      mutate(mainentity = factor(mainentity, levels=unique(mainentity))) %>%
+      select(mainentity, latent, score)
+
+# Get the vertical justification for geom text
+vjust <- pd %>% spread(mainentity, score)
+
+if (ncol(vjust) > 3) {
+  vjust$overlap <- rowMeans(vjust[, 2:ncol(vjust)])
+} else {
+  vjust$overlap <- vjust[[ncol(vjust)]]
+}
+
+vjust <- ifelse(vjust[[entity]] < vjust[["overlap"]], "2", "-1")
+
+# Calculate appropriate range for y-axis
+y_max <- ifelse(max(pd[["score"]]) < 90, round(max(pd[["score"]])+10, -1), 100)
+y_min <- ifelse(min(pd[["score"]]) > 10, round(min(pd["score"])-10, -1), 0)
+
+# Create the profile-plot
+p <- ggplot(data=pd, aes(x=latent, y=score, group=mainentity, colour=mainentity))
+p + geom_line(size=1) +
+    geom_point(size=3) +
+    scale_color_manual(values = setNames(ggcolors, unique(pd$mainentity))) +
+    geom_text(data = filter(pd, mainentity == entity), 
+              aes(label=format(round(score, 1))),  
+              size=4, colour="#23373b", vjust=vjust) + 
+    ylim(y_min, y_max) + 
+    plot_theme()
+```
+
+`r if(subentities == T) paste("# Profil per", tolower(cf$replacement[cf$original == "subentity" & !is.na(cf$original)]))`
+
+```{r, eval=subentities}
+# Frametitle
+cat("##", "","\n", sep=" ")
+
+# Gather the data for plotting
+pd <- df %>%
+      select(mainentity, one_of(latents)) %>%
+      filter(mainentity == entity) %>%
+      summarise_each(funs(m = mean(as.numeric(.), na.rm=T)), -mainentity) %>%
+      mutate(mainentity = paste(ent_sum, entity_short), subentity = mainentity)
+
+pd <- df %>%
+      select(mainentity, subentity, one_of(latents)) %>%
+      filter(mainentity == entity) %>%
+      group_by(mainentity, subentity) %>% 
+      summarise_each(funs(m = mean(as.numeric(.), na.rm=T))) %>%
+      bind_rows(pd, .) %>%
+      select(-mainentity) %>%
+      rename(mainentity = subentity)
+
+# Change to 'long' format for ggplot,
+# and replace variable names with proper labels.
+pd <- pd %>%
+      gather(latent, score, -mainentity) %>%
+      mutate(latent = as.character(latent)) %>%
+      left_join(cf, by = c("latent" = "original")) %>%
+      mutate(latent = factor(replacement, levels=unique(replacement))) %>%
+      mutate(mainentity = factor(mainentity, levels=unique(mainentity))) %>%
+      select(mainentity, latent, score)
+
+# Get the vertical justification for geom text
+vjust <- pd %>% spread(mainentity, score)
+
+if (ncol(vjust) > 3) {
+  vjust$overlap <- rowMeans(vjust[, 2:ncol(vjust)])
+} else {
+  vjust$overlap <- vjust[[ncol(vjust)]]
+}
+
+vjust <- ifelse(vjust[[paste(ent_sum, entity_short)]] < vjust[["overlap"]], "2", "-1")
+
+# Calculate appropriate range for y-axis
+y_max <- ifelse(max(pd[,3]) < 90, round(max(pd[,3])+10, -1), 100)
+y_min <- ifelse(min(pd[,3]) > 10, round(min(pd[,3])-10, -1), 0)
+
+# Make the average a dashed line
+pd$lines <- ifelse(pd$mainentity == paste(ent_sum, entity_short), "solid", "dashed")
+
+# Create the profile-plot
+p <- ggplot(data=pd, aes(x=latent, y=score, group=mainentity, colour=mainentity, linetype=lines))
+p + geom_line(size=1) +
+    geom_point(size=3) +
+    scale_color_manual(values = setNames(ggcolors, unique(pd$mainentity))) +
+    geom_text(data = filter(pd, mainentity == paste(ent_sum, entity_short)), 
+              aes(label=format(round(score, 1))),  
+              size=4, colour="#23373b", vjust=vjust) + 
+    ylim(y_min, y_max) + 
+    guides(linetype=FALSE) +
+    plot_theme()
+```
+
+`r if(historical == T) paste("# Historisk profil for", entity)`
+
+```{r, eval=historical}
+# Frametitle
+cat("##", "","\n", sep=" ")
+
+# Gather the data for plotting
+pd <- hd %>%
+      select(semester, year, mainentity, subentity, one_of(latents)) %>%
+      filter(mainentity == entity, subentity == ent_sum) %>%
+      arrange(semester, year) %>%
+      mutate(semester = ifelse(tolower(semester) == "spring", 
+                               cf$replacement[cf$original == "spring"], semester)) %>%
+      mutate(semester = ifelse(tolower(semester) == "fall", 
+                               cf$replacement[cf$original == "fall"], semester)) %>%
+      mutate(mainentity = paste(semester, year)) %>%
+      select(-semester, -year, -subentity) %>%
+      mutate_each(funs(num = as.numeric(.)), -mainentity)
+  
+
+pd <- df %>%
+      select(mainentity, one_of(latents)) %>%
+      filter(mainentity == entity) %>%
+      group_by(mainentity) %>% 
+      summarise_each(funs(m = mean(as.numeric(.), na.rm=T))) %>%
+      mutate("mainentity" = survey$period[1]) %>%
+      bind_rows(pd, .)
+
+# Change to 'long' format for ggplot,
+# and replace variable names with proper labels.
+pd <- pd %>%
+      gather(latent, score, -mainentity) %>%
+      mutate(latent = as.character(latent)) %>%
+      left_join(cf, by = c("latent" = "original")) %>%
+      mutate(latent = factor(replacement, levels=unique(replacement))) %>%
+      mutate(mainentity = factor(mainentity, levels=unique(mainentity))) %>%
+      select(mainentity, latent, score)
+
+# Get the vertical justification for geom text
+vjust <- pd %>% spread(mainentity, score)
+
+if (ncol(vjust) > 3) {
+  vjust$overlap <- rowMeans(vjust[, 2:ncol(vjust)])
+} else {
+  vjust$overlap <- vjust[[ncol(vjust)]]
+}
+
+vjust <- ifelse(vjust[[survey$period[1]]] < vjust[["overlap"]], "2", "-1")
+
+# Calculate appropriate range for y-axis
+y_max <- ifelse(max(pd[["score"]]) < 90, round(max(pd[["score"]])+10, -1), 100)
+y_min <- ifelse(min(pd[["score"]]) > 10, round(min(pd[["score"]])-10, -1), 0)
+
+# Create the profile-plot
+p <- ggplot(data=pd, aes(x=latent, y=score, group=mainentity, colour=mainentity))
+p + geom_line(size=1) +
+    scale_color_manual(values = setNames(ggcolors, levels(pd$mainentity))) +
+    geom_point(size=3) +
+    geom_text(data = filter(pd, mainentity == survey$period[1]), 
+              aes(label=format(round(score, 1))),  
+              size=4, colour="#23373b", vjust=vjust) + 
+    ylim(y_min, y_max) + 
+    plot_theme()
+```
+
+# SWOT
+
+```{r}
+# Frametitle
+if (contrast) {
+  cat("##", "Differansen mellom", entity, "og", tolower(ctr_sum) ,"\n", sep=" ")
+} else {
+  cat("##", "Differansen mellom", entity, "og", tolower(stu_sum) ,"\n", sep=" ")
+}
+
+
+# Get list of manifest names in correct order.
+manifests <- data.frame("latent" = latents, stringsAsFactors=F) %>%
+             left_join(mutate(mm, latent = tolower(latent)), by = c("latent" = "latent")) %>%
+             mutate(text = ifelse(str_length(text) >= 90, 
+                                  paste0(strtrim(text, width=90-3), "..."), text))
+
+# Gather the data for the table
+pd <- df %>%
+      select(mainentity, one_of(paste0(tolower(manifests$manifest), "em"))) %>%
+      filter(mainentity == entity) %>%
+      group_by(mainentity) %>%
+      summarise_each(funs(m = mean(as.numeric(.), na.rm=T)))
+
+# Add the contrast (average of the current or previous study)
+if (contrast) {
+  pd <- cd %>%
+        select(one_of(paste0(tolower(manifests$manifest), "em")), w) %>%
+        summarise_each(funs(wm = weighted.mean(as.numeric(.), w=w, na.rm=T)), -w) %>% 
+        mutate(mainentity = ctr_sum) %>%
+        bind_rows(pd, .)
+} else {
+  pd <- df %>%
+        select(one_of(paste0(tolower(manifests$manifest), "em")), w) %>%
+        summarise_each(funs(wm = weighted.mean(as.numeric(.), w=w, na.rm=T)), -w) %>%
+        mutate(mainentity = stu_sum) %>%
+        bind_rows(pd, .)
+}
+
+# Convert to a longer format and convert to proper variable names.
+pd <- pd %>%
+      gather(manifest, score, -mainentity) %>% 
+      mutate(manifest = gsub("^q", "Q", manifest)) %>%
+      mutate(manifest = gsub("em$|EM$", "", manifest)) %>%
+      left_join(manifests, by = c("manifest" = "manifest")) %>%
+      mutate(manifest = factor(manifest, levels=unique(manifest))) %>%
+      mutate(mainentity = factor(mainentity, levels=unique(mainentity))) %>%
+      spread(mainentity, score, fill=0)
+
+# Shorten the entity name.
+names(pd)[names(pd) == entity] <- entity_short
+
+# Calculate the difference between the entity and the average
+if (stu_sum %in% names(pd))
+  pd$difference <- pd[[entity_short]] - pd[[stu_sum]]
+
+if (ctr_sum %in% names(pd))
+  pd$difference <- pd[[entity_short]] - pd[[ctr_sum]]
+
+# Check if there is an actual difference to calculate
+if (stu_sum %in% names(pd))
+  pd$difference[pd[[stu_sum]] == 0] <- NA
+
+if (ctr_sum %in% names(pd))
+  pd$difference[pd[[ctr_sum]] == 0] <- NA
+
+# Ready the data for plotting
+pd <- pd %>%
+      select(manifest, text, difference) %>%
+      mutate("sign" = ifelse(difference > 0, 1, 0)) %>%
+      mutate(sign = factor(sign, levels=unique(sign))) %>%
+      mutate(text = paste(manifest, text, sep = " - ")) %>%
+      mutate(text = factor(text, levels=rev(unique(text))))
+
+y_min <- 5*floor(min(pd$difference, na.rm=TRUE)/4)
+y_max <- 5*ceiling(max(pd$difference, na.rm=TRUE)/4)
+
+
+p <- ggplot(data=pd, aes(x=text, y=difference, fill=sign))
+p + geom_bar(stat="identity", width=0.5, position="dodge") + 
+    coord_flip(ylim = c(y_min, y_max)) +
+    scale_fill_manual(values=setNames(ggcolors, c(0,1))) +
+    geom_hline(xintercept=0, size=.5, colour = "#D0D0D0") +
+    geom_text(data = filter(pd, sign == 1), 
+              aes(label=format(round(difference, 1))),  
+              size=3, colour="#23373b", vjust=.2, hjust=-.55) +
+    geom_text(data = filter(pd, sign == 0), 
+              aes(label=format(round(difference, 1))),  
+              size=3, colour="#23373b", vjust=.3, hjust=+1.5) +
+    plot_theme(legend="none") + 
+    theme(plot.margin = unit(c(1, 1.5, 0.5, 0.5), "lines"),
+          axis.text.x = element_text(angle = 45, hjust = 1),
+          panel.grid = element_blank())
+```
+
+
+# Resultat per spørsmål
+
+```{r}
+# Frametitle
+cat("##", "","\n", sep=" ")
+
+# Get list of manifest names in correct order.
+manifests <- data.frame("latent" = latents, stringsAsFactors=F) %>%
+             left_join(mutate(mm, latent = tolower(latent)), by = c("latent" = "latent"))
+
+# Gather the data for the table
+pd <- df %>%
+      select(mainentity, one_of(paste0(tolower(manifests$manifest), "em"))) %>%
+      filter(mainentity == entity) %>%
+      group_by(mainentity) %>%
+      summarise_each(funs(m = mean(as.numeric(.), na.rm=T)))
+
+# Add the contrast (average of the current or previous study)
+if (contrast) {
+  pd <- cd %>%
+        select(one_of(paste0(tolower(manifests$manifest), "em")), w) %>%
+        summarise_each(funs(wm = weighted.mean(as.numeric(.), w=w, na.rm=T)), -w) %>%
+        mutate(mainentity = ctr_sum) %>%
+        bind_rows(pd, .)
+} else {
+  pd <- df %>%
+        select(one_of(paste0(tolower(manifests$manifest), "em")), w) %>%
+        summarise_each(funs(wm = weighted.mean(as.numeric(.), w=w, na.rm=T)), -w) %>%
+        mutate(mainentity = stu_sum) %>%
+        bind_rows(pd, .)
+}
+
+# Convert to a longer format and convert to proper variable names.
+pd <- pd %>%
+      gather(manifest, score, -mainentity) %>% 
+      mutate(manifest = gsub("^q", "Q", manifest)) %>%
+      mutate(manifest = gsub("em$|EM$", "", manifest)) %>%
+      left_join(manifests, by = c("manifest" = "manifest")) %>%
+      mutate(manifest = factor(manifest, levels=unique(manifest))) %>%
+      mutate(mainentity = factor(mainentity, levels=unique(mainentity))) %>%
+      spread(mainentity, score)
+
+
+# Todo: Avoid doing the subsitution twice, but had problems with encoding.
+table_head <- names(pd)
+table_head <- sub(paste0(" ?", cf$replacement[cf$original == "entity_short"], "[^ ]+ ?"), "", table_head, ignore.case=T)
+
+table_head[tolower(table_head) %in% tolower(cf$original)] <-
+  cf$replacement[tolower(cf$original) %in% tolower(table_head)]
+
+# Insert shortened names
+names(pd) <- table_head
+
+# names(pd)[3] <- iconv(names(pd)[3], from="UTF-8",  to="latin1")
+if (Sys.info()[1] == "Windows")
+  names(pd) <- sapply(names(pd), 
+                        function(x) ifelse(Encoding(x) != "unknown", 
+                                         iconv(x, from="UTF-8", to="latin1"), x))
+
+# Calculate the difference between the entity and the average
+if ( all(c(stu_sum, entity_short) %in% names(pd)) )
+  pd$difference <- pd[[entity_short]] - pd[[stu_sum]]
+
+if ( all(c(ctr_sum, entity_short) %in% names(pd)) )
+  pd$difference <- pd[[entity_short]] - pd[[ctr_sum]]
+
+# Change the name of "difference"
+if ("difference" %in% names(pd))
+  names(pd)[names(pd) == "difference"] <- cf$replacement[cf$original == "difference"]
+
+# Get length of column headers for the table, and truncate manifest text if needed:
+text_limit <- 110 - 2*length(names(pd)) - sum(str_length(names(pd)[-2]))
+text_limit <- floor(text_limit/5)*5
+
+# Minimum text_limit should be the name of the text column
+min_length <- str_length(cf$replacement[cf$original == "text"])
+
+if (text_limit < min_length)
+  text_limit <- min_length
+
+# Shorten the strings and insert them into the data
+text <- pd[[cf$replacement[cf$original == "text"]]]
+
+pd[[cf$replacement[cf$original == "text"]]] <- 
+  ifelse(str_length(text) >= text_limit, paste0(strtrim(text, width=text_limit-3), "..."), text)
+
+
+# Divide the data for the two tables
+first_table <- filter(pd, latent %in% latents[1:3]) %>%
+               select(-latent) %>%
+               xtable(digits=1)
+
+second_table <- filter(pd, latent %in% latents[4:length(latents)]) %>%
+                select(-latent) %>%
+                xtable(digits=1)
+
+# Capture output and alter to color negative values in red.
+first_table <- capture.output(print.xtable(first_table, size="\\tiny", comment=F, include.rownames=F))
+second_table <- capture.output(print.xtable(second_table, size="\\tiny", comment=F, include.rownames=F))
+
+first_table <- gsub("(\\s|^)(-\\d?\\d\\.\\d*)", "\\1\\\\textcolor[HTML]{D2232B}{\\2}", first_table)
+second_table <-  gsub("(\\s|^)(-\\d?\\d\\.\\d*)", "\\1\\\\textcolor[HTML]{D2232B}{\\2}", second_table)
+
+
+# Print the first table
+cat(first_table, sep="\n")
+```
+
+
+```{r}
+# Frametitle
+cat("##", "","\n", sep=" ")
+
+cat(second_table, sep="\n")
+```
+
+`r if(subentities == T) paste("# Resultat per", tolower(cf$replacement[cf$original == "subentity" & !is.na(cf$original)]))`
+
+```{r, eval=subentities}
+# Frametitle
+cat("##", "", "\n", sep=" ")
+
+# Get list of manifest names in correct order.
+manifests <- data.frame("latent" = latents, stringsAsFactors=F) %>%
+             left_join(mutate(mm, latent = tolower(latent)), by = c("latent" = "latent"))
+
+# Gather the data for the table
+pd <- df %>%
+      select(mainentity, subentity, one_of(paste0(tolower(manifests$manifest), "em"))) %>%
+      filter(mainentity == entity) %>%
+      group_by(mainentity, subentity) %>%
+      summarise_each(funs(m = mean(as.numeric(.), na.rm=T)))
+
+# Add the contrast (average of the entity)
+pd <- df %>%
+      select(mainentity, one_of(paste0(tolower(manifests$manifest), "em"))) %>%
+      filter(mainentity == entity) %>%
+      summarise_each(funs(m = mean(as.numeric(.), na.rm=T)), -mainentity) %>%
+      mutate(subentity = ent_sum) %>%
+      bind_rows(pd, .) %>%
+      select(-mainentity)
+
+# Convert to a longer format and convert to proper variable names.
+pd <- gather(pd, manifest, score, -subentity) %>% 
+      mutate(manifest = gsub("^q", "Q", manifest)) %>%
+      mutate(manifest = gsub("em$|EM$", "", manifest)) %>%
+      left_join(manifests, by = c("manifest" = "manifest")) %>%
+      mutate(manifest = factor(manifest, levels=unique(manifest))) %>%
+      mutate(subentity = factor(subentity, levels=unique(subentity))) %>%
+      spread(subentity, score)
+
+
+# Todo: Avoid doing the subsitution twice, but had problems with encoding.
+table_head <- names(pd)
+table_head <- sub(paste0(" ?", cf$replacement[cf$original == "entity_short"], "[^ ]+ ?"), "", table_head, ignore.case=T)
+
+table_head[tolower(table_head) %in% tolower(cf$original)] <-
+  cf$replacement[tolower(cf$original) %in% tolower(table_head)]
+
+# Insert shortened names
+names(pd) <- table_head
+
+# names(data)[3] <- iconv(names(data)[3], from="UTF-8",  to="latin1")
+if (Sys.info()[1] == "Windows")
+  names(pd) <- sapply(names(pd), 
+                        function(x) ifelse(Encoding(x) != "unknown", 
+                                         iconv(x, from="UTF-8", to="latin1"), x))
+
+# Calculate the difference between the entity and the average
+if ( all(c(ent_sum, entity_short) %in% names(pd)) )
+  pd$difference <- pd[[entity_short]] - pd[[ent_sum]]
+
+if ( all(c(ctr_sum, entity_short) %in% names(pd)) )
+  pd$difference <- pd[[entity_short]] - pd[[ctr_sum]]
+
+# Change the name of "difference"
+if ("difference" %in% names(pd))
+  names(pd)[names(pd) == "difference"] <- cf$replacement[cf$original == "difference"]
+
+# Get length of column headers for the table, and truncate manifest text if needed:
+text_limit <- 110 - 2*length(names(pd)) - sum(str_length(names(pd)[-2]))
+text_limit <- floor(text_limit/5)*5
+
+# Minimum text_limit should be the name of the text column
+min_length <- str_length(cf$replacement[cf$original == "text"])
+
+if (text_limit < min_length)
+  text_limit <- min_length
+
+# Shorten the strings and insert them into the data
+text <- pd[[cf$replacement[cf$original == "text"]]]
+
+pd[[cf$replacement[cf$original == "text"]]] <- 
+  ifelse(str_length(text) >= text_limit, paste0(strtrim(text, width=text_limit-3), "..."), text)
+
+
+# Divide the data for the two tables
+first_table <- filter(pd, latent %in% latents[1:3]) %>%
+               select(-latent) %>%
+               xtable(digits=1)
+
+second_table <- filter(pd, latent %in% latents[4:length(latents)]) %>%
+                select(-latent) %>%
+                xtable(digits=1)
+
+# Capture output and alter to color negative values in red.
+first_table <- capture.output(print.xtable(first_table, size="\\tiny", comment=F, include.rownames=F))
+second_table <- capture.output(print.xtable(second_table, size="\\tiny", comment=F, include.rownames=F))
+
+first_table <- gsub("(\\s|^)(-\\d?\\d\\.\\d*)", "\\1\\\\textcolor[HTML]{D2232B}{\\2}", first_table)
+second_table <-  gsub("(\\s|^)(-\\d?\\d\\.\\d*)", "\\1\\\\textcolor[HTML]{D2232B}{\\2}", second_table)
+
+
+# Print the first table
+cat(first_table, sep="\n")
+```
+
+
+```{r, eval=subentities}
+# Frametitle
+cat("##", "", "\n", sep=" ")
+
+cat(second_table, sep="\n")
+```
+
+# Påstander
+
+```{r, eval=statement_metric}
+## USED FOR METRIC STATEMENTS
+
+# Frametitle
+cat("##", "","\n", sep="")
+
+# Get all statement vars and look for the unique ones (TODO: prep. for more than one statement section)
+mvar <- sub("^(q[0-9]{1,2}).?", "\\1", mm$manifest[mm$latent == "statement_metric"], ignore.case=TRUE) %>%
+        na.omit() %>%
+        unique()
+
+# Get the manifests
+manifests <- mm %>%
+             select(manifest, text) %>%
+             filter(grepl(paste0("^", mvar), manifest, ignore.case=TRUE)) %>%
+             mutate(manifest = tolower(manifest))
+
+# Gather the data for the table
+pd <- df %>%
+      select(mainentity, starts_with(mvar)) %>%
+      filter(mainentity == entity) %>%
+      group_by(mainentity) %>%
+      mutate_each(funs(clean = gsub("([0-9]+).*$", "\\1", .)), -mainentity) %>%
+      mutate_each(funs(rs = (as.numeric(.)-1)*(100/9)), -mainentity) %>%
+      summarise_each(funs(m = mean(., na.rm=TRUE)), -mainentity)
+
+# Add the contrast (average of the current or previous study)
+if (contrast) {
+  pd <- cd %>%
+        select(starts_with(mvar), w) %>%
+        mutate_each(funs(clean = gsub("([0-9]+).*$", "\\1", .)), -w) %>%
+        mutate_each(funs(rs = (as.numeric(.)-1)*(100/9)), -w) %>%
+        summarise_each(funs(m = weighted.mean(., w=w, na.rm=TRUE)), -w) %>%
+        mutate(mainentity = ctr_sum) %>%
+        bind_rows(pd, .)
+
+} else {
+  pd <- df %>%
+        select(starts_with(mvar), w) %>%
+        mutate_each(funs(clean = gsub("([0-9]+).*$", "\\1", .)), -w) %>%
+        mutate_each(funs(rs = (as.numeric(.)-1)*(100/9)), -w) %>%
+        summarise_each(funs(m = weighted.mean(., w=w, na.rm=TRUE)), -w) %>%
+        mutate(mainentity = stu_sum) %>%
+        bind_rows(pd, .)
+}
+
+# Convert to a longer format and convert to proper variable names.
+pd %<>% gather(statement, score, -mainentity) %>%
+        left_join(manifests, by=c("statement" = "manifest")) %>%
+        mutate(text = str_wrap(text, 40))
+
+y_max <- ifelse(max(pd$score) < 90, round(max(pd$score)+10, -1), 100)
+y_min <- ifelse(min(pd$score) > 10, round(min(pd$score)-10, -1), 0)
+
+# Create the plot
+p <- ggplot(pd, aes(x=text, y=score, fill=mainentity, ymax=max(score)))
+p + geom_bar(stat="identity", width=0.5, position=position_dodge(width=0.6)) + 
+    scale_color_manual(values = setNames(ggcolors, levels(pd$mainentity))) +
+    scale_x_discrete(labels = function(x) str_wrap(x, width = 15)) +
+    geom_text(aes(label=format(round(score, 1))), position=position_dodge(width=0.6),
+              size=3, colour="#23373b", vjust=-1.1) + 
+    scale_y_continuous(limits=c(y_min,y_max), oob = rescale_none) +
+    guides(fill = guide_legend(keywidth = .5, keyheight = .5)) +
+    plot_theme()
+
+```
+
+```{r, eval=statement_categorical}
+## USED FOR CATEGORICAL STATEMENTS
+
+# Frametitle
+cat("##", "","\n", sep="")
+
+mvar <- sub("^(q[0-9]{1,2}).?", "\\1", mm$manifest[mm$latent == "statement_categorical"], ignore.case=TRUE) %>%
+        na.omit() %>%
+        unique()
+
+# Get the manifests
+manifests <- mm %>%
+             select(manifest, text) %>%
+             filter(grepl(paste0("^", mvar), manifest, ignore.case=TRUE)) %>%
+             mutate(manifest = tolower(manifest))
+
+# Gather the data for the table
+pd <- df %>%
+      select(mainentity, starts_with(mvar)) %>%
+      filter(mainentity == entity) %>%
+      gather(statement, answer, -mainentity) %>%
+      mutate(answer = factor(answer, 
+              levels=unique(na.omit(answer)))) %>%
+      count(mainentity, statement, answer) %>%
+      filter(!is.na(answer)) %>%
+      mutate(proportion = prop.table(n)) %>%
+      select(-n) %>%
+      spread(answer, proportion, fill = 0)
+
+# Add the contrast (average of the current or previous study)
+if (contrast) {
+  pd <- cd %>%
+        select(starts_with(mvar), w) %>%
+        gather(statement, answer, -w) %>%
+        mutate(answer = factor(answer, 
+               levels=unique(na.omit(answer)))) %>%
+        count(statement, answer, wt=w) %>%
+        filter(!is.na(answer)) %>%
+        mutate(proportion = prop.table(n)) %>%
+        select(-n) %>%
+        mutate(mainentity = ctr_sum) %>%
+        spread(answer, proportion, fill = 0) %>%
+        bind_rows(pd, .)
+
+} else {
+  pd <- df %>%
+        select(starts_with(mvar), w) %>%
+        gather(statement, answer, -w) %>%
+        mutate(answer = factor(answer, 
+                levels=unique(na.omit(answer)))) %>%
+        count(statement, answer, wt=w) %>%
+        filter(!is.na(answer)) %>%
+        mutate(proportion = prop.table(n)) %>%
+        select(-n) %>%
+        mutate(mainentity = stu_sum) %>%
+        spread(answer, proportion, fill = 0) %>%
+        bind_rows(pd, .)
+}
+
+# Convert to a longer format and convert to proper variable names.
+pd %<>% gather(answer, proportion, -mainentity, -statement) %>%
+        left_join(manifests, by=c("statement" = "manifest")) %>%
+        mutate(text = str_wrap(text, 40)) %>%
+        mutate(mainentity = factor(as.character(mainentity), levels = c(entity, if (contrast) ctr_sum else stu_sum)))
+
+# Create the plot
+p <- ggplot(pd, aes(x=answer, y=proportion, fill=mainentity, group=mainentity, ymin=0, ymax=1))
+p + geom_bar(stat="identity", width=0.5, position=position_dodge(width=0.6)) +
+    scale_fill_manual(values=setNames(ggcolors, levels(pd$mainentity)), drop=FALSE) +
+    facet_wrap(~ text, ncol=3, scales="free_x") +
+    scale_x_discrete(labels = function(x) str_wrap(x, width = 15)) + 
+    scale_y_continuous(labels=percent) +
+    geom_text(aes(label=paste0(round(proportion*100, digits=0), "%")),  
+              size=2, colour="#23373b", position=position_dodge(width=0.6), vjust=-1.1, hjust=.35) +
+    guides(fill = guide_legend(keywidth = .5, keyheight = .5)) +
+    plot_theme() + 
+    theme(panel.grid = element_blank(),
+          panel.margin = unit(2, "lines"))
+```
+
+# Andel klager
+
+```{r}
+# Frametitle
+cat("##", mm$text[mm$latent == "complaint" & !is.na(mm$latent)], "\n", sep=" ")
+
+# Variable
+mvar <- mm$manifest[mm$latent == "complaint" & !is.na(mm$latent)]
+
+# Gather the data for the table
+pd <- df %>%
+      mutate(complaint = df[[tolower(mvar)]]) %>%
+      select(mainentity, complaint) %>%
+      filter(mainentity == entity) %>%
+      mutate(complaint = factor(complaint, levels=unique(na.omit(complaint)))) %>%
+      count(mainentity, complaint) %>%
+      na.omit() %>%
+      mutate(proportion = prop.table(n)) %>%
+      select(-n)
+
+# Add the contrast (average of the current or previous study)
+if (contrast) {
+  pd <- cd %>%
+        mutate(complaint = cd[[tolower(mvar)]]) %>%
+        select(complaint, w) %>%
+        mutate(complaint = factor(complaint, levels=unique(na.omit(complaint)))) %>%
+        count(complaint, wt=w) %>%
+        na.omit() %>%
+        mutate(proportion = prop.table(n)) %>%
+        select(-n) %>%
+        mutate(mainentity = ctr_sum) %>%
+        bind_rows(pd, .)
+
+} else {
+  pd <- df %>%
+        mutate(complaint = df[[tolower(mvar)]]) %>%
+        select(complaint, w) %>%
+        mutate(complaint = factor(complaint, levels=unique(na.omit(complaint)))) %>%
+        count(complaint, wt=w) %>%
+        na.omit() %>%
+        mutate(proportion = prop.table(n)) %>%
+        select(-n) %>%
+        mutate(mainentity = stu_sum) %>%
+        bind_rows(pd, .)
+}
+
+# Convert to proper format for plotting
+pd %<>% spread(complaint, proportion, fill = 0) %>%
+        gather(complaint, proportion, -mainentity) %>%
+        mutate(mainentity = factor(as.character(mainentity), levels = c(entity, if (contrast) ctr_sum else stu_sum)))
+
+# Create the plot
+p <- ggplot(pd, aes(x=complaint, y=proportion, fill=mainentity, group=mainentity, ymin=0, ymax=1))
+p + geom_bar(stat="identity", width=0.5, position=position_dodge(width=0.6)) +
+    scale_x_discrete(labels = function(x) str_wrap(as.character(x), width = 15)) + 
+    scale_y_continuous(labels=percent) +
+    geom_text(aes(label=paste0(round(proportion*100, digits=0), "%")),  
+              size=3, colour="#23373b", position=position_dodge(width=0.6), vjust=-1.1, hjust=.35) +
+    guides(fill = guide_legend(keywidth = .5, keyheight = .5)) +
+    plot_theme() + 
+    theme(title = element_text(hjust = -.1))
+```
+
+
+# Klager
+
+```{r, results='hide'}
+# Frametitle
+frametitle <- paste("##", mm$text[mm$latent == "open_complaint" & !is.na(mm$latent)][1], "(uredigerte svar)")
+
+# Variable
+mvar <- mm$manifest[mm$latent == "open_complaint" & !is.na(mm$latent)]
+
+pd <- df %>%
+      select(mainentity, one_of(tolower(mvar))) %>%
+      gather(var, complaint, -mainentity) %>%
+      filter(mainentity == entity & !is.na(complaint)) %>%
+      mutate(complaint = gsub("^[!#$%()*,.:;<=>@^_`|~.{}-]|[\\\\]*", "", complaint)) %>%
+      mutate(complaint = paste("-", complaint)) %>%
+      mutate(nchars = str_length(complaint), nlines = ceiling(nchars/135), tlines = cumsum(nlines)) %>%
+      mutate(page = ifelse(tlines <= 25, 1, ifelse(tlines <= 50 & tlines > 25, 2, 3)))
+
+if (nrow(pd) == 0) {
+  E0 <- FALSE
+  E1 <- FALSE
+  E2 <- FALSE
+  E3 <- FALSE
+  E_none <- TRUE
+  
+  } else if (max(pd$tlines > 75)) {
+  E0 <- TRUE
+  E1 <- FALSE
+  E2 <- FALSE
+  E3 <- FALSE
+  E_none <- FALSE
+
+  } else {
+  E0 <- FALSE
+  E1 <- any(pd$page == 1)
+  E2 <- any(pd$page == 2)
+  E3 <- any(pd$page == 3)
+  E_none <- FALSE   
+}
+```
+
+```{r, eval=E0}
+# Frame title and content
+cat(frametitle, "Se vedlagt regneark i Excel format.", sep="\n")
+
+# Write data
+pd %>% mutate(complaint = gsub("^- ", "", complaint)) %>% 
+       select("Klager" = complaint) %>%
+       write.csv2(paste0("Reports/", entity, " - klager", ".csv"), fileEncoding="latin1")
+```
+
+```{r, eval=E1, results='asis'}
+cat(frametitle, pd$complaint[pd$page == 1], sep="\n")
+```
+
+```{r, eval=E2, results='asis'}
+cat(frametitle, pd$complaint[pd$page == 2], sep="\n")
+```
+
+```{r, eval=E3, results='asis'}
+cat(frametitle, pd$complaint[pd$page == 3], sep="\n")
+```
+
+```{r, eval=E_none}
+cat(frametitle, "Ingen årsaker oppgitt av respondentene.", sep="\n")
+```
+
+```{r, eval=open_wouldcomplain, results='hide'}
+# Frametitle
+frametitle <- paste("##", mm$text[mm$latent == "open_wouldcomplain" & !is.na(mm$latent)][1], "(uredigerte svar)")
+
+# Variable
+mvar <- mm$manifest[mm$latent == "open_wouldcomplain" & !is.na(mm$latent)]
+
+pd <- df %>%
+      select(mainentity, one_of(tolower(mvar))) %>%
+      gather(var, complaint, -mainentity) %>%
+      filter(mainentity == entity & !is.na(complaint)) %>%
+      mutate(complaint = gsub("^[!#$%()*,.:;<=>@^_`|~.{}-]|[\\\\]*", "", complaint)) %>%
+      mutate(complaint = paste("-", complaint)) %>%
+      mutate(nchars = str_length(complaint), nlines = ceiling(nchars/135), tlines = cumsum(nlines)) %>%
+      mutate(page = ifelse(tlines <= 25, 1, ifelse(tlines <= 50 & tlines > 25, 2, 3)))
+
+if (nrow(pd) == 0) {
+  E0 <- FALSE
+  E1 <- FALSE
+  E2 <- FALSE
+  E3 <- FALSE
+  E_none <- TRUE
+  
+  } else if (max(pd$tlines > 75)) {
+  E0 <- TRUE
+  E1 <- FALSE
+  E2 <- FALSE
+  E3 <- FALSE
+  E_none <- FALSE
+
+  } else {
+  E0 <- FALSE
+  E1 <- any(pd$page == 1)
+  E2 <- any(pd$page == 2)
+  E3 <- any(pd$page == 3)
+  E_none <- FALSE   
+}
+```
+
+```{r, eval=all(E0, open_wouldcomplain)}
+# Frame title and content
+cat(frametitle, "Se vedlagt regneark i Excel format.", sep="\n")
+
+# Write data
+pd %>% mutate(complaint = gsub("^- ", "", complaint)) %>% 
+       select("Klager" = complaint) %>%
+       write.csv2(paste0("Reports/", entity, " - grunn til klage", ".csv"), fileEncoding="latin1")
+```
+
+```{r, eval=all(E1, open_wouldcomplain), results='asis'}
+cat(frametitle, pd$complaint[pd$page == 1], sep="\n")
+```
+
+```{r, eval=all(E2, open_wouldcomplain), results='asis'}
+cat(frametitle, pd$complaint[pd$page == 2], sep="\n")
+```
+
+```{r, eval=all(E3, open_wouldcomplain), results='asis'}
+cat(frametitle, pd$complaint[pd$page == 3], sep="\n")
+```
+
+```{r, eval=all(E_none, open_wouldcomplain)}
+cat(frametitle, "Ingen årsaker oppgitt av respondentene.", sep="\n")
+```
+
+`r if (open_noncomplaint) "# Ikke klaget"`
+
+```{r, eval=open_noncomplaint, results='hide'}
+# Frametitle
+frametitle <- paste("##", mm$text[mm$latent == "open_noncomplaint" & !is.na(mm$latent)][1], "(uredigerte svar)")
+
+# Variable
+mvar <- mm$manifest[mm$latent == "open_noncomplaint" & !is.na(mm$latent)]
+
+pd <- df %>%
+      select(mainentity, one_of(tolower(mvar))) %>%
+      gather(var, noncomplaint, -mainentity) %>%
+      filter(mainentity == entity & !is.na(noncomplaint)) %>%
+      mutate(noncomplaint = gsub("^[!#$%()*,.:;<=>@^_`|~.{}-]|[\\\\]*", "", noncomplaint)) %>%
+      mutate(noncomplaint = paste("-", noncomplaint)) %>%
+      mutate(nchars = str_length(noncomplaint), nlines = ceiling(nchars/135), tlines = cumsum(nlines)) %>%
+      mutate(page = ifelse(tlines <= 25, 1, ifelse(tlines <= 50 & tlines > 25, 2, 3)))
+
+if (nrow(pd) == 0) {
+  E0 <- FALSE
+  E1 <- FALSE
+  E2 <- FALSE
+  E3 <- FALSE
+  E_none <- TRUE
+  
+  } else if (max(pd$tlines > 75)) {
+  E0 <- TRUE
+  E1 <- FALSE
+  E2 <- FALSE
+  E3 <- FALSE
+  E_none <- FALSE
+
+  } else {
+  E0 <- FALSE
+  E1 <- any(pd$page == 1)
+  E2 <- any(pd$page == 2)
+  E3 <- any(pd$page == 3)
+  E_none <- FALSE   
+}
+```
+
+```{r, eval=all(E0, open_noncomplaint)}
+# Frame title and content
+cat(frametitle, "Se vedlagt regneark i Excel format.", sep="\n")
+
+# Write data
+pd %>% mutate(noncomplaint = gsub("^- ", "", noncomplaint)) %>% 
+       select("Ikke_klaget" = noncomplaint) %>%
+       write.csv2(paste0("Reports/", entity, " - ikke klaget", ".csv"), fileEncoding="latin1")
+```
+
+```{r, eval=all(E1, open_noncomplaint), results='asis'}
+cat(frametitle, pd$noncomplaint[pd$page == 1], sep="\n")
+```
+
+```{r, eval=all(E2, open_noncomplaint), results='asis'}
+cat(frametitle, pd$noncomplaint[pd$page == 2], sep="\n")
+```
+
+```{r, eval=all(E3, open_noncomplaint), results='asis'}
+cat(frametitle, pd$noncomplaint[pd$page == 3], sep="\n")
+```
+
+```{r, eval=all(E_none, open_noncomplaint)}
+cat(frametitle, "Ingen årsaker oppgitt av respondentene.", sep="\n")
+```
+
+# Åpne svar
+
+```{r, results='hide'}
+# Frametitle
+frametitle <- paste("##", mm$text[mm$latent == "open_answer" & !is.na(mm$latent)][1], "(uredigerte svar)")
+
+# Variable
+mvar <- mm$manifest[mm$latent == "open_answer" & !is.na(mm$latent)]
+
+# Åpne svar
+pd <- df %>%
+      select(mainentity, one_of(tolower(mvar))) %>%
+      gather(var, openanswer, -mainentity) %>%
+      filter(mainentity == entity & !is.na(openanswer)) %>%
+      mutate(openanswer = gsub("^[!#$%()*,.:;<=>@^_`|~.{}-]|[\\\\]*", "", openanswer)) %>%
+      mutate(openanswer = paste("-", openanswer)) %>%
+      mutate(nchars = str_length(openanswer), nlines = ceiling(nchars/135), tlines = cumsum(nlines)) %>%
+      mutate(page = ifelse(tlines <= 25, 1, ifelse(tlines <= 50 & tlines > 25, 2, 3)))
+
+
+if (nrow(pd) == 0) {
+  E0 <- FALSE
+  E1 <- FALSE
+  E2 <- FALSE
+  E3 <- FALSE
+  E_none <- TRUE
+  
+  } else if (max(pd$tlines > 75)) {
+  E0 <- TRUE
+  E1 <- FALSE
+  E2 <- FALSE
+  E3 <- FALSE
+  E_none <- FALSE
+
+  } else {
+  E0 <- FALSE
+  E1 <- any(pd$page == 1)
+  E2 <- any(pd$page == 2)
+  E3 <- any(pd$page == 3)
+  E_none <- FALSE   
+}
+```
+
+```{r, eval=E0}
+# Frame title and content
+cat(frametitle, "Se vedlagt regneark i Excel format.", sep="\n")
+
+# Write data
+pd %>% mutate(openanswer = gsub("^- ", "", openanswer)) %>% 
+       select("Apne svar" = openanswer) %>%
+       write.csv2(paste0("Reports/", entity, " - åpne svar", ".csv"), fileEncoding="latin1")
+```
+
+```{r, eval=E1, results='asis'}
+cat(frametitle, pd$openanswer[pd$page == 1], sep="\n")
+```
+
+```{r, eval=E2, results='asis'}
+cat(frametitle, pd$openanswer[pd$page == 2], sep="\n")
+```
+
+```{r, eval=E3, results='asis'}
+cat(frametitle, pd$openanswer[pd$page == 3], sep="\n")
+```
+
+```{r, eval=E_none}
+cat(frametitle, "Ingen årsaker oppgitt av respondentene.", sep="\n")
+```

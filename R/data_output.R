@@ -90,10 +90,8 @@ write_sheets <- function(df, wb, sheet="analysis", row=1L, append=TRUE) {
   
   # Get last row if sheet exists, or create if it does not.
   if (sheet_exists && isTRUE(append)) {
-    row <- 2L + nrow(openxlsx::readWorkbook(wb, 
-                                            sheet = sheet, 
-                                            colNames = FALSE,
-                                            skipEmptyRows = FALSE))
+    row <- 2L + nrow(openxlsx::read.xlsx(wb, sheet = sheet, colNames = FALSE,
+                                         skipEmptyRows = FALSE))
   } else if (sheet_exists) {
     openxlsx::removeWorksheet(wb, sheet)
     openxlsx::addWorksheet(wb, sheetName = sheet)
@@ -124,7 +122,7 @@ write_sheets <- function(df, wb, sheet="analysis", row=1L, append=TRUE) {
 
 write_clipboard <- function(df, encoding = "latin1") {
   
-  if (!Sys.info()[1] == "Windows") {
+  if (!identical(Sys.info()["sysname"], "Windows")) {
     stop("Writing to clipboard requires Windows OS")
   }
   

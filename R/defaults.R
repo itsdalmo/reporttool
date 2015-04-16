@@ -1,5 +1,5 @@
 # Default values ---------------------------------------------------------------
-default <- list(
+reporttool <- list(
   
   "input_formats" = c("xlsx", "csv", ""),
   
@@ -11,7 +11,7 @@ default <- list(
   "missing_values" = c("NA", " ", "", "#DIV/0!", "#NULL!", "#NAVN?", "#NAME?"),
   
   "sheet_names" = list(
-    "long" = c("data", "historic data", "contrast data", 
+    "long" = c("data", "contrast data", "historic data",
                "raw data", "entities", "measurement model", "config"),
     "short" = c("df", "cd", "hd", "rd", "ents", "mm", "cf")),
   
@@ -32,3 +32,4 @@ default <- list(
                 "beamerfontthememetropolis.sty", 
                 "beamerthemem.sty", "logo.eps"))
 )
+
