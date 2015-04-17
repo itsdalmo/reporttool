@@ -16,9 +16,9 @@ reporttool <- list(
     "short" = c("df", "cd", "hd", "rd", "ents", "mm", "cf")),
   
   "required_cols" = list(
-    "entities" = c("entity", "marketshare", "other"),
-    "measurement model" = c("latent", "manifest", "text"),
-    "config" = c("original", "replacement")
+    "ents" = c("entity", "n","marketshare", "other"),
+    "mm" = c("latent", "manifest", "text"),
+    "cfg" = c("original", "replacement")
     ),
   
   "beamer_tmp" = list(

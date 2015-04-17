@@ -7,7 +7,8 @@
 #' \describe{
 #'    \item{\code{get_sheet_names}}{Takes the path to a .xlsx file and returns
 #'    the sheetnames in the file if any sheets exist. Quicker than using
-#'    openxlsx::loadWorkbook() and names().}  
+#'    openxlsx::loadWorkbook() and names() when you do not need to preserve
+#'    styling/formatting.}  
 #' 
 #'    \item{\code{ordered_replace}}{Replace \code{x} with \code{y} where \code{x}
 #'    matches \code{by}. Matches and replacements retain the original order of
@@ -23,20 +24,17 @@
 #'    \item{\code{rescale_score}}{Takes vectors representing 10-point likert 
 #'    scales and transforms them to 100-point scales. (x-1)*(100/9)}
 #' }
-#'
-#' @param df A \code{data.frame}
-#' @param na.strings Optional: Provide a list of strings to convert to NA.
-#' @param var A numeric or character vector.
+#' @name Utilities
 #' @author Kristian D. Olsen
-#' @return \code{clean_missing} returns a \code{data.frame}, \code{clean_score}
-#' returns a vector of the same type (typically character) and \code{rescale_score} 
-#' returns a numeric vector.
+#' @import tools
+#' @import utils
 #' @export
 #' @examples 
 #' df <- clean_missing(df)
 #' df$Q3 <- clean_score(df$Q3)
 #' df$Q3 <- rescale_score(df$Q3)
 
+#' @rdname utilities
 clean_missing <- function(df, na.strings = reporttool$missing_values) {
   
   if (all(!is.null(df), nrow(df) > 0L)) {
@@ -47,19 +45,19 @@ clean_missing <- function(df, na.strings = reporttool$missing_values) {
   return(df)
 }
 
-#' @rdname clean_missing
+#' @rdname utilities
 #' @export
 clean_score <- function(var) {
   gsub("([0-9]+).*$", "\\1", var)
 }
 
-#' @rdname clean_missing
+#' @rdname utilities
 #' @export
 rescale_score <- function(var) {
-  suppressWarnings(ifelse(test %in% 1:10, (as.numeric(test)-1)*(100/9), NA))
+  suppressWarnings(ifelse(var %in% 1:10, (as.numeric(var)-1)*(100/9), NA))
 }
 
-#' @rdname clean_missing
+#' @rdname utilities
 #' @export
 ordered_replace <- function(x, by, y) {
   
@@ -81,12 +79,12 @@ ordered_replace <- function(x, by, y) {
 }
 
 #  Copied from sourcecode
-#' @rdname clean_missing
+#' @rdname utilities
 #' @export 
 get_sheet_names <- function(file) {
   
   xmlDir <- file.path(tempdir(), "_excelXMLRead")
-  xmlFiles <- unzip(file, exdir = xmlDir)
+  xmlFiles <- utils::unzip(file, exdir = xmlDir)
   
   on.exit(unlink(xmlDir, recursive = TRUE), add = TRUE)
   

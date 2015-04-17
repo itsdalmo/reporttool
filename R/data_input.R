@@ -1,3 +1,61 @@
+#' Read sheets from xlsx-files to a list.
+#'
+#' This function (a very thin wrapper for openxlsx functions) which reads all
+#' sheets from an .xlsx file to a list of data.frames.
+#'
+#' @param file The path to the .xlsx file.
+#' @param sheets Optional: Specify the sheets to be read.
+#' @param clean.missing Set to TRUE to clean typical NA-strings from .xlsx file.
+#' @author Kristian D. Olsen
+#' @return A list containing data.frames matching the sheets in the .xlsx file.
+#' If only one sheet is read, the function returns a data.frame instead.
+#' @note This function requires openxlsx.
+#' @import openxlsx
+#' @export
+#' @examples 
+#' x <- read_sheets("test.xlsx")
+
+read_sheets <- function(file, sheets = NULL, clean.missing = FALSE) {
+  
+  file <- validate_path(file)
+  
+  if (!file.exists(file)) {
+    stop("Path does not exist:\n", file, call. = FALSE)
+  }
+  
+  if(!has_extension(file, "xlsx")) {
+    stop("The specified path does not direct to a 'xlsx' file:\n", file, call. = FALSE)
+  }
+  
+  # Get the sheetnames to be read
+  wb <- get_sheet_names(file)
+  
+  if (!is.null(sheets)) {
+    sheets <- wb[tolower(wb) %in% tolower(sheets)]
+  } else {
+    sheets <- wb
+  }
+  
+  # Read data to list and set names
+  lst <- lapply(sheets, openxlsx::read.xlsx, xlsxFile = file)
+  names(lst) <- sheets
+  
+  # Set all list entries to be data.frame and/or clean NA
+  if (clean.missing) {
+    lst <- lapply(lst, clean_missing)
+  }
+  
+  lst <- lapply(lst, as.data.frame, stringsAsFactors = FALSE)
+  
+  # If only one sheet was read, return a data.frame instead
+  if (length(lst) == 1L) {
+    lst <- as.data.frame(lst[[1]])
+  }
+  
+  # Return
+  return(lst)
+}
+
 #' Read common data formats
 #'
 #' A simple wrapper for reading data. Currently supports
@@ -33,116 +91,6 @@ read_data <- function(file, encoding = "latin1") {
          xlsx = read_xlsx(file),
          read_dir(file, encoding))
 }
-
-#' Read sheets from xlsx-files to a list.
-#'
-#' This function (a very thin wrapper for openxlsx functions) which reads all
-#' sheets from an .xlsx file to a list of data.frames.
-#'
-#' @param file The path to the .xlsx file.
-#' @param sheets Optional: Specify the sheets to be read.
-#' @param clean.missing Set to TRUE to clean typical NA-strings from .xlsx file.
-#' @author Kristian D. Olsen
-#' @return A list containing data.frames matching the sheets in the .xlsx file.
-#' If only one sheet is read, the function returns a data.frame instead.
-#' @note This function requires openxlsx.
-#' @import openxlsx
-#' @export
-#' @examples 
-#' x <- read_sheets("test.xlsx")
-
-read_sheets <- function(file, sheets = NULL, clean.missing = FALSE) {
-  
-  file <- validate_path(file)
-  
-  if (!file.exists(file)) {
-    stop("Path does not exist:\n", file, call. = FALSE)
-  }
-  
-  if(!has_extension(file, "xlsx")) {
-    stop("The specified path does not direct to a 'xlsx' file:\n", file, call. = FALSE)
-  }
-
-  # Get the sheetnames to be read
-  wb <- get_sheet_names(file)
-  
-  if (!is.null(sheets)) {
-    sheets <- wb[tolower(wb) %in% tolower(sheets)]
-  } else {
-    sheets <- wb
-  }
-  
-  # Read data to list and set names
-  lst <- lapply(sheets, openxlsx::read.xlsx, xlsxFile = file)
-  names(lst) <- sheets
-  
-  # Set all list entries to be data.frame and/or clean NA
-  if (clean.missing) {
-    lst <- lapply(lst, clean_missing)
-  }
-  
-  lst <- lapply(lst, as.data.frame, stringsAsFactors = FALSE)
-
-  # If only one sheet was read, return a data.frame instead
-  if (length(lst) == 1L) {
-    lst <- as.data.frame(lst[[1]])
-  }
-
-  # Return
-  return(lst)
-}
-
-#' Collate one or more files to a list (for an EPSI-object).
-#'
-#' This function takes one or more files (or a directory) and collates them to
-#' a list to be converted to a EPSI-object. It is not meant for other
-#' uses. The function only looks for prespecified structures.
-#' 
-#' @param input file to a directory or xlsx-file with the input data
-#' @param contrast Optional file to historic data (xlsx or csv format)
-#' @param historic Optional file to historic data (xlsx or csv format)
-#' @param encoding Encoding for files (if reading directory or csv). Defaults
-#' to 'latin1'.
-#' @author Kristian D. Olsen
-#' @return A list of data.frames from xlsx sheets and/or other files.
-#' @seealso \code{\link{read_sheets}} for a function that reads all sheets
-#' of a xlsx file to a list.
-#' @note This function requires openxlsx. The function attempts to read 
-#' CSV-files as semicolon separated first, and then comma.
-#' @export
-#' @examples 
-#' x <- get_input("input.xlsx", "contrast.csv")
-
-# get_input <- function(input, contrast = NULL, historic = NULL, encoding = "latin1") {
-#   
-#   if (!has_extension(input, "xlsx"))
-#     stop("Input has to be a xlsx file.", call. = FALSE)
-#   
-#   lst <- read_data(input, encoding)
-#   
-#   if (!inherits(lst, "list")) {
-#     lst <- list("input" = lst)
-#   }
-#   
-#   # Add contrast data (and overwrite if necessary)
-#   if (!is.null(contrast)) {
-#     if ("contrast data" %in% names(lst))
-#       message("Overwriting existing contrast data with:\n", contrast)
-#     
-#     lst[["contrast data"]] <- read_data(contrast, encoding)
-#   }
-#   
-#   # Add historical data (and overwrite if necessary)
-#   if (!is.null(historic)) {
-#     if ("historic data" %in% names(lst))
-#       message("Overwriting existing historic data with:\n", historic)
-#     
-#     lst[["historic data"]] <- read_data(historic, encoding)
-#   }
-#   
-#   return(lst)
-#   
-# }
 
 # Input wrappers ---------------------------------------------------------------
 
