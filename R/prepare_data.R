@@ -94,7 +94,7 @@ assign_input_data <- function(lst, envir) {
 prepare_data <- function(input, rawdata = NULL, latents=NULL, write=TRUE) {
   
   # Read in the data if input is a .xlsx file
-  if (inherits(input, "character")) {
+  if (is.character(input) && has_extension(input, "xlsx")) {
     input <- validate_path(input)
     input <- read_data(input)
   }
@@ -114,7 +114,7 @@ prepare_data <- function(input, rawdata = NULL, latents=NULL, write=TRUE) {
   has_mm_cols <- all(reporttool$required_cols$mm %in% names(input$mm))
   
   if (!has_mm) {
-    stop("Measurement model was not found", call. = FALSE)
+    stop("Measurement model was not found in input", call. = FALSE)
   } else if (!has_mm_cols) {
     stop("Measurement model does not contain the necessary columns", call. = FALSE)
   }
@@ -131,11 +131,11 @@ prepare_data <- function(input, rawdata = NULL, latents=NULL, write=TRUE) {
   if (!is.null(rawdata)) {
     
     if ("df" %in% names(input)) {
-      warning("Data already exsists in input and will be replaced", call = FALSE)
+      warning("Data exsists in input and will be overwritten", call = FALSE)
     }
     
     # Rawdata can be .xlsx or a data.frame
-    if (inherits(rawdata, "character") && has_extension(rawdata, "xlsx")) {
+    if (is.character(rawdata) && has_extension(rawdata, "xlsx")) {
       rawdata <- validate_path(rawdata)
       input[["df"]] <- read_data(rawdata)
     } else if(inherits(rawdata, "data.frame")) {
@@ -148,7 +148,7 @@ prepare_data <- function(input, rawdata = NULL, latents=NULL, write=TRUE) {
   
   # Check if columnnames are correct
   if (!all(tolower(input$mm$manifest) %in% names(input$df))) {
-    warning("Replacing columnnames in data with measurment model", call. = FALSE)
+    message("Replacing columnnames in data")
     names(input$df) <- add_modelnames(names(input$df), input$mm$manifest)
   }
   
@@ -158,17 +158,17 @@ prepare_data <- function(input, rawdata = NULL, latents=NULL, write=TRUE) {
   
   if (!"w" %in% names(input$df)) {
     if (has_ents && length(input$ents$marketshare) == nrow(input$ents)) {
-      warning("Adding marketshare-based weights to data", call. = FALSE)
+      message("Adding weights")
       input$df["w"] <- add_weights(input$df[[ent_var]], input$ents)
     } else {
-      warning("Adding natural weights to data", call. = FALSE)
+      message("Adding natural weights to data")
       input$df["w"] <- 1
     }
   }
   
   # Add entities if they do not exist
   if (!has_ents) {
-    warning("Adding entities based on data", call. = FALSE)
+    message("Adding entities")
     input[["ents"]] <- add_entities(input$df[[ent_var]])
   } 
 
@@ -184,13 +184,13 @@ prepare_data <- function(input, rawdata = NULL, latents=NULL, write=TRUE) {
   model$EM <- paste0(model$manifest, "em")
 
   if (!all(model$EM %in% names(input$df))) {
-    warning("Adding EM-variables to data", call. = FALSE)
+    message("Adding EM-variables to data")
     input$df[model$EM] <- lapply(input$df[model$manifest], rescale_score)
   }
   
   # Calculate latents if they do not exist
   if (!all(reporttool$latent_names %in% names(input$df))) {
-    warning("Adding latents to data", call. = FALSE)
+    message("Adding latents to data")
     
     input$df[levels(model$latent)] <- lapply(levels(model$latent), function (i, df, mod) {
       rowMeans(df[mod$EM[mod$latent %in% i]], na.rm=TRUE)
@@ -200,7 +200,7 @@ prepare_data <- function(input, rawdata = NULL, latents=NULL, write=TRUE) {
   
   # Add missing-calculation to data
   if (!"percent_missing" %in% names(input$df)) {
-    warning("Adding missing-% to data", call. = FALSE)
+    message("Adding %-missing to data")
     
     input$df["percent_missing"] <- apply(input$df[tolower(model$EM)], 1,
                                          function(x) sum(is.na(x))/length(x))
@@ -229,6 +229,7 @@ add_modelnames <- function(nms, manifest) {
 }
 
 add_entities <- function(mainentity) {
+  
   ents <- na.omit(table(input$df$q1))
   ents <- data.frame(ents)
   
@@ -236,7 +237,7 @@ add_entities <- function(mainentity) {
   ents$marketshare <- ents$n/sum(ents$n)
   ents$other <- rep("No", nrow(ents))
   
-  ents
+  return(ents)
 }
 
 add_weights <- function(mainentity, ents) {

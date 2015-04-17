@@ -14,7 +14,7 @@
 #'    matches \code{by}. Matches and replacements retain the original order of
 #'    \code{x}.} 
 #'
-#'    \item{\code{clean_missing}}{Takes a \code{data.frame} and cleans
+#'    \item{\code{set_missing}}{Takes a \code{data.frame} and cleans
 #'    the default missing value strings. See \code{defaults.R} for these
 #'    strings.}
 #'
@@ -30,12 +30,12 @@
 #' @import utils
 #' @export
 #' @examples 
-#' df <- clean_missing(df)
+#' df <- set_missing(df)
 #' df$Q3 <- clean_score(df$Q3)
 #' df$Q3 <- rescale_score(df$Q3)
 
 #' @rdname utilities
-clean_missing <- function(df, na.strings = reporttool$missing_values) {
+set_missing <- function(df, na.strings = reporttool$missing_values) {
   
   if (all(!is.null(df), nrow(df) > 0L)) {
     df <- lapply(df, function(x) ifelse(x %in% na.strings, NA, x))

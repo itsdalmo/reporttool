@@ -54,8 +54,8 @@ generate_report <- function(report=NULL, entity=NULL, data=NULL, type="pdf") {
   md <- readLines(report, encoding="UTF-8")
   
   # Replace date with current date, and data with fixed path
-  md <- gsub("REPLACE_DATE", format(Sys.Date(), "%Y"), md, fixed=TRUE)
-  md <- gsub("REPLACE_DATA", data, md, fixed=TRUE)
+  md <- sub("REPLACE_DATE", format(Sys.Date(), "%Y"), md, fixed=TRUE)
+  md <- sub("REPLACE_DATA", data, md, fixed=TRUE)
   
   # Create the directory for the reports (if it does not exist) and
   # check if the required .sty files are present.

@@ -2,14 +2,14 @@
 % Please edit documentation in R/utils.R
 \name{Utilities}
 \alias{Utilities}
-\alias{clean_missing}
 \alias{clean_score}
 \alias{get_sheet_names}
 \alias{ordered_replace}
 \alias{rescale_score}
+\alias{set_missing}
 \title{Utilities}
 \usage{
-clean_missing(df, na.strings = reporttool$missing_values)
+set_missing(df, na.strings = reporttool$missing_values)
 
 clean_score(var)
 
@@ -35,7 +35,7 @@ A few wrappers to make a common tasks less verbose.
    matches \code{by}. Matches and replacements retain the original order of
    \code{x}.}
 
-   \item{\code{clean_missing}}{Takes a \code{data.frame} and cleans
+   \item{\code{set_missing}}{Takes a \code{data.frame} and cleans
    the default missing value strings. See \code{defaults.R} for these
    strings.}
 
@@ -47,7 +47,7 @@ A few wrappers to make a common tasks less verbose.
 }
 }
 \examples{
-df <- clean_missing(df)
+df <- set_missing(df)
 df$Q3 <- clean_score(df$Q3)
 df$Q3 <- rescale_score(df$Q3)
 }

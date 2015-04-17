@@ -42,14 +42,14 @@ read_sheets <- function(file, sheets = NULL, clean.missing = FALSE) {
   
   # Set all list entries to be data.frame and/or clean NA
   if (clean.missing) {
-    lst <- lapply(lst, clean_missing)
+    lst <- lapply(lst, set_missing)
   }
   
   lst <- lapply(lst, as.data.frame, stringsAsFactors = FALSE)
   
   # If only one sheet was read, return a data.frame instead
   if (length(lst) == 1L) {
-    lst <- as.data.frame(lst[[1]])
+    lst <- lst[[1]]
   }
   
   # Return
