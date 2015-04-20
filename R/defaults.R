@@ -30,5 +30,12 @@ reporttool <- list(
     "dir" = "rmd/beamer",
     "files" = c("beamercolorthememetropolis.sty", 
                 "beamerfontthememetropolis.sty", 
-                "beamerthemem.sty", "logo.eps"))
+                "beamerthemem.sty", "logo.eps")),
+  
+
+  "rmd_patterns" = list(
+    "chunk_begin" = "^```\\{r",
+    "chunk_end" = "```$",
+    "inline_code" = "`r"
+     )
 )
