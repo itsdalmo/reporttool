@@ -1,6 +1,9 @@
 # Default values ---------------------------------------------------------------
 reporttool <- list(
   
+  "ggcolors" = c("#F8766D", "#00BFC4", "#808080", 
+                 "#00BF7D", "#9590FF", "#A3A500", "#EA8331"),
+  
   "input_formats" = c("xlsx", "csv", ""),
   
   "output_formats" = c("xlsx", "csv", "txt", ""),

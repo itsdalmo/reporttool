@@ -47,22 +47,52 @@
 # }
 
 
+# Use unlist(lapply(...)) in the function?
 #' @import stringr
 #' @export 
-eval_inline <- function(lines, pattern = "`r[ [:alnum:][:punct:]][^`]+`") {
+eval_inline <- function(line, pattern = "`r[ [:alnum:][:punct:]][^`]+`") {
   
-  inline <- unlist(stringr::str_extract_all(lines, pattern))
-  expr <- stringr::str_trim(stringr::str_replace_all(inline, "`r|`", ""))
+  
+  inline <- unlist(stringr::str_extract_all(line, pattern))
+  expr <- stringr::str_replace_all(inline, "`r\\s?|\\s?`", "")
   
   for (i in seq_along(expr)) {
     res <- as.character(eval(parse(text = expr[i])))
+    line <- sub(inline[i], paste(res, collapse = " "), line, fixed = TRUE)
+  }
+  
+  return(line)
+  
+}
+
+#' @import utils
+#' @export
+eval_chunk <- function(lines) {
+  
+  print_idx <- which(grepl("cat\\(|print\\(", lines))
+  
+  # Separate functions that print results
+  if (length(print_idx) > 0) {
+    print_funs <- parse(text = lines[print_idx])
+    print_funs <- utils::capture.output(eval(print_funs))
     
-    if (identical(res, character(0))) {
-      res <- ""
+    # Remove from lines and eval
+    lines <- parse(text = lines[-print_idx])
+    
+    # Eval the rest and bind results
+    if (length(lines) > 0) {
+      lines <- eval(lines)
+      lines <- list(print_funs, lines)
+    } else {
+      lines <- list(print_funs)
     }
     
-    lines <- sub(inline[i], res, lines, fixed = TRUE)
+  } else if (length(lines) > 0) {
+    lines <- list(eval(parse(text = lines)))
+  } else {
+    lines <- NULL
   }
   
   return(lines)
+  
 }
