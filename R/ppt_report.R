@@ -3,8 +3,8 @@
 # rmd_to_script <- function(rmd, encoding = "UTF-8") {
 #   
 #   rmd <- readLines(rmd, encoding = encoding)
-#   pat_begin <- reporttool$rmd_patterns$chunk_begin
-#   pat_end <- reporttool$rmd_patterns$chunk_end
+#   pat_begin <- reporttool$rmd_pat$chunk_begin
+#   pat_end <- reporttool$rmd_pat$chunk_end
 #   
 #   # Indicate where chunks begin and end
 #   chunk_start <- which(grepl(pat_begin, rmd))
@@ -50,8 +50,7 @@
 # Use unlist(lapply(...)) in the function?
 #' @import stringr
 #' @export 
-eval_inline <- function(line, pattern = "`r[ [:alnum:][:punct:]][^`]+`") {
-  
+eval_inline <- function(line, pattern = reporttool$rmd_pat$inline) {
   
   inline <- unlist(stringr::str_extract_all(line, pattern))
   expr <- stringr::str_replace_all(inline, "`r\\s?|\\s?`", "")
@@ -95,4 +94,24 @@ eval_chunk <- function(lines) {
   
   return(lines)
   
+}
+
+replace_chunk_eval <- function(chunk, pattern = reporttool$rmd_pat$chunk_eval) {
+  
+  chunk_start <- reporttool$rmd_pat$chunk_begin
+  chunk_end <- reporttool$rmd_pat$chunk_end
+  
+  c_start <- which(grepl(chunk_begin, chunk))
+  c_end <- which(grepl(chunk_end, chunk))
+  
+  opts_eval <- unlist(stringr::str_extract(chunk[c_start], pattern))
+  
+  if (length(opts_eval) == 1) {
+    opts_eval <- sub(pattern, "\\1", opts_eval)
+    chunk[c_start] <- paste0("if (", sub(pattern, "\\1", opts_eval), ") {")
+    chunk[c_end] <- "}"
+  }
+  
+  return(chunk)
+    
 }

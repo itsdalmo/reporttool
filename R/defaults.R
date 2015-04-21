@@ -36,9 +36,10 @@ reporttool <- list(
                 "beamerthemem.sty", "logo.eps")),
   
 
-  "rmd_patterns" = list(
+  "rmd_pat" = list(
     "chunk_begin" = "^```\\{r",
     "chunk_end" = "```$",
-    "inline_code" = "`r"
+    "chunk_eval" = "eval\\s?=\\s?([ [:alnum:][:punct:]][^,]+),*",
+    "inline" = "`r[ [:alnum:][:punct:]][^`]+`"
      )
 )
