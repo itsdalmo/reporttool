@@ -4,7 +4,7 @@
 \alias{read_data}
 \title{Read common data formats}
 \usage{
-read_data(file, encoding = "latin1")
+read_data(file, encoding = "UTF-8")
 }
 \arguments{
 \item{file}{Path to a csv, csv2 or xlsx file.}

@@ -62,7 +62,7 @@ to_sheet <- function(df, wb, sheet="analysis", row=1L, append=TRUE) {
 #' @examples 
 #' x %>% to_clipboard()
 
-to_clipboard <- function(df, encoding = "latin1") {
+to_clipboard <- function(df, encoding = "UTF-8") {
   
   if (!identical(Sys.info()["sysname"], "Windows")) {
     stop("Writing to clipboard requires Windows OS")
@@ -101,7 +101,7 @@ to_clipboard <- function(df, encoding = "latin1") {
 #' @examples 
 #' write_data(x, file = "test.xlsx")
 
-write_data <- function(x, file = NULL, encoding = "latin1") {
+write_data <- function(x, file = NULL, encoding = "UTF-8") {
   
   # Provide default if file is not specified
   if (is.null(file)) {
@@ -180,7 +180,8 @@ write_csv <- function(lst, file, encoding) {
                 na = "",
                 dec = ",",
                 row.names = FALSE,
-                fileEncoding = encoding)}, 
+                fileEncoding = encoding,
+                qmethod = "double")}, 
     lst, file, encoding)
 
 }

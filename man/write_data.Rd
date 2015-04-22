@@ -4,7 +4,7 @@
 \alias{write_data}
 \title{Write common file formats}
 \usage{
-write_data(x, file = NULL, encoding = "latin1")
+write_data(x, file = NULL, encoding = "UTF-8")
 }
 \arguments{
 \item{x}{The data to be written. Can be a data.frame or a list (of df's).}

@@ -73,7 +73,7 @@ read_sheets <- function(file, sheets = NULL, clean.missing = FALSE) {
 #' @examples 
 #' x <- read_data("test.xlsx")
 
-read_data <- function(file, encoding = "latin1") {
+read_data <- function(file, encoding = "UTF-8") {
   
   file <- validate_path(file)
   

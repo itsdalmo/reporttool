@@ -4,7 +4,7 @@
 \alias{to_clipboard}
 \title{Write to Windows clipboard}
 \usage{
-to_clipboard(df, encoding = "latin1")
+to_clipboard(df, encoding = "UTF-8")
 }
 \arguments{
 \item{df}{The data to write.}
