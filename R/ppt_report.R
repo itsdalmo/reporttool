@@ -68,6 +68,8 @@ eval_inline <- function(line, pattern = reporttool$rmd_pat$inline) {
 #' @export
 eval_chunk <- function(lines) {
   
+  
+  
   print_idx <- which(grepl("cat\\(|print\\(", lines))
   
   # Separate functions that print results
@@ -98,20 +100,23 @@ eval_chunk <- function(lines) {
 
 replace_chunk_eval <- function(chunk, pattern = reporttool$rmd_pat$chunk_eval) {
   
-  chunk_start <- reporttool$rmd_pat$chunk_begin
+  chunk_begin <- reporttool$rmd_pat$chunk_begin
   chunk_end <- reporttool$rmd_pat$chunk_end
   
   c_start <- which(grepl(chunk_begin, chunk))
   c_end <- which(grepl(chunk_end, chunk))
   
-  opts_eval <- unlist(stringr::str_extract(chunk[c_start], pattern))
+  opts_eval <- gsub(pattern, "\\1", chunk[c_start])
   
-  if (length(opts_eval) == 1) {
-    opts_eval <- sub(pattern, "\\1", opts_eval)
+  if (length(opts_eval) == 1L) {
     chunk[c_start] <- paste0("if (", sub(pattern, "\\1", opts_eval), ") {")
     chunk[c_end] <- "}"
+  } else if (length(opts_eval) == 0L) {
+    chunk[c(c_start, c_end)] <- NULL
+  } else {
+    stop("The chunk had more than one eval statement")
   }
   
   return(chunk)
-    
+
 }
