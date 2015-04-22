@@ -22,6 +22,10 @@
 
 to_sheet <- function(df, wb, sheet="analysis", row=1L, append=TRUE) {
   
+  if (!inherits(wb, "Workbook")) {
+    stop("wb argument must be a (loaded) openxlsx workbook")
+  }
+  
   # Check input
   if (!is.character(sheet) || length(sheet) != 1L) {
     stop("The sheet has to be a string of length 1 (not an index).", call. = FALSE)
