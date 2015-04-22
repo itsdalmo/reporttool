@@ -108,9 +108,11 @@ replace_chunk_eval <- function(chunk, pattern = reporttool$rmd_pat$chunk_eval) {
   
   opts_eval <- gsub(pattern, "\\1", chunk[c_start])
   
+  # Replace chunk-delimiters and indent (double space) if statements
   if (length(opts_eval) == 1L) {
     chunk[c_start] <- paste0("if (", sub(pattern, "\\1", opts_eval), ") {")
     chunk[c_end] <- "}"
+    chunk[-c(c_start, c_end)] <- paste0("  ", chunk[-c(c_start, c_end)])
   } else if (length(opts_eval) == 0L) {
     chunk[c(c_start, c_end)] <- NULL
   } else {
