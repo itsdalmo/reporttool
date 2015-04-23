@@ -66,7 +66,7 @@ eval_inline <- function(line, pattern = reporttool$rmd_pat$inline) {
 
 #' @import utils
 #' @export
-eval_chunk <- function(lines) {
+eval_chunk <- function(lines, envir = parent.frame()) {
   
   
   
@@ -75,21 +75,21 @@ eval_chunk <- function(lines) {
   # Separate functions that print results
   if (length(print_idx) > 0) {
     print_funs <- parse(text = lines[print_idx])
-    print_funs <- utils::capture.output(eval(print_funs))
+    print_funs <- utils::capture.output(eval(print_funs, envir))
     
     # Remove from lines and eval
     lines <- parse(text = lines[-print_idx])
     
     # Eval the rest and bind results
     if (length(lines) > 0) {
-      lines <- eval(lines)
+      lines <- eval(lines, envir)
       lines <- list(print_funs, lines)
     } else {
       lines <- list(print_funs)
     }
     
   } else if (length(lines) > 0) {
-    lines <- list(eval(parse(text = lines)))
+    lines <- list(eval(parse(text = lines)), envir)
   } else {
     lines <- NULL
   }
@@ -122,3 +122,4 @@ replace_chunk_eval <- function(chunk, pattern = reporttool$rmd_pat$chunk_eval) {
   return(chunk)
 
 }
+
