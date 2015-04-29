@@ -37,9 +37,9 @@ reporttool <- list(
   
 
   "rmd_pat" = list(
-    "chunk_begin" = "^```\\{r",
+    "chunk_start" = "^```\\{r",
     "chunk_end" = "```$",
-    "chunk_eval" = ".*eval\\s*=\\s*([ [:alnum:][:punct:]][^,^}^ ]+).*",
+    "chunk_eval" = ".*eval\\s*=\\s*((.[^},]+|.[^}]+\\))),?.*",
     "inline" = "`r[ [:alnum:][:punct:]][^`]+`"
      )
 )
