@@ -1,50 +1,110 @@
 # Mid-work-backup
 
-# rmd_to_script <- function(rmd, encoding = "UTF-8") {
-#   
-#   rmd <- readLines(rmd, encoding = encoding)
-#   pat_begin <- reporttool$rmd_pat$chunk_begin
-#   pat_end <- reporttool$rmd_pat$chunk_end
-#   
-#   # Indicate where chunks begin and end
-#   chunk_start <- which(grepl(pat_begin, rmd))
-#   chunk_end <- which(grepl(pat_end, rmd))
-#   
-#   if (length(chunk_start) != length(chunk_end)) {
-#     stop("The .Rmd file contains unused chunk patterns", call. = FALSE)
-#   }
-#   
-#   chunk_idx <- lapply(seq_along(chunk_start), function(i, cs, ce) {
-#     cs[i]:ce[i]
-#   }, chunk_start, chunk_end)
-#   
-#   # Figure out where slides begin and end (# and ## outside chunks)
-#   section_begin <- which(grepl("^#\\s|\"#\\s", rmd))
-#   section_begin <- slide_begin[which(!slide_begin %in% unlist(chunk_idx))]
-#   rmd[section_begin]
-#   
-#   
-#   # Create a list of chunks contents
-#   chunks <- lapply(seq_along(chunk_start), function(i, cs, ce, rmd) {
-#     rmd[(chunk_start[i]+1):(chunk_end[i]-1)]
-#   }, chunk_start, chunk_end, rmd)
-#   
-#   # Create a list of content outside of chunks (text etc)
-#   texts <- lapply(seq_along(chunk_end[1:(length(chunk_end)-1)]), function(i, cs, ce, rmd) {
-#     rmd[(chunk_end[i]+1):(chunk_start[i+1]-1)]
-#   }, chunk_start, chunk_end, rmd)
-#   
-#   # Identify
-#   texts <- lapply(texts, function(x) {x <- x[x != ""]; x})
-#   
-#   # Evaluate inline code and replace with results
-#   
-#   
-#   inline <- grepl("`r", texts)
-#   
-#   
-#   
-# }
+rmd_to_script <- function(rmd, encoding = UTF-8) {
+  
+  rmd <- path <- validate_path(rmd)
+  
+  if (!has_extension(rmd, "rmd")) {
+    stop("This function only accepts a .Rmd file", call. = FALSE)
+  } else {
+    rmd <- readLines(rmd, encoding = encoding)
+  }
+  
+  # Identify yaml
+  idx_yaml <- grep("^---", rmd)
+  idx_yaml <- idx_yaml[1]:idx_yaml[2]
+  
+  # Identify chunks
+  start_idx <- grep(reporttool$rmd_pat$chunk_start, rmd)
+  end_idx <- grep(reporttool$rmd_pat$chunk_end, rmd)
+  
+  if (length(start_idx) != length(end_idx)) {
+    stop("The .Rmd file contains unused chunk start/end indicators", call. = FALSE)
+  }
+  
+  # Get a list of all chunk indices
+  chunk_idx <- Map(':', start_idx, end_idx)
+  
+  # Get slide and section indices found inside chunks
+  chunk_slide <- reporttool$rmd_pat$chunk_slide
+  
+  slide_idx <- intersect(grep(paste0(chunk_slide, "##[^#]"), rmd), unlist(chunk_idx))
+  section_idx <- intersect(grep(paste0(chunk_slide, "#[^#]"), rmd), unlist(chunk_idx))
+  
+  # Add slide and section indeces outside chunks
+  slide_idx <- append(setdiff(grep("(^##|`r.*##)[^#].*", rmd), unlist(chunk_idx)), slide_idx)
+  section_idx <- append(setdiff(grep("(^#|`r.*#)[^#].*", rmd), unlist(chunk_idx)), section_idx)
+  
+  # Replace chunk-evals with if statements and replace chunk identifiers
+  for (i in seq_along(chunk_start_idx)) {
+    rmd <- c(rmd[1:(chunk_start_idx[i]-1)], 
+            paste("# Chunk", i), 
+            replace_chunk_eval(rmd[chunk_start_idx[i]:chunk_end_idx[i]]),
+            rmd[(chunk_end_idx[i]+1):length(rmd)])
+  }
+  
+  # Write the cleaned file
+  path <- tools::file_path_sans_ext(path)
+  script <- file(paste0(path, "-script.R"), encoding = encoding)
+  on.exit(close(script), add = TRUE)
+  writeLines(rmd, script)
+}
+
+#' @import tools
+#' @export 
+rmd_to_script <- function(rmd, encoding = "UTF-8") {
+  
+  path <- validate_path(rmd)
+  
+  if (!has_extension(path, "rmd")) {
+    stop("This function only accepts a .Rmd file", call. = FALSE)
+  } else {
+    rmd <- readLines(path, encoding = encoding)
+  }
+  
+  # Identify yaml
+  idx_yaml <- grep("^---", rmd)
+  idx_yaml <- idx_yaml[1]:idx_yaml[2]
+  
+  # Identify chunks
+  start_idx <- grep(reporttool$rmd_pat$chunk_start, rmd)
+  end_idx <- grep(reporttool$rmd_pat$chunk_end, rmd)
+  
+  if (length(start_idx) != length(end_idx)) {
+    stop("The .Rmd file contains unused chunk start/end indicators", call. = FALSE)
+  }
+  
+  # Get a list of all chunk indices
+  chunk_idx <- Map(':', start_idx, end_idx)
+  
+  # Get and comment out all lines with content that is not in a chunk
+  not_chunk_idx <- setdiff(1:length(rmd), unlist(chunk_idx))
+  not_chunk_idx <- setdiff(not_chunk_idx, which(rmd == ""))
+  
+  rmd[not_chunk_idx] <- paste("## -", rmd[not_chunk_idx])
+  
+  # Iterate through the chunks and clean the document
+  for (i in seq_along(chunk_idx)) {
+    
+    idx <- chunk_idx[[i]]
+    chnm <- paste("# CHUNK", i)
+    
+    ch <- rmd[idx]
+    ch <- c(paste(chnm, paste(rep("-", 79-nchar(chnm)), collapse = "")), paste("# ",ch[1]), ch)
+    
+    ch <- replace_chunk_eval(ch)
+    ch[grep("^```", ch)] <- ""
+    
+    rmd <- c(rmd[1:(min(idx)-1)], ch, rmd[(max(idx)+1):length(rmd)])
+    
+  }
+  
+  # Save the converted rmd
+  path <- file(paste0(tools::file_path_sans_ext(path), ".R"), encoding = encoding)
+  on.exit(close(rmd), add = TRUE)
+  writeLines(rmd, path)
+  
+}
 
 
 # Use unlist(lapply(...)) in the function?
@@ -68,9 +128,7 @@ eval_inline <- function(line, pattern = reporttool$rmd_pat$inline) {
 #' @export
 eval_chunk <- function(lines, envir = parent.frame()) {
   
-  
-  
-  print_idx <- which(grepl("cat\\(|print\\(", lines))
+  print_idx <- grep("cat\\(|print\\(", lines)
   
   # Separate functions that print results
   if (length(print_idx) > 0) {
@@ -98,28 +156,27 @@ eval_chunk <- function(lines, envir = parent.frame()) {
   
 }
 
-replace_chunk_eval <- function(chunk, pattern = reporttool$rmd_pat$chunk_eval) {
-  
-  chunk_begin <- reporttool$rmd_pat$chunk_begin
-  chunk_end <- reporttool$rmd_pat$chunk_end
-  
-  c_start <- which(grepl(chunk_begin, chunk))
-  c_end <- which(grepl(chunk_end, chunk))
-  
-  opts_eval <- gsub(pattern, "\\1", chunk[c_start])
-  
-  # Replace chunk-delimiters and indent (double space) if statements
-  if (length(opts_eval) == 1L) {
-    chunk[c_start] <- paste0("if (", sub(pattern, "\\1", opts_eval), ") {")
-    chunk[c_end] <- "}"
-    chunk[-c(c_start, c_end)] <- paste0("  ", chunk[-c(c_start, c_end)])
-  } else if (length(opts_eval) == 0L) {
-    chunk[c(c_start, c_end)] <- NULL
-  } else {
-    stop("The chunk had more than one eval statement")
-  }
-  
-  return(chunk)
 
+replace_chunk_eval <- function(lines) {
+  
+  chunk_end <- reporttool$rmd_pat$chunk_end
+  chunk_eval <- reporttool$rmd_pat$chunk_eval
+  
+  # Identify which (if any) chunks contain eval options
+  eval_idx <- grep(chunk_eval, lines)
+  
+  if (length(eval_idx) > 0) {
+    end_idx <- grep(chunk_end, lines)
+    
+    # Find the correct chunk end for each chunk eval
+    end_idx <- vapply(eval_idx, function(x) end_idx[end_idx > x][1], numeric(1))
+    
+    # Replace chunk-delimiters and indent (double space) if statements
+    lines[eval_idx] <- paste0("if (", gsub(chunk_eval, "\\1", lines[eval_idx]), ") {")
+    lines[end_idx] <- "}"
+    
+  }
+
+  return(lines)
 }
 

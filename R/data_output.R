@@ -66,9 +66,9 @@ to_sheet <- function(df, wb, sheet="analysis", row=1L, append=TRUE) {
 #' @examples 
 #' x %>% to_clipboard()
 
-to_clipboard <- function(df, encoding = "UTF-8") {
+to_clipboard <- function(df, encoding = "") {
   
-  if (!identical(Sys.info()["sysname"], "Windows")) {
+  if (!(Sys.info()["sysname"] == "Windows")) {
     stop("Writing to clipboard requires Windows OS")
   }
   
@@ -76,8 +76,10 @@ to_clipboard <- function(df, encoding = "UTF-8") {
     stop("The data is too large to write to clipboard", call. = FALSE)
   }
   
-  if (!inherits(df, "data.frame")) {
-    stop("The data must be a data.frame", call. = FALSE)
+  if (inherits(df, "data.frame")) {
+    cols <- TRUE
+  } else {
+    cols <- FALSE
   }
   
   write.table(x = df,
@@ -86,6 +88,7 @@ to_clipboard <- function(df, encoding = "UTF-8") {
               na = "",
               dec = ",",
               row.names = FALSE,
+              col.names = FALSE,
               fileEncoding = encoding)
 }
 

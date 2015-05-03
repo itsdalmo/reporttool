@@ -40,6 +40,7 @@ reporttool <- list(
     "chunk_start" = "^```\\{r",
     "chunk_end" = "```$",
     "chunk_eval" = ".*eval\\s*=\\s*((.[^},]+|.[^}]+\\))),?.*",
-    "inline" = "`r[ [:alnum:][:punct:]][^`]+`"
+    "inline" = "`r[ [:alnum:][:punct:]][^`]+`",
+    "chunk_slide" = ".*(print|cat)\\s*\\((paste0?\\s*\\(\\s*\"|\\s*\")"
      )
 )
