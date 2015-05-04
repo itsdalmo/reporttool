@@ -11,7 +11,7 @@ beamer_template(dev = "cairo_pdf", toc = TRUE, keep_tex = FALSE,
 
 copy_beamer_theme(dir = NULL)
 
-generate_beamer(entity, md, dir, envir)
+generate_beamer(entity, dir, envir)
 }
 \arguments{
 \item{dev}{Defaults to cairo_pdf. Set to 'pdf' if you do not have the

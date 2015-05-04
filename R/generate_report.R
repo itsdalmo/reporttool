@@ -75,7 +75,7 @@ generate_report <- function(report=NULL, entity=NULL, data=NULL, type="pdf") {
   
   # Generate the wanted report-type
   switch(type,
-         pdf = lapply(entity, generate_beamer, md, dir, environment()),
+         pdf = lapply(entity, generate_beamer, dir, environment()),
          stop("Please use a supported output format."))
   
   invisible()
@@ -85,6 +85,9 @@ generate_report <- function(report=NULL, entity=NULL, data=NULL, type="pdf") {
 
 generate_rmd <- function(entity, md, dir) {
   
-  report <- gsub("REPLACE_ENTITY", entity, md, fixed=TRUE)
-  writeLines(report, file.path(dir, "Markdown", paste0(entity, ".Rmd")))
+  path <- file(file.path(dir, "Markdown", paste0(entity, ".Rmd")), encoding = "UTF-8")
+  on.exit(close(path), add = TRUE)
+  
+  writeLines(gsub("REPLACE_ENTITY", entity, md, fixed=TRUE), path)
+  
 }

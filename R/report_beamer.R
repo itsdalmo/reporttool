@@ -75,7 +75,7 @@ copy_beamer_theme <- function(dir=NULL) {
 #' @rdname beamer_template
 #' @export 
 
-generate_beamer <- function(entity, md, dir, envir) {
+generate_beamer <- function(entity, dir, envir) {
   
   rmarkdown::render(file.path(dir, "Markdown", paste0(entity, ".Rmd")),
                     output_format = "all",

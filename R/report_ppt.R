@@ -1,36 +1,20 @@
-rmd_to_slides <- function(rmd, envir = parent.frame(), encoding = "UTF-8") {
+rmd_to_ppt <- function(rmd, envir = parent.frame()) {
   
-  path <- validate_path(rmd)
+  # Load and clean the .Rmd file
+  rmd <- rmd_to_code(rmd, write = FALSE)
   
-  if (!has_extension(path, "rmd")) {
-    stop("This function only accepts a .Rmd file", call. = FALSE)
-  } else {
-    rmd <- readLines(path, encoding = encoding)
-  }
+  # Get an index of all chunks
+  start_idx <- grep(reporttool$code_pat$chunk_start, rmd)
+  end_idx <- grep(reporttool$code_pat$chunk_end, rmd)
+  chunk_indicies <- Map(':', start_idx, end_idx)
   
-  # Identify chunks that are evaluated before the first slides
-  slide_idx <- c(grep("^##[^#]", rmd), grep("(cat|print)\\s*\\(\\s*\"##[^#]", rmd))
+  # Extract the .Rmd for the indicies and evaluate/store return values  
+  all_chunks <- lapply(chunk_indicies, function(i, rmd, envir) {
+    list("start" = min(i), "end" = max(i), "return" = eval_chunk(rmd[i], envir))
+  }, rmd, envir)
   
-  chunk_start <- grep(reporttool$rmd_pat$chunk_start, rmd)
-  chunk_end <- grep(reporttool$rmd_pat$chunk_end, rmd)
-  all_chunks <- unlist(Map(':', chunk_start, chunk_end))
   
-  first_slide <- min(setdiff(slide_idx, all_chunks))
   
-  # Split out and evalute the first chunks (preamble)
-  preamble_start <- chunk_start[chunk_start < first_slide]
-  preamble_end <- vapply(preamble_start, function(x) chunk_end[chunk_end > x][1], numeric(1))
-  
-  preamble_chunks <- lapply(seq_along(preamble_start), function(i, start, end, rmd) {
-    replace_chunk_delim(rmd[start[i]:end[i]])
-  }, preamble_start, preamble_end, rmd)
-
-  # Evaluate the preamble in the designated environment
-  if (length(preamble_chunks > 1)) {
-   test <-  lapply(preamble_chunks, eval_chunk, envir = envir)
-  }
-  
-  return(test)
 }
 
 

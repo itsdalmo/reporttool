@@ -45,5 +45,11 @@ reporttool <- list(
     "chunk_slide" = "^`r.*?(^print|^cat)\\s*\\(\\s*\"\\s*##[^#]",
     "text_section" = "^#[^#]",
     "text_slide" = "^##[^#]"
-     )
+     ),
+  
+  "code_pat" = list(
+    "chunk_start" = "^#\\sCHUNK\\s[0-9]+\\s[-]+$",
+    "chunk_end" = "^#\\sCHUNK\\sEND\\s[-]+$",
+    "not_chunk" = "^##+\\s.*"
+    )
 )

@@ -15,7 +15,7 @@
 #' @examples 
 #' rmd_to_script("Example report.Rmd", encoding = "latin1")
 
-rmd_to_script <- function(rmd, encoding = "UTF-8") {
+rmd_to_code <- function(rmd, encoding = "UTF-8", write = TRUE) {
   
   path <- validate_path(rmd)
   
@@ -29,12 +29,11 @@ rmd_to_script <- function(rmd, encoding = "UTF-8") {
   start_idx <- grep(reporttool$rmd_pat$chunk_start, rmd)
   end_idx <- grep(reporttool$rmd_pat$chunk_end, rmd)
   
-  if (length(start_idx) != length(end_idx)) {
+  if (length(chunk_start) == length(chunk_end)) {
+    chunk_idx <- Map(':', start_idx, end_idx)   
+  } else {
     stop("The .Rmd file contains unused chunk start/end indicators", call. = FALSE)
   }
-  
-  # Get a list of all chunk indices
-  chunk_idx <- Map(':', start_idx, end_idx)
   
   # Get and comment out all lines with content that is not in a chunk
   not_chunk_idx <- setdiff(1:length(rmd), unlist(chunk_idx))
@@ -50,18 +49,24 @@ rmd_to_script <- function(rmd, encoding = "UTF-8") {
     # Update indices if the document has been extended
     idx <- chunk_idx[[i]]+(length(rmd)-n)
     
-    ch <- replace_chunk_delim(rmd[idx])
-    ch <- c(paste(paste("# CHUNK", i), paste(rep("-", 79-nchar(chnm)), collapse = "")), ch)
-    
-    rmd <- c(rmd[1:(min(idx)-1)], ch, rmd[(max(idx)+1):length(rmd)])
+    # Piece together the chunk (w/delimiters) and the rest of the document
+    rmd <- c(rmd[1:(min(idx)-1)], 
+             paste("# CHUNK", i, paste(rep("-", 72-nchar(i)), collapse = "")),
+             replace_chunk_delim(rmd[idx]),
+             paste("# CHUNK END", paste(rep("-", 68), collapse = "")),
+             if (max(idx) < length(rmd)) rmd[(max(idx)+1):length(rmd)] else "")
     
   }
   
-  # Save the converted rmd
-  path <- file(paste0(tools::file_path_sans_ext(path), ".R"), encoding = encoding)
-  on.exit(close(path), add = TRUE)
-  
-  writeLines(rmd, path)
+  # Save or return the cleaned Rmd file
+  if (isTRUE(write)) {
+    path <- file(paste0(tools::file_path_sans_ext(path), ".R"), encoding = "UTF-8")
+    on.exit(close(path), add = TRUE)
+    writeLines(rmd, path)
+  } else {
+    return(rmd)
+  }
+
   
 }
 
