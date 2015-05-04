@@ -1,6 +1,41 @@
+rmd_to_slides <- function(rmd, envir = parent.frame(), encoding = "UTF-8") {
+  
+  path <- validate_path(rmd)
+  
+  if (!has_extension(path, "rmd")) {
+    stop("This function only accepts a .Rmd file", call. = FALSE)
+  } else {
+    rmd <- readLines(path, encoding = encoding)
+  }
+  
+  # Identify chunks that are evaluated before the first slides
+  slide_idx <- c(grep("^##[^#]", rmd), grep("(cat|print)\\s*\\(\\s*\"##[^#]", rmd))
+  
+  chunk_start <- grep(reporttool$rmd_pat$chunk_start, rmd)
+  chunk_end <- grep(reporttool$rmd_pat$chunk_end, rmd)
+  all_chunks <- unlist(Map(':', chunk_start, chunk_end))
+  
+  first_slide <- min(setdiff(slide_idx, all_chunks))
+  
+  # Split out and evalute the first chunks (preamble)
+  preamble_start <- chunk_start[chunk_start < first_slide]
+  preamble_end <- vapply(preamble_start, function(x) chunk_end[chunk_end > x][1], numeric(1))
+  
+  preamble_chunks <- lapply(seq_along(preamble_start), function(i, start, end, rmd) {
+    replace_chunk_delim(rmd[start[i]:end[i]])
+  }, preamble_start, preamble_end, rmd)
+
+  # Evaluate the preamble in the designated environment
+  if (length(preamble_chunks > 1)) {
+   test <-  lapply(preamble_chunks, eval_chunk, envir = envir)
+  }
+  
+  return(test)
+}
 
 
 
+# Evaluate rmarkdown code  -----------------------------------------------------
 
 #' @import stringr
 #' @export 
@@ -42,7 +77,7 @@ eval_chunk <- function(lines, envir = parent.frame()) {
     }
     
   } else if (length(lines) > 0) {
-    lines <- list(eval(parse(text = lines)), envir)
+    lines <- list(eval(parse(text = lines), envir))
   } else {
     lines <- NULL
   }
@@ -50,6 +85,3 @@ eval_chunk <- function(lines, envir = parent.frame()) {
   return(lines)
   
 }
-
-
-
