@@ -24,6 +24,7 @@
 #'    \item{\code{rescale_score}}{Takes vectors representing 10-point likert 
 #'    scales and transforms them to 100-point scales. (x-1)*(100/9)}
 #' }
+#' 
 #' @name Utilities
 #' @author Kristian D. Olsen
 #' @import tools

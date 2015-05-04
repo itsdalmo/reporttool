@@ -1,5 +1,20 @@
+#' Convert .Rmd to .R
+#'
+#' This function converts a \code{.Rmd} to a \code{.R} file (similar to \code{knitr::purl}) 
+#' by replacing chunk delimiters and putting \code{eval} chunk options inside \code{if}
+#' statements. Also comments out (\code{##+}) content that is not inside chunks, 
+#' and inserts a chunk number and line to distinguish chunks. 
+#'
+#' @param rmd Path to a rmarkdown file.
+#' @param encoding The encoding of both the input .Rmd file and the output.
+#' @author Kristian D. Olsen
+#' @return A .R file in the same directory and same name as the input .Rmd file.
+#' @note \code{UTF-8} is the recommended encoding for scripts and .Rmd files.
 #' @import tools
-#' @export 
+#' @export
+#' @examples 
+#' rmd_to_script("Example report.Rmd", encoding = "latin1")
+
 rmd_to_script <- function(rmd, encoding = "UTF-8") {
   
   path <- validate_path(rmd)
@@ -50,63 +65,13 @@ rmd_to_script <- function(rmd, encoding = "UTF-8") {
   
 }
 
-
-# Use unlist(lapply(...)) in the function?
-#' @import stringr
-#' @export 
-eval_inline <- function(line, pattern = reporttool$rmd_pat$inline) {
-  
-  inline <- unlist(stringr::str_extract_all(line, pattern))
-  expr <- stringr::str_replace_all(inline, "`r\\s?|\\s?`", "")
-  
-  for (i in seq_along(expr)) {
-    res <- as.character(eval(parse(text = expr[i])))
-    line <- sub(inline[i], paste(res, collapse = " "), line, fixed = TRUE)
-  }
-  
-  return(line)
-  
-}
-
-#' @import utils
-#' @export
-eval_chunk <- function(lines, envir = parent.frame()) {
-  
-  print_idx <- grep("cat\\(|print\\(", lines)
-  
-  # Separate functions that print results
-  if (length(print_idx) > 0) {
-    print_funs <- parse(text = lines[print_idx])
-    print_funs <- utils::capture.output(eval(print_funs, envir))
-    
-    # Remove from lines and eval
-    lines <- parse(text = lines[-print_idx])
-    
-    # Eval the rest and bind results
-    if (length(lines) > 0) {
-      lines <- eval(lines, envir)
-      lines <- list(print_funs, lines)
-    } else {
-      lines <- list(print_funs)
-    }
-    
-  } else if (length(lines) > 0) {
-    lines <- list(eval(parse(text = lines)), envir)
-  } else {
-    lines <- NULL
-  }
-  
-  return(lines)
-  
-}
-
-
+# Replace chunk delims  --------------------------------------------------------
 replace_chunk_delim <- function(lines) {
   
   chunk_start <- reporttool$rmd_pat$chunk_start
   chunk_end <- reporttool$rmd_pat$chunk_end
   chunk_eval <- reporttool$rmd_pat$chunk_eval
-    
+  
   # Identify which (if any) chunks contain eval options
   eval_idx <- grep(chunk_eval, lines)
   end_idx <- grep(chunk_end, lines)
@@ -131,7 +96,6 @@ replace_chunk_delim <- function(lines) {
   
   lines[start_idx] <- ""
   lines[end_idx] <- ""
-
+  
   return(lines)
 }
-
