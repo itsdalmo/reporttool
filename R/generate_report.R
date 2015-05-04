@@ -6,8 +6,6 @@
 #' @param entity Optional: character vector with one or more entities for generating reports.
 #' @return A .Rmd and .pdf file for each entity (in the data, or for each specified).
 #' @author Kristian D. Olsen
-#' @import knitr
-#' @import rmarkdown
 #' @examples
 #' generate_report("/Internal/Internal_report_2014.Rmd", entity=c("EPSI", "SKI"))
 

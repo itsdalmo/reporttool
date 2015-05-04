@@ -10,7 +10,6 @@
 #' @return A list containing data.frames matching the sheets in the .xlsx file.
 #' If only one sheet is read, the function returns a data.frame instead.
 #' @note This function requires openxlsx.
-#' @import openxlsx
 #' @export
 #' @examples 
 #' x <- read_sheets("test.xlsx")
@@ -68,7 +67,6 @@ read_sheets <- function(file, sheets = NULL, clean.missing = FALSE) {
 #' @return A data.frame. If more than one sheet is read from a xlsx file a
 #' list is returned instead.
 #' @note Reading .xlsx requires that the openxlsx package is installed.
-#' @import tools
 #' @export
 #' @examples 
 #' x <- read_data("test.xlsx")

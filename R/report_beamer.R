@@ -13,8 +13,6 @@
 #' @author Kristian D. Olsen
 #' @note This function uses a slightly modified template_beamer.tex file which
 #' is included in the package (i.e. does not rely on rmarkdown).
-#' @import knitr
-#' @import rmarkdown
 #' @export
 #' @examples 
 #' render("index.Rmd", "reporttool::report_template")

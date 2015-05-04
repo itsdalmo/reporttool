@@ -10,7 +10,6 @@
 #' @author Kristian D. Olsen
 #' @return A .R file in the same directory and same name as the input .Rmd file.
 #' @note \code{UTF-8} is the recommended encoding for scripts and .Rmd files.
-#' @import tools
 #' @export
 #' @examples 
 #' rmd_to_script("Example report.Rmd", encoding = "latin1")

@@ -27,8 +27,6 @@
 #' 
 #' @name Utilities
 #' @author Kristian D. Olsen
-#' @import tools
-#' @import utils
 #' @export
 #' @examples 
 #' df <- set_missing(df)

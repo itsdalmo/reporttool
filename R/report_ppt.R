@@ -1,28 +1,42 @@
-rmd_to_ppt <- function(rmd, envir = parent.frame()) {
-  
-  # Load and clean the .Rmd file
-  rmd <- rmd_to_code(rmd, write = FALSE)
-  
-  # Get an index of all chunks
-  start_idx <- grep(reporttool$code_pat$chunk_start, rmd)
-  end_idx <- grep(reporttool$code_pat$chunk_end, rmd)
-  chunk_indicies <- Map(':', start_idx, end_idx)
-  
-  # Extract the .Rmd for the indicies and evaluate/store return values  
-  all_chunks <- lapply(chunk_indicies, function(i, rmd, envir) {
-    list("start" = min(i), "end" = max(i), "return" = eval_chunk(rmd[i], envir))
-  }, rmd, envir)
-  
-  
-  
-}
+# rmd_to_ppt <- function(rmd, envir = parent.frame()) {
+#   
+#   # Load and clean the .Rmd file
+#   rmd <- rmd_to_code(rmd, write = FALSE)
+#   
+#   # Get an index of all chunks
+#   start_idx <- grep(reporttool$code_pat$chunk_start, rmd)
+#   end_idx <- grep(reporttool$code_pat$chunk_end, rmd)
+#   chunk_indicies <- Map(':', start_idx, end_idx)
+#   
+#   # Extract the .Rmd for the indicies and evaluate/store return values  
+#   all_chunks <- lapply(chunk_indicies, function(i, rmd, envir) {
+#     list("start" = min(i), "end" = max(i), "objects" = eval_chunk(rmd[i], envir))
+#   }, rmd, envir)
+#   
+#   # Get section and slide title for each chunk that returns an object
+#   for (i in seq_along(all_chunks)) {
+#     
+#     chr <- vapply(all_chunks[[i]], function(x) class(x) == "character", logical(1))
+#     
+#     if (any(chr) == TRUE) {
+#       contains_title <- any(grepl("^##[^#].*", all_chunks[[i]][chr]))
+#       contains_section <- any(grepl("^#[^#].*", all_chunks[[i]][chr]))
+#     } 
+#     
+#     if (contains_title) {
+#       
+#     } else {
+#       all_chunks[[i]] <- NULL
+#     }
+#     
+#   }
+#   
+# }
 
 
 
 # Evaluate rmarkdown code  -----------------------------------------------------
 
-#' @import stringr
-#' @export 
 eval_inline <- function(line, envir = parent.frame()) {
   
   pattern <- reporttool$rmd_pat$inline
@@ -38,8 +52,6 @@ eval_inline <- function(line, envir = parent.frame()) {
   
 }
 
-#' @import utils
-#' @export
 eval_chunk <- function(lines, envir = parent.frame()) {
   
   print_idx <- grep("cat\\(|print\\(", lines)

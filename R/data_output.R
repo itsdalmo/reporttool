@@ -13,7 +13,6 @@
 #' @return A list containing data.frames matching the sheets in the .xlsx file.
 #' If only one sheet is read, the function returns a data.frame instead.
 #' @note This function requires openxlsx.
-#' @import openxlsx
 #' @export
 #' @examples 
 #' wb <- openxlsx::loadWorkbook("test.xlsx")
@@ -103,7 +102,6 @@ to_clipboard <- function(df, encoding = "") {
 #' @param encoding The encoding to use for txt and csv-files.
 #' @author Kristian D. Olsen
 #' @note Writing .xlsx requires that the openxlsx package is installed.
-#' @import tools
 #' @export
 #' @examples 
 #' write_data(x, file = "test.xlsx")

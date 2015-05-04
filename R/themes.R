@@ -5,9 +5,6 @@
 #' @param legend Default is bottom. Passed directly to theme call for ggplot2.
 #' @author Kristian D. Olsen
 #' @return A ggplot2 theme object
-#' @import ggplot2
-#' @import scales
-#' @import grid
 #' @export
 #' @examples 
 #' p <- ggplot(df, aes(x=manifest, y=score, group=mainentity)) + geom_bar()
@@ -55,7 +52,6 @@ plot_theme <- function(legend="bottom"){
 }
 
 #' @rdname plot_theme
-#' @import gridExtra
 #' @export
 plot_shared_legend <- function(...) {
   
