@@ -16,7 +16,7 @@ generate_report <- function(report=NULL, entity=NULL, data=NULL, type="pdf") {
   dir <- dirname(report)
   
   if (!file.exists(report)) {
-    stop("File not found: ", report, call. = FALSE)
+    stop("File not found:\n", report, call. = FALSE)
   }
   
   # See if data is specified correctly, if not; assumes input.xlsx in same folder
@@ -74,7 +74,7 @@ generate_report <- function(report=NULL, entity=NULL, data=NULL, type="pdf") {
   # Generate the wanted report-type
   switch(type,
          pdf = lapply(entity, generate_beamer, dir, environment()),
-         stop("Please use a supported output format."))
+         stop("Please use a supported output format.", call. = FALSE))
   
   invisible()
 }
