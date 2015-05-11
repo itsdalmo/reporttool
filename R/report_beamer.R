@@ -55,9 +55,7 @@ beamer_template <- function(dev = "cairo_pdf", toc = TRUE, keep_tex = FALSE, sli
 copy_beamer_theme <- function(dir=NULL) {
   
   # Specify directory
-  if (is.null(dir)) {
-    dir <- getwd()
-  }
+  if (is.null(dir)) dir <- getwd()
   
   files <- with(reporttool$beamer_thm, file.path(dir, files))
   files <- system.file(files, package="reporttool")
