@@ -20,9 +20,7 @@
 beamer_template <- function(dev = "cairo_pdf", toc = TRUE, keep_tex = FALSE, slide_level = NULL) {
   
   # Set slidelevel to default
-  if (is.null(slide_level)) {
-    slide_level <- 2
-  }
+  if (is.null(slide_level)) slide_level <- 2
   
   dir <- "rmd/beamer/"
   
