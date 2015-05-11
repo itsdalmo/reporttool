@@ -103,11 +103,11 @@ read_csv <- function(file, encoding) {
                stringsAsFactors = FALSE,
                na.strings = reporttool$missing_values)
   
-  df <- do.call(read.csv2, args)
+  df <- do.call(utils::read.csv2, args)
  
   # If one column is returned, try comma separated
   if (dim(df)[2] == 1L) {
-    df <- do.call(read.csv, args)
+    df <- do.call(utils::read.csv, args)
   }
   
   # Lowercase names

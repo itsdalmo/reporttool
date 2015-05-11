@@ -81,14 +81,14 @@ to_clipboard <- function(df, encoding = "") {
     cols <- FALSE
   }
   
-  write.table(x = df,
-              file = "clipboard-128",
-              sep = "\t",
-              na = "",
-              dec = ",",
-              row.names = FALSE,
-              col.names = FALSE,
-              fileEncoding = encoding)
+  utils::write.table(x = df,
+                    file = "clipboard-128",
+                    sep = "\t",
+                    na = "",
+                    dec = ",",
+                    row.names = FALSE,
+                    col.names = FALSE,
+                    fileEncoding = encoding)
 }
 
 #' Write common file formats
@@ -179,15 +179,15 @@ write_csv <- function(lst, file, encoding) {
   }
 
   lapply(names(lst), function(nm, lst, file, encoding) {
-    write.table(x = lst[[nm]], 
-                file = paste0(file.path(file, nm), ".csv"), 
-                sep = ";", 
-                na = "",
-                dec = ",",
-                row.names = FALSE,
-                fileEncoding = encoding,
-                qmethod = "double")}, 
-    lst, file, encoding)
+    utils::write.table(x = lst[[nm]], 
+                      file = paste0(file.path(file, nm), ".csv"), 
+                      sep = ";", 
+                      na = "",
+                      dec = ",",
+                      row.names = FALSE,
+                      fileEncoding = encoding,
+                      qmethod = "double")}, 
+            lst, file, encoding)
 
 }
 
@@ -198,15 +198,15 @@ write_txt <- function(lst, file, encoding) {
   }
   
   lapply(names(lst), function(nm, lst, file, encoding) {
-    write.table(x = lst[[nm]],
-                file = paste0(file.path(file, nm), ".txt"),
-                sep = ",",
-                na = "",
-                dec = ".",
-                row.names = FALSE,
-                fileEncoding = encoding,
-                quote = FALSE)}, 
-    lst, file, encoding)
+    utils::write.table(x = lst[[nm]],
+                      file = paste0(file.path(file, nm), ".txt"),
+                      sep = ",",
+                      na = "",
+                      dec = ".",
+                      row.names = FALSE,
+                      fileEncoding = encoding,
+                      quote = FALSE)}, 
+            lst, file, encoding)
   
 }
 
