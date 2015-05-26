@@ -25,7 +25,7 @@ beamer_template <- function(dev = "cairo_pdf", toc = TRUE, keep_tex = FALSE, sli
   dir <- "rmd/beamer/"
   
   # Locate file to include in preamble, and the report template
-  preamble <- system.file(file.path(dir, "preamble.tex"), package="reporttool")
+  preamble <- file.path(getwd(), "preamble.tex")
   template <- system.file(file.path(dir, "report_template_beamer.tex"), package="reporttool")
   
   # Edit beamer_presentation
@@ -61,7 +61,8 @@ copy_beamer_theme <- function(dir=NULL) {
   files <- system.file(files, package="reporttool")
   
   lapply(files, function(x, dir) { 
-    file.copy(x, file.path(dir, basename(x)), overwrite=FALSE) }, dir)
+    file.copy(x, file.path(dir, basename(x)), overwrite=FALSE) 
+  }, dir)
   
   invisible()
 }
@@ -71,6 +72,17 @@ copy_beamer_theme <- function(dir=NULL) {
 
 generate_beamer <- function(entity, dir, envir) {
   
+  # Create the directory for the reports (if it does not exist) and
+  # check if the required .sty files are present.
+  md_dir <- file.path(dir, "Markdown")
+  md_sty <- file.path(dir, reporttool$beamer_thm$files)
+  
+  if (!file.exists(md_dir) || !all(file.exists(md_sty))) {
+    dir.create(md_dir, showWarnings = FALSE)
+    copy_beamer_theme(dir = md_dir)
+  }
+  
+  # Render the document
   rmarkdown::render(file.path(dir, "Markdown", paste0(entity, ".Rmd")),
                     output_format = "all",
                     intermediates_dir = file.path(dir, "Markdown"),

@@ -26,14 +26,14 @@ reporttool <- list(
   
   "beamer_tmp" = list(
     "dir" = "rmd/beamer",
-    "files" = c("beamer_preamble.tex", 
-                "beamer_template.tex")),
+    "files" = "beamer_template.tex"),
   
   "beamer_thm" = list(
     "dir" = "rmd/beamer",
     "files" = c("beamercolorthememetropolis.sty", 
                 "beamerfontthememetropolis.sty", 
-                "beamerthemem.sty", "logo.eps")),
+                "beamerthemem.sty", "logo.eps",
+                "beamer_preamble.tex")),
   
 
   "rmd_pat" = list(
@@ -51,5 +51,13 @@ reporttool <- list(
     "chunk_start" = "^#\\sCHUNK\\s[0-9]+\\s[-]+$",
     "chunk_end" = "^#\\sCHUNK\\sEND\\s[-]+$",
     "not_chunk" = "^##+\\s.*"
-    )
+    ),
+  
+  "epsi_model" = rbind("image" = c(0,0,0,0,0,0,0),
+                       "expect" = c(1,0,0,0,0,0,0),
+                       "prodq" = c(1,1,0,0,0,0,0),
+                       "servq" = c(1,1,1,0,0,0,0),
+                       "value" = c(0,0,1,1,0,0,0),
+                       "epsi" = c(1,0,1,1,1,0,0),
+                       "loyal" = c(0,0,0,0,0,1,0))
 )

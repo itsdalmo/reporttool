@@ -55,16 +55,6 @@ generate_report <- function(report=NULL, entity=NULL, data=NULL, type="pdf") {
   md <- sub("REPLACE_DATE", format(Sys.Date(), "%Y"), md, fixed=TRUE)
   md <- sub("REPLACE_DATA", data, md, fixed=TRUE)
   
-  # Create the directory for the reports (if it does not exist) and
-  # check if the required .sty files are present.
-  md_dir <- file.path(dir, "Markdown")
-  md_sty <- file.path(dir, reporttool$beamer_thm$files)
-  
-  if (!file.exists(md_dir) || !all(file.exists(md_sty))) {
-    dir.create(md_dir, showWarnings = FALSE)
-    copy_beamer_theme(dir = md_dir)
-  }
-  
   # Make sure the Reports directory exists
   dir.create(file.path(dir, "Reports"), showWarnings = FALSE)
   
