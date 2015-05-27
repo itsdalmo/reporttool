@@ -1,97 +1,5 @@
 #' @export
-get_input <- function(file, save=TRUE, assign = TRUE, envir = parent.frame()) {
-  
-  # Validate path
-  file <- validate_path(file)
-  
-  dir <- dirname(file)
-  file <- basename(file)
-  
-  # Path to .Rdata
-  rdata <- file.path(dir, gsub(".[a-zA-Z]*$", ".Rdata", file))
-  
-  # Read .Rdata if it exists
-  if (file.exists(rdata)) {
-    load(rdata, envir = envir)
-  } else {
-    lst <- read_data(file.path(dir, file))
-    lst <- prepare_input_data(lst)
-    
-    # See if data should be assigned
-    if (assign) {
-      assign_input_data(lst, envir)
-      
-      # Save assigned data if wanted
-      if (save) {
-        save(list = names(lst), file = rdata, envir = envir)
-      }
-    } else if (save) {
-      stop("Saving data requires that it is also assigned", call. = FALSE)
-      
-      # If data is not assigned, return it instead  
-    } else {
-      return(lst)
-    }
-    
-  }
-  
-}
-
-prepare_input_data <- function(lst) {
-  
-  if (!inherits(lst, "list")) {
-    stop("This function only accepts a list as input", call. = FALSE)
-  }
-  
-  # Rename sheets/listed items
-  item_names <- with(reporttool$sheet_names, setNames(long, short))
-  
-  if (all(item_names %in% names(lst))) {
-    names(lst) <- ordered_replace(names(lst), item_names, names(item_names))
-  } else {
-    stop("The required data is not present in the provided list", call. = FALSE)
-  }
-  
-  survey_data <- which(names(lst) %in% c("df", "cd", "hd"))
-  
-  # Check if w/weights are present in the data (add if not)
-  lst[survey_data] <- lapply(lst[survey_data], function(x) {
-    if (nrow(x) > 0 && "w" %in% names(x))  x$w <- as.numeric(x$w)
-    if (nrow(x) > 0 && !"w" %in% names(x)) x$w <- 1
-    x
-  })
-  
-  # Make groupcolumns easily identifiable
-  main <- "mainentity" %in% lst$mm$latent
-  sub <- "subentity" %in% lst$mm$latent
-  
-  if (main) {
-    lst[survey_data] <- lapply(lst[survey_data], function(x, mm, rep) {
-      names(x)[names(x) %in% tolower(mm$manifest[mm$latent == rep])] <- rep
-      x 
-    }, mm = lst$mm, rep = "mainentity")
-  }
-  
-  if (sub) {
-    lst[survey_data] <- lapply(lst[survey_data], function(x, mm, rep) {
-      names(x)[names(x) %in% tolower(mm$manifest[mm$latent == rep])] <- rep 
-      x 
-    }, mm = lst$mm, rep = "subentity")
-  }
-  
-  return(lst)
-  
-}
-
-assign_input_data <- function(lst, envir) {
-  for (i in names(lst)) {
-    assign(i, lst[[i]], envir = envir)
-  }
-}
-
-
-#' @export
-prepare_data <- function(input, rawdata = NULL, latents = NULL, impute = TRUE, write = TRUE) {
+prepare_data <- function(input = NULL, rawdata = NULL, latents = NULL, impute = TRUE, write = TRUE) {
   
   # Check latents
   if (is.null(latents)) latents <- "mean"
@@ -100,11 +8,10 @@ prepare_data <- function(input, rawdata = NULL, latents = NULL, impute = TRUE, w
   if (is.character(input) && has_extension(input, "xlsx")) {
     input <- validate_path(input)
     input <- read_data(input)
-  }
-  
-  # Make sure the resulting input is a list
-  if (!inherits(input, "list")) {
-    stop("Input has to be a list or a .xlsx file\n", call. = FALSE)
+  } else if (is.null(input)) {
+    input <- list("df" = NULL)
+  } else if (!inherits(input, "list")) {
+    stop("Unexpected format in argument 'input'\n", call. = FALSE)
   }
   
   # Change familiar sheetnames to their shorthand version
@@ -114,15 +21,15 @@ prepare_data <- function(input, rawdata = NULL, latents = NULL, impute = TRUE, w
   # Get rawdata if it is given
   if (!is.null(rawdata)) {
     
-    if ("df" %in% names(input)) {
+    if ("df" %in% names(input) && !is.null(input$df)) {
       warning("Data exists in input and will be overwritten\n", call. = FALSE)
-    }
+    } 
     
     # Rawdata can be .xlsx or a data.frame
     if (is.character(rawdata) && has_extension(rawdata, "xlsx")) {
       rawdata <- validate_path(rawdata)
       input[["df"]] <- read_data(rawdata)
-    } else if(inherits(rawdata, "data.frame")) {
+    } else if (inherits(rawdata, "data.frame")) {
       input[["df"]] <- rawdata
     } else {
       stop("Unexpected format in argument 'rawdata'\n", call. = FALSE)
@@ -130,94 +37,107 @@ prepare_data <- function(input, rawdata = NULL, latents = NULL, impute = TRUE, w
     
   } 
   
-  # Check if a valid measurement model was supplied
-  has_mm <- all("mm" %in% names(input) && nrow(input$mm) > 0)
-  has_mm_cols <- all(reporttool$required_cols$mm %in% names(input$mm))
+  # Create a measurement model from data if necessary --------------------------
+  missing_mm <- !all("mm" %in% names(input) && nrow(input$mm) > 0)
+  missing_mm_cols <- !all(reporttool$required_cols$mm %in% names(input$mm))
   
-  if (!has_mm) {
+  if (missing_mm) {
     warning("Measurement model was not found in input, generating suggestion\n", call. = FALSE)
     input[["mm"]] <- add_mm(input$df)
-  } else if (!has_mm_cols) {
+  } else if (missing_mm_cols) {
     stop("Measurement model exists, but does not contain the expected columns\n", call. = FALSE)
   }
   
-  # Identify the mainentity from measurement model (usually Q1)
-  if ("mainentity" %in% tolower(input$mm$latent)) {
-    ent_var <- tolower(input$mm$manifest[input$mm$latent %in% "mainentity"])
-  } else if ("q1" %in% tolower(input$mm$manifest)) {
-    warning("Using 'q1' as mainentity variable\n", call. = FALSE)
-    ent_var <- "q1"
-  } else {
-    stop("Please specify the mainentity column in measurement model\n", call. = FALSE)
-  }
-  
-  # Check if valid entities have been specified
-  has_ents <- all("ents" %in% names(input) && nrow(input$ents) > 0)
-  has_ents_cols <- all(reporttool$required_cols$ents %in% names(input$ents))
-  
-  if (!has_ents) {
-    warning("Entities were not specified in input, generating suggestion\n", call. = FALSE)
-    input[["ents"]] <- add_entities(input$df[[ent_var]])
-  } else if (!has_ents) {
-    stop("Entities exist, but does not contain the expected columns\n", call. = FALSE)
-  }
-  
-  # Check if columnnames are correct
+  # Check if columnnames are correct (manifest added as lower case)
   if (!all(tolower(input$mm$manifest) %in% names(input$df))) {
     warning("Replacing columnnames in data\n", call. = FALSE)
     names(input$df) <- add_modelnames(names(input$df), input$mm$manifest)
   }
   
-  # Check if data has weights
-  if (!"w" %in% names(input$df)) {
-    if (has_ents && length(input$ents$marketshare) == nrow(input$ents)) {
+  # Functions that require latents to be specified in measurement model --------
+  contains_latents <- all(reporttool$latent_names %in% tolower(input$mm$latent))
+  
+  if (contains_latents) {
+    # Get model scales
+    model <- input$mm[tolower(input$mm$latent) %in% reporttool$latent_names, c("latent", "manifest")]
+    model$latent <- factor(tolower(model$latent), levels=reporttool$latent_names, ordered = TRUE)
+    model$manifest <- tolower(model$manifest)
+    
+    # Clean model scales
+    input$df[model$manifest] <- lapply(input$df[model$manifest], clean_score)
+    
+    # Add EM-variables (rescaled) if they do not already exist
+    model$EM <- paste0(model$manifest, "em")
+    
+    if (!all(model$EM %in% tolower(names(input$df)))) {
+      warning("Adding rescaled scores to data\n", call. = FALSE)
+      input$df[model$EM] <- lapply(input$df[model$manifest], rescale_score)
+    }
+    
+    # Add missing-calculation to data
+    if (!"percent_missing" %in% names(input$df)) {
+      warning("Adding %-missing to data\n", call. = FALSE)
+      
+      input$df["percent_missing"] <- apply(input$df[tolower(model$EM)], 1,
+                                           function(x) sum(is.na(x))/length(x))
+    }
+    
+    # Impute missing values
+    if (any(isTRUE(impute), tolower(latents) == "pls")) {
+      warning("Imputing missing values\n", call. = FALSE)
+      input$df[model$EM] <- impute_missing(input$df, model$EM)
+    } 
+    
+  }
+  
+  # Functions that require mainentity to specified in latents (or q1) ----------
+  if ("mainentity" %in% tolower(input$mm$latent)) {
+    entity_var <- tolower(input$mm$manifest[input$mm$latent %in% "mainentity"])
+  } else if ("q1" %in% tolower(input$mm$manifest)) {
+    warning("Using 'q1' as mainentity variable\n", call. = FALSE)
+    entity_var <- "q1"
+  } else {
+    entity_var <- character(0)
+  }
+  
+  if (length(entity_var)) {
+    # Check if valid entities have been specified
+    missing_entity <- all("ents" %in% names(input) && nrow(input$ents) > 0)
+    missing_entity_cols <- all(reporttool$required_cols$ents %in% names(input$ents))
+    
+    if (!missing_entity) {
+      warning("Entities were not specified in input, generating suggestion\n", call. = FALSE)
+      input[["ents"]] <- add_entities(input$df[[ent_var]])
+    } else if (!missing_entity_cols) {
+      stop("Entities exist, but does not contain the expected columns\n", call. = FALSE)
+    }
+    
+    # Add weights to the data if they do not exist
+    missing_w <- !"w" %in% names(input$df)
+    
+    if (missing_w && length(input$ents$marketshare) == nrow(input$ents)) {
       warning("Adding weights from entities\n", call. = FALSE)
       input$df["w"] <- add_weights(input$df[[ent_var]], input$ents)
-    } else {
+    } else if (missing_w) {
       warning("Adding neutral weights to data\n", call. = FALSE)
       input$df["w"] <- 1
     }
-  }
-
-  # Get manifest variables for cleaning and rescaling
-  model <- input$mm[tolower(input$mm$latent) %in% reporttool$latent_names, c("latent", "manifest")]
-  model$latent <- factor(tolower(model$latent), levels=reporttool$latent_names, ordered = TRUE)
-  model$manifest <- tolower(model$manifest)
-
-  # Clean model scales
-  input$df[model$manifest] <- lapply(input$df[model$manifest], clean_score)
-
-  # Add EM-variables (rescaled) if they do not already exist
-  model$EM <- paste0(model$manifest, "em")
-
-  if (!all(model$EM %in% tolower(names(input$df)))) {
-    warning("Adding rescaled scores to data\n", call. = FALSE)
-    input$df[model$EM] <- lapply(input$df[model$manifest], rescale_score)
-  }
-  
-  # Add missing-calculation to data
-  if (!"percent_missing" %in% names(input$df)) {
-    warning("Adding %-missing to data\n", call. = FALSE)
     
-    input$df["percent_missing"] <- apply(input$df[tolower(model$EM)], 1,
-                                         function(x) sum(is.na(x))/length(x))
+    
+    
   }
   
-  # Impute missing values
-  if (isTRUE(impute) || tolower(latents) == "pls") {
-    warning("Imputing missing values\n", call. = FALSE)
-    input$df[model$EM] <- impute_missing(input$df, model$EM)
-  } 
-  
-  # Calculate latents if they do not exist
-  if (!all(reporttool$latent_names %in% tolower(names(input$df)))) {
+  # Calculating latents requires that latents are specified -------------------
+  if (contains_latents && !all(reporttool$latent_names %in% tolower(names(input$df)))) {
+    
+    # Mean calculation only requires latents
     if (tolower(latents) == "mean") {
       warning("Adding latents (mean) to data\n", call. = FALSE)
       input$df[levels(model$latent)] <- latents_mean(input$df, model)
     
-    } else if (tolower(latents) == "pls") {
+    } else if (tolower(latents) == "pls" && length(ent_var)) {
       warning("Imputing missing and adding latents (pls) to data\n", call. = FALSE)
-      input$df[c(model$EM, levels(model$latent))] <- latents_pls(input$df, ent_var, model)
+      input <- latents_pls(input, ent_var, model)
       
     } else {
       stop("Please specify a valid calculation for latents (mean or pls)\n", call. = FALSE)
@@ -225,8 +145,12 @@ prepare_data <- function(input, rawdata = NULL, latents = NULL, impute = TRUE, w
 
   }
   
-  # Write or return
+  # Return the processed input with list/sheets in correct order
+  input <- input[names(item_names)[names(item_names) %in% names(input)]]
+  
   if (isTRUE(write)) {
+    # Use long names when writing to .xlsx
+    names(input) <- ordered_replace(names(input), names(item_names), item_names)
     write_data(input, "prepared_data.xlsx")
   } else {
     return(input)
@@ -235,14 +159,44 @@ prepare_data <- function(input, rawdata = NULL, latents = NULL, impute = TRUE, w
 }
 
 # Functions for preparing data -------------------------------------------------
-latents_pls <- function(df, ent_var, model) {
+impute_missing <- function(df, vars) {
+  
+  # For reproducibility reasons
+  set.seed(1000)
+  
+  # Subset the data.frame
+  names(df) <- tolower(names(df))
+  df <- df[c(vars, "percent_missing")]
+  
+  # Create identifier for a join after analysis
+  df$imp_id <- 1:nrow(df)
+  
+  # Impute missing values
+  nvars <- ncol(df[vars])
+  bounds <- matrix(c(1:nvars, rep(0, nvars), rep(100, nvars)), ncol=3)
+  imp_data <- df[df$percent_missing <= .3, ]
+  
+  # Capture output due to print usage in Amelia-package
+  junk <- capture.output(
+    imp_data <- Amelia::amelia(imp_data, 5, bounds = bounds, boot.type="none", idvars = c("percent_missing", "imp_id")))
+  
+  # Get the imputed dataset
+  imp_data <- imp_data$imputations$imp5
+  
+  # Merge imputed rows with the data and return it
+  df[df$imp_id %in% imp_data$imp_id, vars] <- imp_data[vars]
+  
+  df[vars]
+}
+
+latents_pls <- function(input, ent_var, model) {
 
   # For reproducibility we set the seed
   set.seed(1000)
   
   # Subset the data.frame
+  df <- input$df[c(ent_var, model$EM, "percent_missing")]
   names(df) <- tolower(names(df))
-  df <- df[c(ent_var, model$EM, "percent_missing")]
   
   # Create identifier for a join after analysis
   df$imp_id <- 1:nrow(df)
@@ -264,18 +218,37 @@ latents_pls <- function(df, ent_var, model) {
     
     df <- df[df[[ent_var]] == i,]
     em <- plspm::plspm(df, model$inner, model$outer, model$modes, scaled=FALSE, boot.val=TRUE)
-    cbind(df, plspm::rescale(em))
+    
+    em_df <- cbind(df, plspm::rescale(em))
+    em_mm <- as.data.frame(em$path_coefs, stringsAsFactors = FALSE)
+    
+    em_mm <- lapply(Map('[', em_mm), function(x, nm) {
+      out <- setNames(x, nm)
+      out[x != 0L]
+    }, colnames(em_mm))
+    
+    em_mm <- data.frame(as.list(unlist(em_mm)), stringsAsFactors = FALSE)
+    em_mm$entity <- i
+    
+    # Return list
+    list("data" = em_df, "weights" = em_mm)
     
   }, ent_var, mod_data, model)
   
-  mod_data <- do.call('rbind', list_em_data)
+  mod_data <- do.call('rbind', lapply(list_em_data, '[[', 1))
   mod_data <- mod_data[order(mod_data$imp_id), ]
   
-  # Join the estimated latents with the original dataset and return it
-  df[latents] <- NA
-  df[df$imp_id %in% mod_data$imp_id, c(manifests, latents)] <- mod_data[c(manifests, latents)]
+  mod_coefs <- do.call('rbind', lapply(list_em_data, '[[', 2))
+  names(mod_coefs) <- gsub("\\.", "-", names(mod_coefs))
   
-  df[c(manifests, latents)]
+  # Join the estimated latents with the original dataset
+  input$df[latents] <- NA
+  input$df[df$imp_id %in% mod_data$imp_id, c(manifests, latents)] <- mod_data[c(manifests, latents)]
+  
+  # Add path coefficients to entities and return results
+  input$ents <- merge(input$ents, mod_coefs, by = "entity", all = TRUE)
+  
+  input
   
 }
 
@@ -287,52 +260,21 @@ latents_mean <- function(df, model) {
   
 }
 
-impute_missing <- function(df, vars) {
-  
-  # Check if any imputed values exist
-  
-  # For reproducibility reasons
-  set.seed(1000)
-  
-  # Subset the data.frame
-  names(df) <- tolower(names(df))
-  df <- df[c(vars, "percent_missing")]
-  
-  # Create identifier for a join after analysis
-  df$imp_id <- 1:nrow(df)
-  
-  # Impute missing values
-  nvars <- ncol(df[model$EM])
-  bounds <- matrix(c(1:nvars, rep(0, nvars), rep(100, nvars)), ncol=3)
-  imp_data <- df[df$percent_missing <= .3, ]
-  
-  # Capture output due to print usage in Amelia-package
-  junk <- capture.output(
-    imp_data <- Amelia::amelia(imp_data, 5, bounds = bounds, boot.type="none", idvars = c("percent_missing", "imp_id")))
-  
-  # Get the imputed dataset
-  imp_data <- imp_data$imputations$imp5
-  
-  # Merge imputed rows with the data and return it
-  df[df$imp_id %in% imp_data$imp_id, vars] <- imp_data[vars]
-  
-  df[vars]
-}
-
+# Functions for cleaning the data ----------------------------------------------
 add_mm <- function(df) {
   
   # Gather data for measurement model
   n <- length(names(df))
   
   mm <- data.frame("latent" = character(n), 
-                    "manifest" = names(lst$df),
-                    "text" = gsub("\\.", " ", names(lst$df)),
+                    "manifest" = names(df),
+                    "text" = gsub("\\.", " ", names(df)),
                     "values" = character(n),
                     stringsAsFactors = FALSE)
   
   # If a variable has 9 or less unique values, add possible responses to "values"
-  mm$values <- lapply(rawdata, function(x) {
-    x <- unique(x); if (length(x) <= 9) paste(x[!is.na(x)], collapse=" // ") else NA})
+  mm$values <- unlist(lapply(df, function(x) {
+    x <- unique(x); if (length(x) <= 9) paste0(" \"", x[!is.na(x)], "\"", collapse=",") else NA}))
   
   # Return measurement model
   return(mm)
