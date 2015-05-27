@@ -91,7 +91,7 @@ assign_input_data <- function(lst, envir) {
 
 
 #' @export
-prepare_data <- function(input, rawdata = NULL, latents = NULL, write=TRUE) {
+prepare_data <- function(input, rawdata = NULL, latents = NULL, impute = TRUE, write = TRUE) {
   
   # Check latents
   if (is.null(latents)) latents <- "mean"
@@ -203,13 +203,19 @@ prepare_data <- function(input, rawdata = NULL, latents = NULL, write=TRUE) {
                                          function(x) sum(is.na(x))/length(x))
   }
   
+  # Impute missing values
+  if (isTRUE(impute) || tolower(latents) == "pls") {
+    warning("Imputing missing values\n", call. = FALSE)
+    input$df[model$EM] <- impute_missing(input$df, model$EM)
+  } 
+  
   # Calculate latents if they do not exist
   if (!all(reporttool$latent_names %in% tolower(names(input$df)))) {
-    if (latents == "mean") {
+    if (tolower(latents) == "mean") {
       warning("Adding latents (mean) to data\n", call. = FALSE)
       input$df[levels(model$latent)] <- latents_mean(input$df, model)
     
-    } else if (latents == "pls") {
+    } else if (tolower(latents) == "pls") {
       warning("Imputing missing and adding latents (pls) to data\n", call. = FALSE)
       input$df[c(model$EM, levels(model$latent))] <- latents_pls(input$df, ent_var, model)
       
@@ -219,8 +225,13 @@ prepare_data <- function(input, rawdata = NULL, latents = NULL, write=TRUE) {
 
   }
   
-  return(input)
-  
+  # Write or return
+  if (isTRUE(write)) {
+    write_data(input, "prepared_data.xlsx")
+  } else {
+    return(input)
+  }
+
 }
 
 # Functions for preparing data -------------------------------------------------
@@ -235,15 +246,8 @@ latents_pls <- function(df, ent_var, model) {
   
   # Create identifier for a join after analysis
   df$imp_id <- 1:nrow(df)
-  
-  # Impute missing values
-  nvars <- ncol(df[model$EM])
-  bounds <- matrix(c(1:nvars, rep(0, nvars), rep(100, nvars)), ncol=3)
-  
-  imp_data <- df[df$percent_missing <= .3, ]
-  imp_data <- Amelia::amelia(imp_data, 5, bounds = bounds, boot.type="none", idvars = c(ent_var, "percent_missing", "imp_id"))
-  imp_data <- imp_data$imputations$imp5
-  
+  mod_data <- df[df$percent_missing <= .3, ]
+
   # Get latent names
   manifests <- model$EM
   latents <- reporttool$latent_names
@@ -256,19 +260,20 @@ latents_pls <- function(df, ent_var, model) {
   names(model$outer) <- latents
 
   # Run the analysis for each entity
-  list_em_data <- lapply(unique(imp_data[[ent_var]]), function(i, ent_var, df, model) {
+  list_em_data <- lapply(unique(mod_data[[ent_var]]), function(i, ent_var, df, model) {
     
     df <- df[df[[ent_var]] == i,]
     em <- plspm::plspm(df, model$inner, model$outer, model$modes, scaled=FALSE, boot.val=TRUE)
     cbind(df, plspm::rescale(em))
     
-  }, ent_var, imp_data, model)
+  }, ent_var, mod_data, model)
   
-  imp_data <- do.call('rbind', list_em_data)
+  mod_data <- do.call('rbind', list_em_data)
+  mod_data <- mod_data[order(mod_data$imp_id), ]
   
   # Join the estimated latents with the original dataset and return it
   df[latents] <- NA
-  df[df$imp_id %in% imp_data$imp_id, c(manifests, latents)] <- imp_data[c(manifests, latents)]
+  df[df$imp_id %in% mod_data$imp_id, c(manifests, latents)] <- mod_data[c(manifests, latents)]
   
   df[c(manifests, latents)]
   
@@ -280,6 +285,38 @@ latents_mean <- function(df, model) {
     rowMeans(df[tolower(names(df)) %in% mod$EM[mod$latent %in% i]], na.rm = TRUE)
   }, df, model)
   
+}
+
+impute_missing <- function(df, vars) {
+  
+  # Check if any imputed values exist
+  
+  # For reproducibility reasons
+  set.seed(1000)
+  
+  # Subset the data.frame
+  names(df) <- tolower(names(df))
+  df <- df[c(vars, "percent_missing")]
+  
+  # Create identifier for a join after analysis
+  df$imp_id <- 1:nrow(df)
+  
+  # Impute missing values
+  nvars <- ncol(df[model$EM])
+  bounds <- matrix(c(1:nvars, rep(0, nvars), rep(100, nvars)), ncol=3)
+  imp_data <- df[df$percent_missing <= .3, ]
+  
+  # Capture output due to print usage in Amelia-package
+  junk <- capture.output(
+    imp_data <- Amelia::amelia(imp_data, 5, bounds = bounds, boot.type="none", idvars = c("percent_missing", "imp_id")))
+  
+  # Get the imputed dataset
+  imp_data <- imp_data$imputations$imp5
+  
+  # Merge imputed rows with the data and return it
+  df[df$imp_id %in% imp_data$imp_id, vars] <- imp_data[vars]
+  
+  df[vars]
 }
 
 add_mm <- function(df) {
