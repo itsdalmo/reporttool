@@ -209,7 +209,3 @@ write_txt <- function(lst, file, encoding) {
             lst, file, encoding)
   
 }
-
-write_dir <- function(lst, file, encoding) {
-  stop("Directory output is not yet supported", call. = FALSE)
-}

@@ -9,7 +9,7 @@
 \alias{set_missing}
 \title{Utilities}
 \usage{
-set_missing(df, na.strings = reporttool$missing_values)
+set_missing(df, na.strings = cfg$missing_values)
 
 clean_score(var)
 

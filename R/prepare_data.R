@@ -15,7 +15,7 @@ prepare_data <- function(input = NULL, rawdata = NULL, latents = NULL, impute = 
   }
   
   # Change familiar sheetnames to their shorthand version
-  item_names <- with(reporttool$sheet_names, setNames(long, short))
+  item_names <- with(cfg$sheet_names, setNames(long, short))
   names(input) <- ordered_replace(names(input), item_names, names(item_names))
   
   # Get rawdata if it is given
@@ -39,7 +39,7 @@ prepare_data <- function(input = NULL, rawdata = NULL, latents = NULL, impute = 
   
   # Create a measurement model from data if necessary --------------------------
   missing_mm <- !all("mm" %in% names(input) && nrow(input$mm) > 0)
-  missing_mm_cols <- !all(reporttool$required_cols$mm %in% names(input$mm))
+  missing_mm_cols <- !all(cfg$required_cols$mm %in% names(input$mm))
   
   if (missing_mm) {
     warning("Measurement model was not found in input, generating suggestion\n", call. = FALSE)
@@ -55,12 +55,12 @@ prepare_data <- function(input = NULL, rawdata = NULL, latents = NULL, impute = 
   }
   
   # Functions that require latents to be specified in measurement model --------
-  contains_latents <- all(reporttool$latent_names %in% tolower(input$mm$latent))
+  contains_latents <- all(cfg$latent_names %in% tolower(input$mm$latent))
   
   if (contains_latents) {
     # Get model scales
-    model <- input$mm[tolower(input$mm$latent) %in% reporttool$latent_names, c("latent", "manifest")]
-    model$latent <- factor(tolower(model$latent), levels=reporttool$latent_names, ordered = TRUE)
+    model <- input$mm[tolower(input$mm$latent) %in% cfg$latent_names, c("latent", "manifest")]
+    model$latent <- factor(tolower(model$latent), levels=cfg$latent_names, ordered = TRUE)
     model$manifest <- tolower(model$manifest)
     
     # Clean model scales
@@ -103,7 +103,7 @@ prepare_data <- function(input = NULL, rawdata = NULL, latents = NULL, impute = 
   if (length(entity_var)) {
     # Check if valid entities have been specified
     missing_entity <- all("ents" %in% names(input) && nrow(input$ents) > 0)
-    missing_entity_cols <- all(reporttool$required_cols$ents %in% names(input$ents))
+    missing_entity_cols <- all(cfg$required_cols$ents %in% names(input$ents))
     
     if (!missing_entity) {
       warning("Entities were not specified in input, generating suggestion\n", call. = FALSE)
@@ -128,7 +128,7 @@ prepare_data <- function(input = NULL, rawdata = NULL, latents = NULL, impute = 
   }
   
   # Calculating latents requires that latents are specified -------------------
-  if (contains_latents && !all(reporttool$latent_names %in% tolower(names(input$df)))) {
+  if (contains_latents && !all(cfg$latent_names %in% tolower(names(input$df)))) {
     
     # Mean calculation only requires latents
     if (tolower(latents) == "mean") {
@@ -204,10 +204,10 @@ latents_pls <- function(input, ent_var, model) {
 
   # Get latent names
   manifests <- model$EM
-  latents <- reporttool$latent_names
+  latents <- cfg$latent_names
   
   model <- list("modes" = rep("A", length(latents)),
-                "inner" = reporttool$epsi_model,
+                "inner" = cfg$epsi_model,
                 "outer" = lapply(latents, function(x, mm) {
                   paste0(tolower(mm$manifest[tolower(mm$latent) %in% x]), "em")}, model))
   

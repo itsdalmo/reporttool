@@ -34,7 +34,7 @@
 #' df$Q3 <- rescale_score(df$Q3)
 
 #' @rdname utilities
-set_missing <- function(df, na.strings = reporttool$missing_values) {
+set_missing <- function(df, na.strings = cfg$missing_values) {
   
   if (all(!is.null(df), nrow(df) > 0L)) {
     df <- lapply(df, function(x) ifelse(x %in% na.strings, NA, x))
@@ -132,7 +132,7 @@ has_extension <- function(path, ext) {
 
 is_supported_ext <- function(...) {
   exts <- vapply(list(...), tools::file_ext, character(1))
-  all(exts %in% reporttool$input_formats)
+  all(exts %in% cfg$input_formats)
 }
 
 # Lowercase all columnnames

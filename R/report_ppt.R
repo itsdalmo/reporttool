@@ -4,8 +4,8 @@
 #   rmd <- rmd_to_r(rmd, write = FALSE)
 #   
 #   # Get an index of all chunks
-#   start_idx <- grep(reporttool$code_pat$chunk_start, rmd)
-#   end_idx <- grep(reporttool$code_pat$chunk_end, rmd)
+#   start_idx <- grep(cfg$code_pat$chunk_start, rmd)
+#   end_idx <- grep(cfg$code_pat$chunk_end, rmd)
 #   chunk_indicies <- Map(':', start_idx, end_idx)
 #   
 #   # Extract the .Rmd for the indicies and evaluate/store return values  
@@ -60,8 +60,8 @@ rmd_to_r <- function(rmd, encoding = "UTF-8", write = TRUE) {
   }
   
   # Identify chunks
-  start_idx <- grep(reporttool$rmd_pat$chunk_start, rmd)
-  end_idx <- grep(reporttool$rmd_pat$chunk_end, rmd)
+  start_idx <- grep(cfg$rmd_pat$chunk_start, rmd)
+  end_idx <- grep(cfg$rmd_pat$chunk_end, rmd)
   
   if (length(chunk_start) == length(chunk_end)) {
     chunk_idx <- Map(':', start_idx, end_idx)   
@@ -108,7 +108,7 @@ rmd_to_r <- function(rmd, encoding = "UTF-8", write = TRUE) {
 
 eval_inline <- function(line, envir = parent.frame()) {
   
-  pattern <- reporttool$rmd_pat$inline
+  pattern <- cfg$rmd_pat$inline
   inline <- unlist(stringr::str_extract_all(line, pattern))
   expr <- stringr::str_replace_all(inline, "`r\\s?|\\s?`", "")
   
@@ -154,9 +154,9 @@ eval_chunk <- function(lines, envir = parent.frame()) {
 # Replace chunk delims  --------------------------------------------------------
 replace_chunk_delim <- function(lines) {
   
-  chunk_start <- reporttool$rmd_pat$chunk_start
-  chunk_end <- reporttool$rmd_pat$chunk_end
-  chunk_eval <- reporttool$rmd_pat$chunk_eval
+  chunk_start <- cfg$rmd_pat$chunk_start
+  chunk_end <- cfg$rmd_pat$chunk_end
+  chunk_eval <- cfg$rmd_pat$chunk_eval
   
   # Identify which (if any) chunks contain eval options
   eval_idx <- grep(chunk_eval, lines)

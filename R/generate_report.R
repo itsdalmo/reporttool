@@ -126,7 +126,7 @@ prepare_input_data <- function(lst) {
   }
   
   # Rename sheets/listed items
-  item_names <- with(reporttool$sheet_names, setNames(long, short))
+  item_names <- with(cfg$sheet_names, setNames(long, short))
   
   if (all(item_names %in% names(lst))) {
     names(lst) <- ordered_replace(names(lst), item_names, names(item_names))

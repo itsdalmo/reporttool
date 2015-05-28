@@ -1,12 +1,36 @@
 # Default values ---------------------------------------------------------------
-reporttool <- list(
+cfg <- list(
+  
+  "input_args" = 
+    list("csv" = list(header = TRUE, 
+                              sep = ",", 
+                              quote = "\"", 
+                              dec = ".", 
+                              fill = TRUE, 
+                              comment.char = "",
+                              stringsAsFactors = FALSE),
+                   
+        "csv2" = list(header = TRUE, 
+                      sep = ";", 
+                      quote = "\"", 
+                      dec = ",", 
+                      fill = TRUE, 
+                      comment.char = "",
+                      stringsAsFactors = FALSE),
+                   
+        "txt" = list(sep = "\t", 
+                     quote = "\"", 
+                     dec = ".", 
+                     fill = TRUE, 
+                     comment.char = "",
+                     stringsAsFactors = FALSE)),
   
   "ggcolors" = c("#F8766D", "#00BFC4", "#808080", 
                  "#00BF7D", "#9590FF", "#A3A500", "#EA8331"),
   
-  "input_formats" = c("xlsx", "csv", ""),
+  "input_formats" = c("xlsx", "csv", "txt"),
   
-  "output_formats" = c("xlsx", "csv", "txt", ""),
+  "output_formats" = c("xlsx", "csv", "txt"),
   
   "latent_names" = c("image", "expect", "prodq", 
                      "servq", "value", "epsi", "loyal"),
