@@ -50,7 +50,6 @@ beamer_template <- function(dev = "cairo_pdf", toc = TRUE, keep_tex = FALSE, sli
 }
 
 #' @rdname beamer_template
-#' @export
 
 copy_beamer_theme <- function(dir=NULL) {
   
@@ -68,7 +67,6 @@ copy_beamer_theme <- function(dir=NULL) {
 }
 
 #' @rdname beamer_template
-#' @export 
 
 generate_beamer <- function(entity, dir, envir) {
   

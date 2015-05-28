@@ -4,8 +4,7 @@ subtitle: "REPLACE_ENTITY"
 author: "EPSI Norge"
 date: "REPLACE_DATE"
 output: 
-  epsitools::report_template:
-    toc: TRUE
+  reporttool::beamer_template
 ---
 
 ```{r, error=FALSE, results='hide'}

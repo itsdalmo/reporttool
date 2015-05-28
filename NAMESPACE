@@ -2,8 +2,6 @@
 
 export(beamer_template)
 export(clean_score)
-export(copy_beamer_theme)
-export(generate_beamer)
 export(generate_report)
 export(get_input)
 export(get_sheet_names)
