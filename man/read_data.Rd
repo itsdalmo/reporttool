@@ -4,19 +4,22 @@
 \alias{read_data}
 \title{Read common data formats}
 \usage{
-read_data(file, encoding = "UTF-8")
+read_data(file, sheet = NULL, encoding = "UTF-8")
 }
 \arguments{
-\item{file}{Path to a csv, csv2 or xlsx file.}
+\item{file}{Path to a Rdata, txt, csv, csv2 or xlsx file.}
+
+\item{sheet}{Optional: If you are trying to read a xlsx file, you can also
+specify which sheets to read.}
 
 \item{encoding}{The encoding to use for txt and csv-files.}
 }
 \value{
-A data.frame. If more than one sheet is read from a xlsx file a
-list is returned instead.
+A data.frame. If more than one sheet is read from a xlsx file
+(or you are reading a Rdata file) a list is returned instead.
 }
 \description{
-A simple wrapper for reading data. Currently supports txt,
+A simple wrapper for reading data. Currently supports Rdata, txt,
 csv, csv2 and xlsx. The function also lowercases all list and column names,
 and cleans common strings for missing values.
 }

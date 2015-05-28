@@ -130,16 +130,17 @@ write_data <- function(x, file = NULL, encoding = "UTF-8") {
   
   # Handle NULL in list names
   if (is.null(names(x))) {
-    names(x) <- paste("Data", 1:length(x))
+    names(x) <- paste0("Data", 1:length(x))
   }
   
-  # Warn if list can be written to a single file, but no valid filename is given.
+  # Stop if list can be written to a single file, but no valid filename is given.
   if (name == "" && length(x) == 1) {
     stop("Please provide a valid filename.")
   }
   
   # Use extension to write correct format
-  switch(ext,
+  switch(tolower(ext),
+         rdata = save(list = "lst", file = file, envir = environment()),
          xlsx = write_xlsx(x, file),
          csv = write_csv(x, dirname(file), encoding),
          txt = write_txt(x, dirname(file), encoding),
@@ -150,25 +151,22 @@ write_data <- function(x, file = NULL, encoding = "UTF-8") {
 
 # Output wrappers --------------------------------------------------------------
 
-write_xlsx <- function(lst, file) {
+write_txt <- function(lst, file, encoding) {
   
   if (!inherits(lst, "list")) {
     stop("The data must be of class 'list'", call. = FALSE)
   }
   
-  # If the file exists, load and write to it
-  if (file.exists(file)) { 
-    wb <- openxlsx::loadWorkbook(file)
-  } else { 
-    wb <- openxlsx::createWorkbook()
-  }
-  
-  
-  lapply(names(lst), function(nm, lst, wb) {
-    to_sheet(lst[[nm]], wb = wb, sheet = nm, append = FALSE)}, 
-    lst, wb)
-  
-  openxlsx::saveWorkbook(wb, file, overwrite = TRUE)
+  lapply(names(lst), function(nm, lst, file, encoding) {
+    utils::write.table(x = lst[[nm]],
+                       file = paste0(file.path(file, nm), ".txt"),
+                       sep = ",",
+                       na = "",
+                       dec = ".",
+                       row.names = FALSE,
+                       fileEncoding = encoding,
+                       quote = FALSE)}, 
+    lst, file, encoding)
   
 }
 
@@ -191,21 +189,24 @@ write_csv <- function(lst, file, encoding) {
 
 }
 
-write_txt <- function(lst, file, encoding) {
+write_xlsx <- function(lst, file) {
   
   if (!inherits(lst, "list")) {
     stop("The data must be of class 'list'", call. = FALSE)
   }
   
-  lapply(names(lst), function(nm, lst, file, encoding) {
-    utils::write.table(x = lst[[nm]],
-                      file = paste0(file.path(file, nm), ".txt"),
-                      sep = ",",
-                      na = "",
-                      dec = ".",
-                      row.names = FALSE,
-                      fileEncoding = encoding,
-                      quote = FALSE)}, 
-            lst, file, encoding)
+  # If the file exists, load and write to it
+  if (file.exists(file)) { 
+    wb <- openxlsx::loadWorkbook(file)
+  } else { 
+    wb <- openxlsx::createWorkbook()
+  }
+  
+  
+  lapply(names(lst), function(nm, lst, wb) {
+    to_sheet(lst[[nm]], wb = wb, sheet = nm, append = FALSE)}, 
+    lst, wb)
+  
+  openxlsx::saveWorkbook(wb, file, overwrite = TRUE)
   
 }

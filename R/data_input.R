@@ -1,113 +1,17 @@
-#' Read sheets from xlsx-files to a list.
+#' Extract from a study directory on sharepoint
 #'
-#' This function (a very thin wrapper for openxlsx functions) which reads all
-#' sheets from an .xlsx file to a list of data.frames.
-#'
-#' @param file The path to the .xlsx file.
-#' @param sheets Optional: Specify the sheets to be read.
-#' @param clean.missing Set to TRUE to clean typical NA-strings from .xlsx file.
-#' @author Kristian D. Olsen
-#' @return A list containing data.frames matching the sheets in the .xlsx file.
-#' If only one sheet is read, the function returns a data.frame instead.
-#' @note This function requires openxlsx.
-#' @export
-#' @examples 
-#' x <- read_sheets("test.xlsx")
-
-read_sheets <- function(file, sheets = NULL, clean.missing = FALSE) {
-  
-  file <- validate_path(file)
-  
-  if (!file.exists(file)) {
-    stop("Path does not exist:\n", file, call. = FALSE)
-  }
-  
-  if(!has_extension(file, "xlsx")) {
-    stop("The specified path does not direct to a 'xlsx' file:\n", file, call. = FALSE)
-  }
-  
-  # Get the sheetnames to be read
-  wb <- get_sheet_names(file)
-  
-  if (!is.null(sheets)) {
-    sheets <- wb[tolower(wb) %in% tolower(sheets)]
-  } else {
-    sheets <- wb
-  }
-  
-  # Read data to list and set names
-  lst <- lapply(sheets, openxlsx::read.xlsx, xlsxFile = file)
-  names(lst) <- sheets
-  
-  # Set all list entries to be data.frame and/or clean NA
-  if (clean.missing) {
-    lst <- lapply(lst, set_missing)
-  }
-  
-  lst <- lapply(lst, as.data.frame, stringsAsFactors = FALSE)
-  
-  # If only one sheet was read, return a data.frame instead
-  if (length(lst) == 1L) {
-    lst <- lst[[1]]
-  }
-  
-  # Return
-  return(lst)
-}
-
-#' Read common data formats
-#'
-#' A simple wrapper for reading data. Currently supports txt,
-#' csv, csv2 and xlsx. The function also lowercases all list and column names,
-#' and cleans common strings for missing values.
+#' This function extracts whatever data is available in our standard file 
+#' structure and tries to structure it like a input.xlsx file.
 #' 
-#'
-#' @param file Path to a csv, csv2 or xlsx file.
-#' @param encoding The encoding to use for txt and csv-files.
-#' @author Kristian D. Olsen
-#' @return A data.frame. If more than one sheet is read from a xlsx file a
-#' list is returned instead.
-#' @note Reading .xlsx requires that the openxlsx package is installed.
-#' @export
-#' @examples 
-#' x <- read_data("test.xlsx")
-
-read_data <- function(file, encoding = "UTF-8") {
-  
-  file <- validate_path(file)
-  
-  if (!file.exists(file)) {
-    stop("Path does not exist:\n", file, call. = FALSE)
-  }
-  
-  if (!is_supported_ext(file)) {
-    stop("Path does not direct to a supported format:\n", file, call. = FALSE)
-  }
-  
-  # Pick input-function based on extension
-  switch(tools::file_ext(file),
-         txt = read_txt(file, encoding),
-         csv = read_csv(file, encoding),
-         xlsx = read_xlsx(file),
-         stop("Unrecognized input format in:\n", file, call. = FALSE))
-}
-
-#' Read common data formats
-#'
-#' A simple wrapper for reading data. Currently supports txt,
-#' csv, csv2 and xlsx. The function also lowercases all list and column names,
-#' and cleans common strings for missing values.
-#' 
-#'
 #' @param file Path to a study directory on the intranet.
 #' @author Kristian D. Olsen
 #' @return A list containing the EM-data, entities (observations, marketshare),
 #' and a measurement model (latent association, question text, values etc.)
 #' @export
 #' @examples 
-#' x <- read_dir("https://the.intranet.se/EPSI/example")
+#' x <- from_directory("https://the.intranet.se/EPSI/example")
 
-read_dir <- function(file) {
+from_directory <- function(file) {
   
   if (!has_extension(file, "")) {
     stop("The specified path is not a directory:\n", file, call. = FALSE)
@@ -180,7 +84,65 @@ read_dir <- function(file) {
   
 }
 
+#' Read common data formats
+#'
+#' A simple wrapper for reading data. Currently supports Rdata, txt,
+#' csv, csv2 and xlsx. The function also lowercases all list and column names,
+#' and cleans common strings for missing values.
+#' 
+#'
+#' @param file Path to a Rdata, txt, csv, csv2 or xlsx file.
+#' @param sheet Optional: If you are trying to read a xlsx file, you can also
+#' specify which sheets to read.
+#' @param encoding The encoding to use for txt and csv-files.
+#' @author Kristian D. Olsen
+#' @return A data.frame. If more than one sheet is read from a xlsx file 
+#' (or you are reading a Rdata file) a list is returned instead.
+#' @note Reading .xlsx requires that the openxlsx package is installed.
+#' @export
+#' @examples 
+#' x <- read_data("test.xlsx")
+
+read_data <- function(file, sheet = NULL, encoding = "UTF-8") {
+  
+  file <- validate_path(file)
+  
+  if (!file.exists(file)) {
+    stop("Path does not exist:\n", file, call. = FALSE)
+  }
+  
+  if (!is_supported_ext(file)) {
+    stop("Path does not direct to a supported format:\n", file, call. = FALSE)
+  }
+  
+  # Pick input-function based on extension
+  switch(tolower(tools::file_ext(file)),
+         txt = read_txt(file, encoding),
+         csv = read_csv(file, encoding),
+         xlsx = read_xlsx(file),
+         rdata = read_rdata(file),
+         stop("Unrecognized input format in:\n", file, call. = FALSE))
+}
+
+
 # Input wrappers ---------------------------------------------------------------
+
+read_rdata <- function(file) {
+  
+  if (!has_extension(file, "rdata")) {
+    stop("The specified path does not direct to a 'rdata' file:\n", file, call. = FALSE)
+  }
+  
+  # Create an empty environment to load the rdata
+  lst <- new.env(parent = emptyenv())
+  load(file, envir = lst)
+  
+  # Convert the environment to a list
+  lst <- as.list(lst)
+  
+  return(lst)
+  
+}
 
 read_txt <- function(file, encoding) {
   
@@ -191,13 +153,19 @@ read_txt <- function(file, encoding) {
   args <- list(file = file, 
                header = FALSE,
                fileEncoding = encoding, 
-               na.strings = cfg$missing_values)
+               na.strings = cfg$missing_values,
+               sep = "\t",
+               quote = "\"",
+               dec = ".",
+               comment.char = "",
+               fill = TRUE,
+               stringsAsFactors = FALSE)
   
-  df <- do.call(utils::read.table, c(args, cfg$input_args$txt))
+  df <- do.call(utils::read.table, args)
   
   # If more than one column is returned use header = TRUE
   if (dim(df)[2] > 1L && nrow(df) > 1L) {
-    args$header <- TRUE
+    args["header"] <- TRUE
     df <- do.call(utils::read.table, c(args, cfg$input_args$txt))
   }
   
@@ -213,15 +181,23 @@ read_csv <- function(file, encoding) {
     stop("The specified path does not direct to a 'csv' file:\n", file, call. = FALSE)
   }
   
-  args <- list(file = file, 
-               fileEncoding = encoding, 
-               na.strings = cfg$missing_values)
+  args <- list(file = file,
+               fileEncoding = encoding,
+               na.strings = cfg$missing_values,
+               header = TRUE, 
+               sep = ";", 
+               quote = "\"", 
+               dec = ",", 
+               fill = TRUE, 
+               comment.char = "",
+               stringsAsFactors = FALSE)
   
-  df <- do.call(utils::read.table, c(args, cfg$input_args$csv2))
+  df <- do.call(utils::read.table, args)
  
   # If only one column is returned - try comma separated
   if (dim(df)[2] == 1L) {
-    df <- do.call(utils::read.table, c(args, cfg$input_args$csv))
+    args[c("sep", "dec")] <- c(",", ".")
+    df <- do.call(utils::read.table, args)
   }
   
   # Lowercase names
@@ -230,16 +206,41 @@ read_csv <- function(file, encoding) {
   return(df)
 }
 
-read_xlsx <- function(file) {
+read_xlsx <- function(file, sheet = NULL) {
   
-  df <- read_sheets(file, clean.missing = TRUE)
+  if(!has_extension(file, "xlsx")) {
+    stop("The specified path does not direct to a 'xlsx' file:\n", file, call. = FALSE)
+  }
+  
+  # Get the sheetnames to be read
+  wb <- get_sheet_names(file)
+  
+  if (!is.null(sheet)) {
+    sheet <- wb[tolower(wb) %in% tolower(sheet)]
+  } else {
+    sheet <- wb
+  }
+  
+  # Read data to list and set names
+  lst <- lapply(sheet, openxlsx::read.xlsx, xlsxFile = file)
+  names(lst) <- sheet
+  
+  # Set all list entries to be data.frame and/or clean NA
+  lst <- lapply(lst, set_missing)
   
   # Lowercase names
-  if (inherits(df, "list")) {
-    df <- lapply(df, tolower_cols)
+  if (inherits(lst, "list")) {
+    lst <- lapply(lst, tolower_cols)
   } 
   
-  names(df) <- tolower(names(df))
+  names(lst) <- tolower(names(lst))
   
-  return(df)
+  # If only one sheet was read, return a data.frame instead
+  if (length(lst) == 1L) {
+    lst <- lst[[1]]
+  }
+  
+  # Return
+  return(lst)
+  
 }

@@ -131,7 +131,7 @@ has_extension <- function(path, ext) {
 }
 
 is_supported_ext <- function(...) {
-  exts <- vapply(list(...), tools::file_ext, character(1))
+  exts <- vapply(list(tolower(...)), tools::file_ext, character(1))
   all(exts %in% cfg$input_formats)
 }
 
