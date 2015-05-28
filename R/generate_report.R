@@ -81,7 +81,7 @@ generate_rmd <- function(entity, md, dir) {
 }
 
 #' @export
-get_input <- function(file, save=TRUE, assign = TRUE, envir = parent.frame()) {
+get_input <- function(file, assign = TRUE, save = TRUE,  envir = parent.frame()) {
   
   # Validate path
   file <- validate_path(file)
@@ -128,7 +128,7 @@ prepare_input_data <- function(lst) {
   # Rename sheets/listed items
   item_names <- with(cfg$sheet_names, setNames(long, short))
   
-  if (all(item_names %in% names(lst))) {
+  if (any(item_names %in% names(lst))) {
     names(lst) <- ordered_replace(names(lst), item_names, names(item_names))
   } else {
     stop("The required data is not present in the provided list", call. = FALSE)
@@ -136,12 +136,8 @@ prepare_input_data <- function(lst) {
   
   survey_data <- which(names(lst) %in% c("df", "cd", "hd"))
   
-  # Check if w/weights are present in the data (add if not)
-  lst[survey_data] <- lapply(lst[survey_data], function(x) {
-    if (nrow(x) > 0 && "w" %in% names(x))  x$w <- as.numeric(x$w)
-    if (nrow(x) > 0 && !"w" %in% names(x)) x$w <- 1
-    x
-  })
+  # Convert variables associated with a latent to numeric
+  
   
   # Make groupcolumns easily identifiable
   main <- "mainentity" %in% lst$mm$latent
