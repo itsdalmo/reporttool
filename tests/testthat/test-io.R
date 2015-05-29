@@ -1,23 +1,13 @@
-context("Get input")
-test_that("Read/write .xlsx works and returns expected result", {
-  lst <- get_input("xlsx.xlsx", "csv.csv", "csv2.csv")
-  
-  expect_true(identical(names(lst), c("input", "contrast data", "historic data")))
-  expect_identical(lst[[1]], lst[[2]])
-  expect_true(inherits(lst, "list"))
-})
-
-
 context("Reading and writing data")
 test_that("Read/write .xlsx works and returns expected result", {
   
   # Read
   xlsx <- read_data("xlsx.xlsx")
   
-  expect_true(inherits(xlsx, "data.frame"))
-  expect_true(identical(tolower(names(xlsx)), names(xlsx)))
-  expect_true(identical(xlsx$mainentity, paste("Test", 1:3)))
-  expect_true(identical(xlsx$missing, rep(NA, 3)))
+  expect_is(xlsx, "data.frame")
+  expect_identical(tolower(names(xlsx)), names(xlsx))
+  expect_identical(xlsx$mainentity, paste("Test", 1:3))
+  expect_identical(xlsx$missing, rep(NA, 3))
   
   # Write
   fileName <- file.path(tempdir(), "xlsx.xlsx")
@@ -36,7 +26,7 @@ test_that("Read/write works with lists of data", {
   
   # Read example data
   sheet1 <- read_data("xlsx.xlsx")
-  sheet2 <- read_data("csv2.csv")
+  sheet2 <- read_data("csv2.csv", encoding = "latin1")
   
   lst <- list("csv" = sheet1, "csv2" = sheet2)
   
@@ -74,8 +64,8 @@ test_that("Read/write .csv works and returns expected result", {
   
   # Read
   xlsx <- read_data("xlsx.xlsx")
-  csv <- read_data("csv.csv")
-  csv2 <- read_data("csv2.csv")
+  csv <- read_data("csv.csv", encoding = "latin1")
+  csv2 <- read_data("csv2.csv", encoding = "latin1")
   
   expect_identical(csv, csv2)
   expect_identical(csv2, xlsx)
@@ -96,10 +86,10 @@ test_that("Write .txt works and returns expected result", {
   # Write
   fileName <- file.path(tempdir(), "txt.txt")
   
-  csv2 <- read_data("csv2.csv")
+  csv2 <- read_data("csv2.csv", encoding = "latin1")
   write_data(csv2, fileName)
   
-  txt <- read.table(fileName, sep=",", header=TRUE, fileEncoding="latin1",
+  txt <- read.table(fileName, sep=",", header=TRUE, fileEncoding="UTF-8",
                     stringsAsFactors = FALSE)
   
   expect_identical(txt, csv2)
@@ -108,19 +98,9 @@ test_that("Write .txt works and returns expected result", {
   unlink(fileName, recursive = TRUE, force = TRUE)
 })
 
-test_that("Read/write directory works and returns expected result", {
-  
-  fileName <- file.path(tempdir())
-  csv2 <- read_data("csv2.csv")
-  
-  expect_error(write_data(csv2, fileName))
-  expect_error(read_data("./"))
-  
-  unlink(fileName, recursive = TRUE, force = TRUE)
-})
-
 test_that("Read/write error handeling", {
   
   expect_error(read_data("invalid.xlsx"))
+  expect_error(read_data("invalid.inv"))
   
 })

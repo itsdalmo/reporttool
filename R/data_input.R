@@ -18,10 +18,7 @@ from_directory <- function(file) {
   }
   
   # Make https links compatible with windows file explorer
-  if (grepl("^http[s]*://.*[^/]\\.se/.*", file) && Sys.info()["sysname"] == "Windows") {
-    domain <- sub("^http[s]*://(.[^/]*)/.*", "\\1", file)
-    file <- paste0("\\\\", domain, "@SSL/DavWWWRoot", sub(paste0(".*", domain, "(.*)"), "\\1", file))
-  }
+  file <- intranet_link(file)
   
   # Check if the specified directory contains the expected folders
   exp_folders <- c("data", "input", "output")

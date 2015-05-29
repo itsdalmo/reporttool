@@ -107,7 +107,22 @@ get_sheet_names <- function(file) {
   return(sheets)
 }
 
-# Misc -------------------------------------------------------------------------
+#' @rdname utilities
+#' @export 
+intranet_link <- function(https) {
+  
+  # If you are on windows and the link ends with .se
+  if (grepl("^http[s]*://.*[^/]\\.se/.*", https) && Sys.info()["sysname"] == "Windows") {
+    domain <- sub("^http[s]*://(.[^/]*)/.*", "\\1", https)
+    https <- paste0("\\\\", domain, "@SSL/DavWWWRoot", sub(paste0(".*", domain, "(.*)"), "\\1", https))
+  }
+  
+  https
+  
+}
+
+
+# MISC -------------------------------------------------------------------------
 isFALSE <- function(x) identical(x, FALSE)
 
 validate_path <- function(path) {
@@ -131,7 +146,7 @@ has_extension <- function(path, ext) {
 }
 
 is_supported_ext <- function(...) {
-  exts <- vapply(list(tolower(...)), tools::file_ext, character(1))
+  exts <- vapply(tolower(list(...)), tools::file_ext, character(1))
   all(exts %in% cfg$input_formats)
 }
 
