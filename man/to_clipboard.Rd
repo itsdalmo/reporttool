@@ -4,10 +4,12 @@
 \alias{to_clipboard}
 \title{Write to Windows clipboard}
 \usage{
-to_clipboard(df, encoding = "")
+to_clipboard(df, names = TRUE, encoding = "")
 }
 \arguments{
 \item{df}{The data to write.}
+
+\item{names}{Should columnnames be included?}
 
 \item{encoding}{The encoding to use when writing.}
 }

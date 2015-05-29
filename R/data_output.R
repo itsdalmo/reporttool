@@ -58,6 +58,7 @@ to_sheet <- function(df, wb, sheet="analysis", row=1L, append=TRUE) {
 #' scandinavian locale.
 #'
 #' @param df The data to write.
+#' @param names Should columnnames be included?
 #' @param encoding The encoding to use when writing.
 #' @author Kristian D. Olsen
 #' @note This function only works on Windows, and the data-size cannot exceeed 128kb.
@@ -65,7 +66,7 @@ to_sheet <- function(df, wb, sheet="analysis", row=1L, append=TRUE) {
 #' @examples 
 #' x %>% to_clipboard()
 
-to_clipboard <- function(df, encoding = "") {
+to_clipboard <- function(df, names = TRUE, encoding = "") {
   
   if (!(Sys.info()["sysname"] == "Windows")) {
     stop("Writing to clipboard requires Windows OS")
@@ -87,7 +88,7 @@ to_clipboard <- function(df, encoding = "") {
                     na = "",
                     dec = ",",
                     row.names = FALSE,
-                    col.names = FALSE,
+                    col.names = names,
                     fileEncoding = encoding)
 }
 
