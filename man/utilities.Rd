@@ -4,6 +4,7 @@
 \alias{Utilities}
 \alias{clean_score}
 \alias{get_sheet_names}
+\alias{intranet_link}
 \alias{ordered_replace}
 \alias{rescale_score}
 \alias{set_missing}
@@ -18,6 +19,8 @@ rescale_score(var)
 ordered_replace(x, by, y)
 
 get_sheet_names(file)
+
+intranet_link(https)
 }
 \description{
 A few wrappers to make a common tasks less verbose.
