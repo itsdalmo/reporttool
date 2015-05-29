@@ -2,23 +2,22 @@
 % Please edit documentation in R/data_output.R
 \name{to_clipboard}
 \alias{to_clipboard}
-\title{Write to Windows clipboard}
+\title{Write to Windows/OSX clipboard}
 \usage{
-to_clipboard(df, names = TRUE, encoding = "")
+to_clipboard(df, encoding = "")
 }
 \arguments{
 \item{df}{The data to write.}
 
-\item{names}{Should columnnames be included?}
-
 \item{encoding}{The encoding to use when writing.}
 }
 \description{
-Wrapper for writing to windows clipboard with the most-used defaults for a
+Wrapper for writing to windows/OSX clipboards with the most-used defaults for a
 scandinavian locale.
 }
 \note{
-This function only works on Windows, and the data-size cannot exceeed 128kb.
+This function only works on Windows or OSX, and the data-size cannot
+exceed 128kb in Windows.
 }
 \examples{
 x \%>\% to_clipboard()

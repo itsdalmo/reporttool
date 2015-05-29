@@ -52,28 +52,32 @@ to_sheet <- function(df, wb, sheet="analysis", row=1L, append=TRUE) {
   }
 }
 
-#' Write to Windows clipboard
+#' Write to Windows/OSX clipboard
 #'
-#' Wrapper for writing to windows clipboard with the most-used defaults for a
+#' Wrapper for writing to windows/OSX clipboards with the most-used defaults for a
 #' scandinavian locale.
 #'
 #' @param df The data to write.
-#' @param names Should columnnames be included?
 #' @param encoding The encoding to use when writing.
 #' @author Kristian D. Olsen
-#' @note This function only works on Windows, and the data-size cannot exceeed 128kb.
+#' @note This function only works on Windows or OSX, and the data-size cannot 
+#' exceed 128kb in Windows.
 #' @export
 #' @examples 
 #' x %>% to_clipboard()
 
-to_clipboard <- function(df, names = TRUE, encoding = "") {
+to_clipboard <- function(df, encoding = "") {
   
-  if (!(Sys.info()["sysname"] == "Windows")) {
-    stop("Writing to clipboard requires Windows OS")
-  }
-  
-  if (object.size(df) > 120000) {
-    stop("The data is too large to write to clipboard", call. = FALSE)
+  if ((Sys.info()["sysname"] == "Windows")) {
+    file <- "clipboard-128"
+    if (object.size(df) > 120000) {
+      stop("The data is too large to write to windows clipboard", call. = FALSE)
+    }
+  } else if (Sys.info()["sysname"] == "Darwin") {
+    file <- pipe("pbcopy", "w")
+    on.exit(close(file), add = TRUE)
+  } else {
+    stop("Writing to clipboard is supported only in Windows or OSX")
   }
   
   if (inherits(df, "data.frame")) {
@@ -83,12 +87,12 @@ to_clipboard <- function(df, names = TRUE, encoding = "") {
   }
   
   utils::write.table(x = df,
-                    file = "clipboard-128",
+                    file = file,
                     sep = "\t",
                     na = "",
                     dec = ",",
                     row.names = FALSE,
-                    col.names = names,
+                    col.names = cols,
                     fileEncoding = encoding)
 }
 
