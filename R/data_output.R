@@ -126,16 +126,21 @@ write_data <- function(x, file = NULL, encoding = "UTF-8") {
     name <- sub(paste0(".*/(.*).", ext), "\\1", file)
   }
   
+  # Convert matrix to data.frame
+  if (inherits(x, "matrix")) {
+    x <- as.data.frame(x, stringsAsFactors = FALSE)
+  }
+  
   # Check object class
   if (inherits(x, "data.frame")) {
     x <- setNames(list(x), name)
   } else if (!inherits(x, "list")) {
-    stop("This function expects a data.frame or list", call. = FALSE)
+    stop("This function expects a matrix, data.frame or list", call. = FALSE)
   }
   
   # Handle NULL in list names
   if (is.null(names(x))) {
-    names(x) <- paste0("Data", 1:length(x))
+    names(x) <- paste0("DF", 1:length(x))
   }
   
   # Stop if list can be written to a single file, but no valid filename is given.
@@ -145,7 +150,7 @@ write_data <- function(x, file = NULL, encoding = "UTF-8") {
   
   # Use extension to write correct format
   switch(tolower(ext),
-         rdata = save(list = "lst", file = file, envir = environment()),
+         rdata = write_rdata(x, file),
          xlsx = write_xlsx(x, file),
          csv = write_csv(x, dirname(file), encoding),
          txt = write_txt(x, dirname(file), encoding),
@@ -155,6 +160,16 @@ write_data <- function(x, file = NULL, encoding = "UTF-8") {
 }
 
 # Output wrappers --------------------------------------------------------------
+write_rdata <- function(lst, file) {
+  
+  if (!inherits(lst, "list")) {
+    stop("The data must be of class 'list'", call. = FALSE)
+  }
+  
+  save(list = names(lst), file = file, envir = list2env(lst, parent = emptyenv()))
+  
+}
+
 
 write_txt <- function(lst, file, encoding) {
   

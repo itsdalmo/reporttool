@@ -10,8 +10,8 @@
 #'    openxlsx::loadWorkbook() and names() when you do not need to preserve
 #'    styling/formatting.}  
 #' 
-#'    \item{\code{ordered_replace}}{Replace \code{x} with \code{y} where \code{x}
-#'    matches \code{by}. Matches and replacements retain the original order of
+#'    \item{\code{ordered_replace}}{Replace \code{x} with \code{replacement} where \code{x}
+#'    matches \code{match_by}. Matches and replacements retain the original order of
 #'    \code{x}.} 
 #'
 #'    \item{\code{set_missing}}{Takes a \code{data.frame} and cleans
@@ -37,7 +37,7 @@
 set_missing <- function(df, na.strings = cfg$missing_values) {
   
   if (all(!is.null(df), nrow(df) > 0L)) {
-    df <- lapply(df, function(x) ifelse(x %in% na.strings, NA, x))
+    df <- lapply(df, function(x) ifelse(x %in% na.strings, NA_character_, x))
     df <- as.data.frame(df, stringsAsFactors=FALSE)
   }
   
@@ -58,20 +58,31 @@ rescale_score <- function(var) {
 
 #' @rdname utilities
 #' @export
-ordered_replace <- function(x, by, y) {
+ordered_replace <- function(x, match_by, replacement = NULL) {
   
-  # Use setnames for y and by
-  if (length(by) == length(y)) {
-    y <- setNames(by, y)
+  # Make sure a named vector is used if replacement is not specified
+  if (is.null(replacement)) {
+    
+    if (is.null(attr(match_by, "names"))) {
+      stop("'match_by' must be a named vector or replacement must be specified\n", call. = FALSE)
+    } else {
+      y <- match_by
+    }
+  
   } else {
-    stop("'y' and 'by' must have same length.", call. = FALSE)
+    
+    if (length(match_by) == length(replacement)) {
+      y <- setNames(match_by, replacement)
+    } else {
+      stop("'match' and 'replace' must have same length\n", call. = FALSE)
+    }
   }
-  
-  # Replace x by y (based on 'by')
+    
+  # Replace x with values from replace (based on 'match')
   if (any(x %in% y)) {
-    x[x %in% y] <- names(y)[vapply(x, function(x) match(x, y), numeric(1))]
+    x[x %in% y] <- names(y)[match(x, y, nomatch = 0)]
   } else {
-    warning("x had no matches in y; no values replaced", call. = FALSE)
+    warning("x had no matches in 'match_by'. No values replaced\n", call. = FALSE)
   }
   
   return(x)  

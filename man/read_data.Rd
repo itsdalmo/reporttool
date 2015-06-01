@@ -24,7 +24,8 @@ csv, csv2 and xlsx. The function also lowercases all list and column names,
 and cleans common strings for missing values.
 }
 \note{
-Reading .xlsx requires that the openxlsx package is installed.
+When reading csv or txt, all columns will be 'character'. For xlsx files
+the behaviour is more random.
 }
 \examples{
 x <- read_data("test.xlsx")

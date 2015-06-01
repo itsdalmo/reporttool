@@ -95,7 +95,8 @@ from_directory <- function(file) {
 #' @author Kristian D. Olsen
 #' @return A data.frame. If more than one sheet is read from a xlsx file 
 #' (or you are reading a Rdata file) a list is returned instead.
-#' @note Reading .xlsx requires that the openxlsx package is installed.
+#' @note When reading csv or txt, all columns will be 'character'. For xlsx files
+#' the behaviour is more random.
 #' @export
 #' @examples 
 #' x <- read_data("test.xlsx")
@@ -137,6 +138,10 @@ read_rdata <- function(file) {
   # Convert the environment to a list
   lst <- as.list(lst)
   
+  if (length(lst) == 1L) {
+    lst <- lst[[1]]
+  }
+  
   return(lst)
   
 }
@@ -156,6 +161,7 @@ read_txt <- function(file, encoding) {
                dec = ".",
                comment.char = "",
                fill = TRUE,
+               colClasses = "character",
                stringsAsFactors = FALSE)
   
   df <- do.call(utils::read.table, args)
@@ -185,8 +191,9 @@ read_csv <- function(file, encoding) {
                sep = ";", 
                quote = "\"", 
                dec = ",", 
-               fill = TRUE, 
                comment.char = "",
+               fill = TRUE, 
+               colClasses = "character",
                stringsAsFactors = FALSE)
   
   df <- do.call(utils::read.table, args)

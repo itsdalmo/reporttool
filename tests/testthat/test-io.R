@@ -1,5 +1,5 @@
-context("Reading and writing data")
-test_that("Read/write .xlsx works and returns expected result", {
+context("i/o functions")
+test_that("Read/write single-sheet-xlsx works (clean missing and lowercase names)" , {
   
   # Read
   xlsx <- read_data("xlsx.xlsx")
@@ -7,19 +7,19 @@ test_that("Read/write .xlsx works and returns expected result", {
   expect_is(xlsx, "data.frame")
   expect_identical(tolower(names(xlsx)), names(xlsx))
   expect_identical(xlsx$mainentity, paste("Test", 1:3))
-  expect_identical(xlsx$missing, rep(NA, 3))
+  expect_identical(xlsx$missing, rep(NA_real_, 3))
   
   # Write
   fileName <- file.path(tempdir(), "xlsx.xlsx")
   write_data(xlsx, fileName)
   
-  # Read data again and convert missing to numeric (openxlsx prob.)
+  # Read data again (convert to character, openxlsx problem)
   w_xlsx <- read_data(fileName)
-  w_xlsx$missing <- as.logical(w_xlsx$missing)
   
   expect_identical(w_xlsx, xlsx)
-
+  
   unlink(fileName, recursive = TRUE, force = TRUE)
+  
 })
 
 test_that("Read/write works with lists of data", {
@@ -29,6 +29,7 @@ test_that("Read/write works with lists of data", {
   sheet2 <- read_data("csv2.csv", encoding = "latin1")
   
   lst <- list("csv" = sheet1, "csv2" = sheet2)
+  lst$csv2$missing <- as.numeric(lst$csv2$missing)
   
   # Write csv
   dirName <- file.path(tempdir())
@@ -52,12 +53,10 @@ test_that("Read/write works with lists of data", {
   
   # Read data again and convert missing to numeric (openxlsx prob.)
   w_xlsx <- read_data(fileName)
-  w_xlsx$csv$missing <- as.logical(w_xlsx$csv$missing)
-  w_xlsx$csv2$missing <- as.logical(w_xlsx$csv2$missing)
-  
   expect_identical(lst, w_xlsx)
 
   unlink(fileName, recursive = TRUE, force = TRUE)
+  
 })
 
 test_that("Read/write .csv works and returns expected result", {
@@ -66,6 +65,9 @@ test_that("Read/write .csv works and returns expected result", {
   xlsx <- read_data("xlsx.xlsx")
   csv <- read_data("csv.csv", encoding = "latin1")
   csv2 <- read_data("csv2.csv", encoding = "latin1")
+  
+  # XLSX does type conversion
+  xlsx$missing <- as.character(xlsx$missing)
   
   expect_identical(csv, csv2)
   expect_identical(csv2, xlsx)
@@ -79,6 +81,7 @@ test_that("Read/write .csv works and returns expected result", {
   expect_identical(w_csv2, csv2)
   
   unlink(fileName, recursive = TRUE, force = TRUE)
+  
 })
 
 test_that("Write .txt works and returns expected result", {
@@ -90,12 +93,33 @@ test_that("Write .txt works and returns expected result", {
   write_data(csv2, fileName)
   
   txt <- read.table(fileName, sep=",", header=TRUE, fileEncoding="UTF-8",
-                    stringsAsFactors = FALSE)
+                    colClasses = "character", stringsAsFactors = FALSE)
+  txt <- set_missing(txt)
   
   expect_identical(txt, csv2)
   expect_identical(names(txt), tolower(names(txt)))
   
   unlink(fileName, recursive = TRUE, force = TRUE)
+  
+})
+
+test_that("Read/write .Rdata works and returns expected result", {
+  
+  # Write
+  fileName <- file.path(tempdir(), "rdata.Rdata")
+  
+  csv2 <- read_data("csv2.csv", encoding = "latin1")
+  write_data(csv2, fileName)
+  
+  rdata <- read_data("rdata.Rdata")
+  w_rdata <- read_data(fileName)
+  
+  expect_identical(w_rdata, csv2)
+  expect_identical(w_rdata, rdata)
+  expect_identical(names(w_rdata), tolower(names(w_rdata)))
+  
+  unlink(fileName, recursive = TRUE, force = TRUE)
+  
 })
 
 test_that("Read/write error handeling", {

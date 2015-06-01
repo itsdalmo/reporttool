@@ -16,7 +16,7 @@ clean_score(var)
 
 rescale_score(var)
 
-ordered_replace(x, by, y)
+ordered_replace(x, match_by, replacement = NULL)
 
 get_sheet_names(file)
 
@@ -34,8 +34,8 @@ A few wrappers to make a common tasks less verbose.
    openxlsx::loadWorkbook() and names() when you do not need to preserve
    styling/formatting.}
 
-   \item{\code{ordered_replace}}{Replace \code{x} with \code{y} where \code{x}
-   matches \code{by}. Matches and replacements retain the original order of
+   \item{\code{ordered_replace}}{Replace \code{x} with \code{replacement} where \code{x}
+   matches \code{match_by}. Matches and replacements retain the original order of
    \code{x}.}
 
    \item{\code{set_missing}}{Takes a \code{data.frame} and cleans
