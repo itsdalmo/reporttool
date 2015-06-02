@@ -28,7 +28,7 @@ topline <- function(df, mainentity = "q1", entity_other = "q1_open", scores = c(
   ents <- merge(ents, aggregate(df[scores], df["entity"], FUN = mean, na.rm = TRUE), by = "entity")
   
   # Append the average
-  ents_total <- data.frame("entity" = "Total", "n" = nrow(df[!is.na(df$entity)]))
+  ents_total <- data.frame("entity" = "Total", "n" = length(na.omit(df$entity)))
   ents_total[scores] <- apply(df[scores], 2, mean, na.rm = TRUE)
   
   ents <- rbind(ents, ents_total)
