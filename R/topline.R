@@ -14,17 +14,18 @@
 #' @examples 
 #' x <- topline(df)
 
-topline <- function(df, mainentity = "q1", me_open = "q1_open", scores = c("q3", "q6", "q16")) {
+topline <- function(df, mainentity = "q1", entity_other = "q1_open", scores = c("q3", "q6", "q16")) {
   
   n <- nrow(df)
+  names(df)[names(df) %in% mainentity] <- "entity"
   
   # Clean, rescale and convert to numeric
   df[scores] <- vapply(df[scores], clean_score, character(n))
   df[scores] <- vapply(df[scores], rescale_score, numeric(n))
   
   # Create a table for the entities
-  ents <- add_entities(df[mainentity])[c("entity", "n")]
-  ents <- merge(ents, aggregate(df[scores], df[mainentity], FUN = mean, na.rm = TRUE), by.x = "entity", by.y = "q1")
+  ents <- add_entities(df$entity)[c("entity", "n")]
+  ents <- merge(ents, aggregate(df[scores], df["entity"], FUN = mean, na.rm = TRUE), by = "entity")
   
   # Append the average
   ents_total <- data.frame("entity" = "Total", "n" = nrow(df))
@@ -33,7 +34,7 @@ topline <- function(df, mainentity = "q1", me_open = "q1_open", scores = c("q3",
   ents <- rbind(ents, ents_total)
 
   # Make a table for 'other' and sort it
-  other <- as.data.frame(table(na.omit(df[me_open])), stringsAsFactors = FALSE)
+  other <- as.data.frame(table(na.omit(df[entity_other])), stringsAsFactors = FALSE)
   names(other) <- c("name", "n")
   
   # Order on decreasing count and alphabetical names
