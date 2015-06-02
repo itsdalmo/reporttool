@@ -32,6 +32,9 @@ topline <- function(df, mainentity = "q1", entity_other = "q1_open", scores = c(
   ents_total[scores] <- apply(df[scores], 2, mean, na.rm = TRUE)
   
   ents <- rbind(ents, ents_total)
+  
+  # Clean NaN's
+  ents[scores] <- apply(ents[scores], 2, function(x) ifelse(is.nan(x), NA, x))
 
   # Make a table for 'other' and sort it
   other <- as.data.frame(table(na.omit(df[entity_other])), stringsAsFactors = FALSE)
