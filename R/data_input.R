@@ -88,7 +88,7 @@ from_directory <- function(file) {
 #' and cleans common strings for missing values.
 #' 
 #'
-#' @param file Path to a Rdata, txt, csv, csv2 or xlsx file.
+#' @param file Path to a Rdata, sav (SPSS), txt, csv, csv2 or xlsx file.
 #' @param sheet Optional: If you are trying to read a xlsx file, you can also
 #' specify which sheets to read.
 #' @param encoding The encoding to use for txt and csv-files.
@@ -101,7 +101,7 @@ from_directory <- function(file) {
 #' @examples 
 #' x <- read_data("test.xlsx")
 
-read_data <- function(file, sheet = NULL, encoding = "UTF-8") {
+read_data <- function(file, sheet = NULL, sav_mm = FALSE, encoding = "UTF-8") {
   
   file <- validate_path(file)
   
@@ -115,15 +115,38 @@ read_data <- function(file, sheet = NULL, encoding = "UTF-8") {
   
   # Pick input-function based on extension
   switch(tolower(tools::file_ext(file)),
+         sav = read_spss(file, sav_mm),
          txt = read_txt(file, encoding),
          csv = read_csv(file, encoding),
-         xlsx = read_xlsx(file),
+         xlsx = read_xlsx(file, sheet),
          rdata = read_rdata(file),
          stop("Unrecognized input format in:\n", file, call. = FALSE))
 }
 
 
 # Input wrappers ---------------------------------------------------------------
+
+read_spss <- function(file, sav_mm = FALSE) {
+  
+  if (!has_extension(file, "sav")) {
+    stop("The specified path does not direct to a 'sav' file:\n", file, call. = FALSE)
+  }
+  
+  df <- haven::read_sav(file)
+  
+  lst <- lapply(df, function(x) {if (inherits(x, "labelled")) as.character(haven::as_factor(x)) else x })
+  lst <- set_missing(lst)
+  names(lst) <- tolower(names(lst))
+  
+  if (isTRUE(sav_mm)) {
+    lst <- list("df" = lst, "mm" = add_mm(lst))
+    lst$mm$text <- unlist(lapply(df, function(x) { 
+      x <- attr(x, "label"); if (is.null(x)) "" else x }))
+  }
+  
+  return(lst)
+  
+}
 
 read_rdata <- function(file) {
   

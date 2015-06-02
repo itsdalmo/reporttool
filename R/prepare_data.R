@@ -107,7 +107,7 @@ prepare_data <- function(input = NULL, rawdata = NULL, latents = NULL, impute = 
     
     if (!missing_entity) {
       warning("Entities were not specified in input, generating suggestion\n", call. = FALSE)
-      input[["ents"]] <- add_entities(input$df[[ent_var]])
+      input[["ents"]] <- add_entities(input$df[[entity_var]])
     } else if (!missing_entity_cols) {
       stop("Entities exist, but does not contain the expected columns\n", call. = FALSE)
     }
@@ -117,13 +117,11 @@ prepare_data <- function(input = NULL, rawdata = NULL, latents = NULL, impute = 
     
     if (missing_w && length(input$ents$marketshare) == nrow(input$ents)) {
       warning("Adding weights from entities\n", call. = FALSE)
-      input$df["w"] <- add_weights(input$df[[ent_var]], input$ents)
+      input$df["w"] <- add_weights(input$df[[entity_var]], input$ents)
     } else if (missing_w) {
       warning("Adding neutral weights to data\n", call. = FALSE)
       input$df["w"] <- 1
     }
-    
-    
     
   }
   
@@ -135,9 +133,9 @@ prepare_data <- function(input = NULL, rawdata = NULL, latents = NULL, impute = 
       warning("Adding latents (mean) to data\n", call. = FALSE)
       input$df[levels(model$latent)] <- latents_mean(input$df, model)
     
-    } else if (tolower(latents) == "pls" && length(ent_var)) {
+    } else if (tolower(latents) == "pls" && length(entity_var)) {
       warning("Imputing missing and adding latents (pls) to data\n", call. = FALSE)
-      input <- latents_pls(input, ent_var, model)
+      input <- latents_pls(input, entity_var, model)
       
     } else {
       stop("Please specify a valid calculation for latents (mean or pls)\n", call. = FALSE)

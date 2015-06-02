@@ -32,6 +32,7 @@
 #' df <- set_missing(df)
 #' df$Q3 <- clean_score(df$Q3)
 #' df$Q3 <- rescale_score(df$Q3)
+#' ordered_replace("measurement model", with(cfg$sheet_names, setNames(long, short)))
 
 #' @rdname utilities
 set_missing <- function(df, na.strings = cfg$missing_values) {

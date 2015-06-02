@@ -13,6 +13,7 @@ Imports:
   Amelia,
   ggplot2,
   grid,
+  haven,
   knitr,
   openxlsx,
   plspm,
