@@ -4,15 +4,21 @@
 \alias{from_clipboard}
 \title{Read from Windows/OSX clipboard}
 \usage{
-from_clipboard(header = TRUE, sep = "", dec = ".", encoding = "")
+from_clipboard(sep = "\\t", header = TRUE, dec = ".", encoding = "")
 }
 \arguments{
-\item{sep}{The}
+\item{sep}{The delimiter for columns.}
+
+\item{header}{If the data contains headers.}
+
+\item{dec}{Decimal sign}
 
 \item{encoding}{The encoding to use when writing.}
 }
 \description{
 Thin wrapper for reading from windows/OSX clipboards with the most-used defaults.
+The function first reads in the lines, checks if the delimiter is present in the lines
+and then converts it to a data.frame. The parameters are passed to this last step (read.table).
 }
 \note{
 This function only works on Windows or OSX, and the data-size cannot

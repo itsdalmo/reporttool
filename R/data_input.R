@@ -84,8 +84,12 @@ from_directory <- function(file) {
 #' Read from Windows/OSX clipboard
 #'
 #' Thin wrapper for reading from windows/OSX clipboards with the most-used defaults.
+#' The function first reads in the lines, checks if the delimiter is present in the lines
+#' and then converts it to a data.frame. The parameters are passed to this last step (read.table).
 #'
-#' @param sep The 
+#' @param sep The delimiter for columns.
+#' @param header If the data contains headers.
+#' @param dec Decimal sign
 #' @param encoding The encoding to use when writing.
 #' @author Kristian D. Olsen
 #' @note This function only works on Windows or OSX, and the data-size cannot 
@@ -94,7 +98,7 @@ from_directory <- function(file) {
 #' @examples 
 #' x <- from_clipboard()
 
-from_clipboard <- function(header = TRUE, sep = "", dec = ".", encoding = "") {
+from_clipboard <- function(sep = "\t", header = TRUE, dec = ".", encoding = "") {
   
   if ((Sys.info()["sysname"] == "Windows")) {
     file <- "clipboard-128"
@@ -105,29 +109,31 @@ from_clipboard <- function(header = TRUE, sep = "", dec = ".", encoding = "") {
     stop("Writing to clipboard is supported only in Windows or OSX")
   }
   
-  args <- list(file = file, 
-               header = header,
-               fileEncoding = encoding, 
-               na.strings = cfg$missing_values,
-               sep = sep,
-               quote = "\"",
-               dec = dec,
-               comment.char = "",
-               fill = TRUE,
-               colClasses = "character",
-               stringsAsFactors = FALSE)
+  # Read lines
+  lines <- readLines(file)
   
-  df <- do.call(utils::read.table, args)
-  
-  # If there is only one column, return a vector
-  if (dim(df)[2] == 1L && !header) {
-    df <- unlist(df, use.names = FALSE)
+  # Check if any of the lines contain the sep
+  if (any(grepl(paste0("[", sep, "]"), lines))) {
+    
+    # Open a connection
+    con <- textConnection(lines)
+    on.exit(close(con), add = TRUE)
+    
+    # Read as table
+    lines <- read.table(con, 
+                        header = header,
+                        na.strings = cfg$missing_values,
+                        sep = sep,
+                        dec = dec,
+                        fill = TRUE,
+                        colClasses = "character",
+                        stringsAsFactors = FALSE)
+    
+    # Lowercase names
+    names(lines) <- tolower(names(lines))
   }
   
-  # Lowercase names
-  names(df) <- tolower(names(df))
-  
-  return(df)
+  return(lines)
   
 }
 
