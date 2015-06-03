@@ -15,7 +15,7 @@
 #' @examples 
 #' x <- topline(df)
 
-topline <- function(df, mainentity = "q1", entity_other = "q1_open", scores = c("q3", "q6", "q16"), sample = "sample") {
+topline <- function(df, mainentity = "q1", entity_other = "q1_open", scores = c("q3", "q6", "q16"), sample = NULL) {
   
   n <- nrow(df)
   names(df)[names(df) %in% mainentity] <- "entity"
@@ -37,17 +37,19 @@ topline <- function(df, mainentity = "q1", entity_other = "q1_open", scores = c(
   ents[scores] <- apply(ents[scores], 2, function(x) ifelse(is.nan(x), NA, x))
   
   # Add sample counts
-  samp_total <- do.call(cbind, as.list(tapply(df$entity, df$sample, FUN = length)))
-  samp_total <- as.data.frame(samp_total, stringsAsFactors = FALSE)
-  samp_total$entity <- "Total"
-  
-  samp <- tapply(df$entity, df[c("entity", sample)], FUN = length)
-  samp <- cbind(data.frame("entity" = dimnames(samp)$entity, as.data.frame(samp, stringsAsFactors = FALSE)))
-  rownames(samp) <- NULL
-  
-  ents <- merge(rbind(samp, samp_total), ents, by = "entity")
-  names(ents) <- tolower(names(ents))
-  
+  if (!is.null(sample)) {
+    samp_total <- do.call(cbind, as.list(tapply(df$entity, df[sample], FUN = length)))
+    samp_total <- as.data.frame(samp_total, stringsAsFactors = FALSE)
+    samp_total$entity <- "Total"
+    
+    samp <- tapply(df$entity, df[c("entity", sample)], FUN = length)
+    samp <- cbind(data.frame("entity" = dimnames(samp)$entity, as.data.frame(samp, stringsAsFactors = FALSE)))
+    rownames(samp) <- NULL
+    
+    ents <- merge(rbind(samp, samp_total), ents, by = "entity")
+    names(ents) <- tolower(names(ents))
+  }
+
   # Make a table for 'other' and sort it
   other <- as.data.frame(table(na.omit(df[entity_other])), stringsAsFactors = FALSE)
   names(other) <- c("name", "n")
