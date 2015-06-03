@@ -81,6 +81,56 @@ from_directory <- function(file) {
   
 }
 
+#' Read from Windows/OSX clipboard
+#'
+#' Thin wrapper for reading from windows/OSX clipboards with the most-used defaults.
+#'
+#' @param sep The 
+#' @param encoding The encoding to use when writing.
+#' @author Kristian D. Olsen
+#' @note This function only works on Windows or OSX, and the data-size cannot 
+#' exceed 128kb in Windows.
+#' @export
+#' @examples 
+#' x <- from_clipboard()
+
+from_clipboard <- function(header = TRUE, sep = "", dec = ".", encoding = "") {
+  
+  if ((Sys.info()["sysname"] == "Windows")) {
+    file <- "clipboard-128"
+  } else if (Sys.info()["sysname"] == "Darwin") {
+    file <- pipe("pbpaste", "w")
+    on.exit(close(file), add = TRUE)
+  } else {
+    stop("Writing to clipboard is supported only in Windows or OSX")
+  }
+  
+  args <- list(file = file, 
+               header = header,
+               fileEncoding = encoding, 
+               na.strings = cfg$missing_values,
+               sep = sep,
+               quote = "\"",
+               dec = dec,
+               comment.char = "",
+               fill = TRUE,
+               colClasses = "character",
+               stringsAsFactors = FALSE)
+  
+  df <- do.call(utils::read.table, args)
+  
+  # If there is only one column, return a vector
+  if (dim(df)[2] == 1L && !header) {
+    df <- unlist(df, use.names = FALSE)
+  }
+  
+  # Lowercase names
+  names(df) <- tolower(names(df))
+  
+  return(df)
+  
+}
+
 #' Read common data formats
 #'
 #' A simple wrapper for reading data. Currently supports Rdata, txt,

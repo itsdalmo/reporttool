@@ -5,17 +5,19 @@
 \title{Create a topline}
 \usage{
 topline(df, mainentity = "q1", entity_other = "q1_open", scores = c("q3",
-  "q6", "q16"))
+  "q6", "q16"), sample = NULL)
 }
 \arguments{
 \item{df}{The data.frame containing the study data}
 
 \item{mainentity}{Name of the mainentity (q1) column in the data}
 
+\item{entity_other}{The text column which contains the open response for 'other' in
+mainentity.}
+
 \item{scores}{A vector with columnnames for variables you would like a mean from.}
 
-\item{me_open}{The text column which contains the open response for 'other' in
-mainentity.}
+\item{sample}{The name of the column containing sample information}
 }
 \value{
 A list

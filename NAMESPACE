@@ -2,6 +2,7 @@
 
 export(beamer_template)
 export(clean_score)
+export(from_clipboard)
 export(from_directory)
 export(generate_report)
 export(get_input)
