@@ -37,6 +37,10 @@
 #' @rdname utilities
 set_missing <- function(df, na.strings = cfg$missing_values) {
   
+  if (is.matrix(df)) {
+    df <- as.data.frame(df, stringsAsFactors = FALSE)
+  }
+  
   if (all(!is.null(df), nrow(df) > 0L)) {
     df <- lapply(df, function(x) ifelse(x %in% na.strings, NA_character_, x))
     df <- as.data.frame(df, stringsAsFactors=FALSE)

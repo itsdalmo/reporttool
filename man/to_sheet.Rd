@@ -4,16 +4,21 @@
 \alias{to_sheet}
 \title{Write data to sheet (in an openxlsx workbook)}
 \usage{
-to_sheet(df, wb, sheet = "analysis", row = 1L, append = TRUE)
+to_sheet(df, wb, title = "Table", sheet = "analysis", row = 1L,
+  style = TRUE, append = TRUE)
 }
 \arguments{
 \item{df}{The data to write.}
 
 \item{wb}{A loaded openxlsx workbook (use openxlsx::loadWorkbook)}
 
+\item{title}{The title to give to the table (only used if style = TRUE).}
+
 \item{sheet}{Name of the sheet to write to, will be created if it does not exist.}
 
 \item{row}{Optional: Also specify the startingrow for writing data.}
+
+\item{style}{Set to FALSE if you do not want styling for the data.}
 
 \item{append}{Whether or not the function should append data or clean the
 sheet before writing.}

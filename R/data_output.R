@@ -1,57 +1,3 @@
-#' Write data to sheet (in an openxlsx workbook)
-#'
-#' This function (a very thin wrapper for openxlsx functions) that writes/appends 
-#' a data.frame to the specified sheet in a loaded openxlsx workbook.
-#'
-#' @param df The data to write.
-#' @param wb A loaded openxlsx workbook (use openxlsx::loadWorkbook)
-#' @param sheet Name of the sheet to write to, will be created if it does not exist.
-#' @param row Optional: Also specify the startingrow for writing data.
-#' @param append Whether or not the function should append data or clean the
-#' sheet before writing.
-#' @author Kristian D. Olsen
-#' @return A list containing data.frames matching the sheets in the .xlsx file.
-#' If only one sheet is read, the function returns a data.frame instead.
-#' @note This function requires openxlsx.
-#' @export
-#' @examples 
-#' wb <- openxlsx::loadWorkbook("test.xlsx")
-#' x %>% to_sheet(wb, sheet = "test", append = FALSE)
-#' openxlsx::saveWorkbook(wb, "test.xlsx", overwrite = TRUE)
-
-to_sheet <- function(df, wb, sheet="analysis", row=1L, append=TRUE) {
-  
-  if (!inherits(wb, "Workbook")) {
-    stop("wb argument must be a (loaded) openxlsx workbook")
-  }
-  
-  # Check input
-  if (!is.character(sheet) || length(sheet) != 1L) {
-    stop("The sheet has to be a string of length 1 (not an index).", call. = FALSE)
-  }
-  
-  # See if sheet exists
-  sheet_exists <- sheet %in% openxlsx::sheets(wb)
-  
-  # Get last row if sheet exists, or create if it does not.
-  if (sheet_exists && isTRUE(append)) {
-    row <- 2L + nrow(openxlsx::read.xlsx(wb, sheet = sheet, colNames = FALSE,
-                                         skipEmptyRows = FALSE))
-  } else if (sheet_exists) {
-    openxlsx::removeWorksheet(wb, sheet)
-    openxlsx::addWorksheet(wb, sheetName = sheet)
-  } else {
-    openxlsx::addWorksheet(wb, sheetName = sheet)
-  }
-  
-  # Add data to the workbook
-  if (is.null(names(df)) || identical(names(df), character(0))) {
-    warning(sheet, ": No columnames in data. An empty sheet was created", call. = FALSE)
-  } else {
-    openxlsx::writeData(wb, sheet, df, startRow = row, headerStyle = openxlsx_style)
-  }
-}
-
 #' Write to Windows/OSX clipboard
 #'
 #' Wrapper for writing to windows/OSX clipboards with the most-used defaults for a
@@ -87,13 +33,106 @@ to_clipboard <- function(df, encoding = "") {
   }
   
   utils::write.table(x = df,
-                    file = file,
-                    sep = "\t",
-                    na = "",
-                    dec = ",",
-                    row.names = FALSE,
-                    col.names = cols,
-                    fileEncoding = encoding)
+                     file = file,
+                     sep = "\t",
+                     na = "",
+                     dec = ",",
+                     row.names = FALSE,
+                     col.names = cols,
+                     fileEncoding = encoding)
+}
+
+#' Write data to sheet (in an openxlsx workbook)
+#'
+#' This function (a very thin wrapper for openxlsx functions) that writes/appends 
+#' a data.frame to the specified sheet in a loaded openxlsx workbook.
+#'
+#' @param df The data to write.
+#' @param wb A loaded openxlsx workbook (use openxlsx::loadWorkbook)
+#' @param title The title to give to the table (only used if style = TRUE).
+#' @param sheet Name of the sheet to write to, will be created if it does not exist.
+#' @param row Optional: Also specify the startingrow for writing data.
+#' @param style Set to FALSE if you do not want styling for the data.
+#' @param append Whether or not the function should append data or clean the
+#' sheet before writing.
+#' @author Kristian D. Olsen
+#' @return A list containing data.frames matching the sheets in the .xlsx file.
+#' If only one sheet is read, the function returns a data.frame instead.
+#' @note This function requires openxlsx.
+#' @export
+#' @examples 
+#' wb <- openxlsx::loadWorkbook("test.xlsx")
+#' x %>% to_sheet(wb, sheet = "test", append = FALSE)
+#' openxlsx::saveWorkbook(wb, "test.xlsx", overwrite = TRUE)
+
+to_sheet <- function(df, wb, title = "Table", sheet="analysis", row=1L, style = TRUE, append = TRUE) {
+  
+  if (!inherits(wb, "Workbook")) {
+    stop("wb argument must be a (loaded) openxlsx workbook")
+  }
+  
+  # Check input
+  if (!is.character(sheet) || length(sheet) != 1L) {
+    stop("The sheet has to be a string of length 1 (not an index).", call. = FALSE)
+  }
+  
+  # See if sheet exists
+  sheet_exists <- sheet %in% openxlsx::sheets(wb)
+  
+  # Get last row if sheet exists, or create if it does not.
+  if (sheet_exists && isTRUE(append)) {
+    row <- 2L + nrow(openxlsx::read.xlsx(wb, sheet = sheet, colNames = FALSE, skipEmptyRows = FALSE))
+  } else if (sheet_exists) {
+    openxlsx::removeWorksheet(wb, sheet)
+    openxlsx::addWorksheet(wb, sheetName = sheet)
+  } else {
+    openxlsx::addWorksheet(wb, sheetName = sheet)
+  }
+  
+  # Add data to the workbook
+  if (is.null(names(df)) || identical(names(df), character(0))) {
+    warning(sheet, ": No columnames in data. An empty sheet was created", call. = FALSE)
+  } else {
+    
+    # When styling the title must be written first
+    if (isTRUE(style)) {
+      openxlsx::writeData(wb, sheet, title, startRow = row)
+      table_row <- row + 1
+    } else {
+      table_row <- row
+    }
+
+    # Write the data.frame
+    openxlsx::writeData(wb, sheet, df, startRow = table_row)
+  }
+  
+  # Apply additional styling to the table
+  if (isTRUE(style)) {
+    # Get row and column index
+    last_row <- table_row+nrow(df)
+    all_rows <- table_row:last_row
+    all_cols <- 1:ncol(df)
+    
+    # Add title, style the cells and merge them
+    openxlsx::addStyle(wb, sheet, xlsx_style_title, rows = row, cols = all_cols, gridExpand = TRUE)
+    openxlsx::mergeCells(wb, sheet, rows = rep(row, length(all_cols)), cols = all_cols)
+    
+    # Style the entire table
+    openxlsx::addStyle(wb, sheet, xlsx_style_table, rows = all_rows, cols = all_cols, gridExpand = TRUE)
+    
+    # Alter the style of first
+    openxlsx::addStyle(wb, sheet, xlsx_style_firstrow, rows = table_row, cols = all_cols, gridExpand = TRUE)
+    
+    # ..  and last row
+    if (nrow(df) > 2L) {
+      openxlsx::addStyle(wb, sheet, xlsx_style_lastrow, rows = last_row, cols = all_cols, gridExpand = TRUE)
+    }
+    
+    # Change the text orientation of the first column
+    openxlsx::addStyle(wb, sheet, openxlsx::createStyle(halign = "left"), 
+                       rows = all_rows, cols = 1, gridExpand = TRUE, stack = TRUE)
+  }
+  
 }
 
 #' Write common file formats
@@ -160,6 +199,7 @@ write_data <- function(x, file = NULL, encoding = "UTF-8") {
 }
 
 # Output wrappers --------------------------------------------------------------
+
 write_rdata <- function(lst, file) {
   
   if (!inherits(lst, "list")) {
@@ -171,7 +211,7 @@ write_rdata <- function(lst, file) {
 }
 
 
-write_txt <- function(lst, file, encoding) {
+write_txt <- function(lst, file, encoding, sep) {
   
   if (!inherits(lst, "list")) {
     stop("The data must be of class 'list'", call. = FALSE)
@@ -180,7 +220,7 @@ write_txt <- function(lst, file, encoding) {
   lapply(names(lst), function(nm, lst, file, encoding) {
     utils::write.table(x = lst[[nm]],
                        file = paste0(file.path(file, nm), ".txt"),
-                       sep = ",",
+                       sep = sep,
                        na = "",
                        dec = ".",
                        row.names = FALSE,
@@ -224,7 +264,7 @@ write_xlsx <- function(lst, file) {
   
   
   lapply(names(lst), function(nm, lst, wb) {
-    to_sheet(lst[[nm]], wb = wb, sheet = nm, append = FALSE)}, 
+    to_sheet(lst[[nm]], wb = wb, sheet = nm, row = 1L, style = FALSE, append = FALSE)}, 
     lst, wb)
   
   openxlsx::saveWorkbook(wb, file, overwrite = TRUE)

@@ -72,8 +72,44 @@ plot_shared_legend <- function(...) {
 
 # Table style used for openxlsx wrappers ---------------------------------------
 
-openxlsx_style <- openxlsx::createStyle(fontColour = "#000000", 
-                                        fgFill = "#7DC6CC", 
-                                        halign = "center", 
-                                        valign = "center", 
-                                        textDecoration = "Bold")
+xlsx_style_title <- openxlsx::createStyle(fontName = "Trebuchet MS",
+                                          fontSize = 10,
+                                          fontColour = "#000000",
+                                          border = "Top",
+                                          borderColour = "#0094A5",
+                                          borderStyle = "medium",
+                                          fgFill = "#7DC6CC",
+                                          halign = "left",
+                                          valign = "center",
+                                          textDecoration = "Bold",
+                                          wrapText = TRUE)
+
+xlsx_style_table <- openxlsx::createStyle(fontName = "Trebuchet MS",
+                                          fontSize = 8,
+                                          fontColour = "#000000",
+                                          border = "Bottom",
+                                          borderColour = "#BFBFBF",
+                                          borderStyle = "thin",
+                                          fgFill = "#FFFFFF",
+                                          halign = "center",
+                                          valign = "center")
+
+xlsx_style_firstrow <- openxlsx::createStyle(fontName = "Trebuchet MS",
+                                             fontSize = 8,
+                                             fontColour = "#000000",
+                                             border = "Bottom",
+                                             borderColour = "#0094A5",
+                                             borderStyle = "thin",
+                                             fgFill = "#CCE9EB",
+                                             halign = "center",
+                                             valign = "center")
+
+xlsx_style_lastrow <- openxlsx::createStyle(fontName = "Trebuchet MS",
+                                             fontSize = 8,
+                                             fontColour = "#000000",
+                                             border = "Bottom",
+                                             borderColour = "#0094A5",
+                                             borderStyle = "medium",
+                                             fgFill = "#CCE9EB",
+                                             halign = "center",
+                                             valign = "center")

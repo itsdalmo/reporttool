@@ -18,9 +18,9 @@ cfg <- list(
                "raw data", "entities", "measurement model", "config"),
     "short" = c("df", "cd", "hd", "rd", "ents", "mm", "cf")),
   
-  "required_cols" = list(
+  "req_structure" = list(
     "ents" = c("entity", "n","marketshare", "other"),
-    "mm" = c("latent", "manifest", "text"),
+    "mm" = c("latent", "manifest", "question", "type", "values"),
     "cfg" = c("original", "replacement")
     ),
   

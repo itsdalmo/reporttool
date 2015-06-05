@@ -39,7 +39,7 @@ prepare_data <- function(input = NULL, rawdata = NULL, latents = NULL, impute = 
   
   # Create a measurement model from data if necessary --------------------------
   missing_mm <- !all("mm" %in% names(input) && nrow(input$mm) > 0)
-  missing_mm_cols <- !all(cfg$required_cols$mm %in% names(input$mm))
+  missing_mm_cols <- !all(cfg$req_structure$mm %in% names(input$mm))
   
   if (missing_mm) {
     warning("Measurement model was not found in input, generating suggestion\n", call. = FALSE)
@@ -103,7 +103,7 @@ prepare_data <- function(input = NULL, rawdata = NULL, latents = NULL, impute = 
   if (length(entity_var)) {
     # Check if valid entities have been specified
     missing_entity <- all("ents" %in% names(input) && nrow(input$ents) > 0)
-    missing_entity_cols <- all(cfg$required_cols$ents %in% names(input$ents))
+    missing_entity_cols <- all(cfg$req_structure$ents %in% names(input$ents))
     
     if (!missing_entity) {
       warning("Entities were not specified in input, generating suggestion\n", call. = FALSE)

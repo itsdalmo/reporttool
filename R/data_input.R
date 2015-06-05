@@ -1,86 +1,3 @@
-#' Extract from a study directory on sharepoint
-#'
-#' This function extracts whatever data is available in our standard file 
-#' structure and tries to structure it like a input.xlsx file.
-#' 
-#' @param file Path to a study directory on the intranet.
-#' @author Kristian D. Olsen
-#' @return A list containing the EM-data, entities (observations, marketshare),
-#' and a measurement model (latent association, question text, values etc.)
-#' @export
-#' @examples 
-#' x <- from_directory("https://the.intranet.se/EPSI/example")
-
-from_directory <- function(file) {
-  
-  if (!has_extension(file, "")) {
-    stop("The specified path is not a directory:\n", file, call. = FALSE)
-  }
-  
-  # Make https links compatible with windows file explorer
-  file <- intranet_link(file)
-  
-  # Check if the specified directory contains the expected folders
-  exp_folders <- c("data", "input", "output")
-  dir_content <- list.files(file)
-  
-  # Create paths for each of the expected folders
-  file_dirs <- file.path(file, dir_content[tolower(dir_content) %in% exp_folders])
-  
-  if (length(file_dirs) == length(exp_folders)) {
-    file_dirs <- setNames(file_dirs, exp_folders)
-  } else {
-    stop("The required (model related) folders were not found in the directory:\n", file, call. = FALSE)
-  }
-  
-  # Read in the dataset if it has been converted to .xlsx
-  data_dir <- list.files(file_dirs["data"])
-  data_files <- data_dir[grepl(".*em\\.xlsx$", tolower(data_dir))]
-  
-  if (length(data_files) == 1L) {
-    df <- read_data(file.path(file_dirs["data"], data_files))
-  } else {
-    stop("Make sure that you have converted the data to (one) xlsx file ending with \"EM\"\n", call. = FALSE)
-  }
-  
-  # Add measurement model and entities skeleton based on the data
-  mm <- add_mm(df)
-  ents <- add_entities(df$q1)
-  
-  input_exp <- c("config.txt", "measurement model.txt", "qtext.txt")
-  input_dir <- list.files(file_dirs["input"])
-  input_files <- file.path(file_dirs["input"], input_dir[tolower(input_dir) %in% input_exp])
-  
-  if (length(input_files) == length(input_exp)) {
-    input_files <- setNames(input_files, c("cf", "mm", "qt"))
-  } else {
-    stop("The required files were not found in the input directory:\n", input_exp, call. = FALSE)
-  }
-  
-  input <- lapply(input_files, read_data, encoding = "latin1")
-  names(input) <- names(input_files)
-  
-  # Convert model to the appropriate format
-  input$mm <- unlist(lapply(input$mm[-1], function(x, manifest) {manifest[x == -1, 1]}, input$mm[1]))
-  input$mm <- data.frame("latent" = names(input$mm), "manifest" = input$mm, stringsAsFactors = FALSE, row.names = NULL)
-  
-  input$mm$latent <- gsub("([a-z]+)[0-9]+", "\\1", input$mm$latent)
-  
-  # Assign latent association to the measurement model (use match in case order differs)
-  mm$latent[match(input$mm$manifest, tolower(mm$manifest))] <- input$mm$latent
-  
-  # Use the same match to assign question text
-  mm$text[match(input$mm$manifest, tolower(mm$manifest))] <- input$qt$v1
-  
-  # Add marketshares to entities
-  ents$marketshare <- input$cf$v4[match(input$cf$v2, ents$entity)]
-  
-  # Combine the results and return them
-  input <- list("df" = df, "ents" = ents, "mm" = mm)
-  return(input)
-  
-}
-
 #' Read from Windows/OSX clipboard
 #'
 #' Thin wrapper for reading from windows/OSX clipboards with the most-used defaults.
@@ -147,6 +64,8 @@ from_clipboard <- function(sep = "\t", header = TRUE, dec = ".", encoding = "") 
 #' @param file Path to a Rdata, sav (SPSS), txt, csv, csv2 or xlsx file.
 #' @param sheet Optional: If you are trying to read a xlsx file, you can also
 #' specify which sheets to read.
+#' @param var_coding Optional: When reading sav-files, the function returns a list
+#' with the data and the variable coding (formatted like a measurement model).
 #' @param encoding The encoding to use for txt and csv-files.
 #' @author Kristian D. Olsen
 #' @return A data.frame. If more than one sheet is read from a xlsx file 
@@ -157,7 +76,7 @@ from_clipboard <- function(sep = "\t", header = TRUE, dec = ".", encoding = "") 
 #' @examples 
 #' x <- read_data("test.xlsx")
 
-read_data <- function(file, sheet = NULL, sav_mm = FALSE, encoding = "UTF-8") {
+read_data <- function(file, sheet = NULL, var_coding = FALSE, encoding = "UTF-8") {
   
   file <- validate_path(file)
   
@@ -171,7 +90,7 @@ read_data <- function(file, sheet = NULL, sav_mm = FALSE, encoding = "UTF-8") {
   
   # Pick input-function based on extension
   switch(tolower(tools::file_ext(file)),
-         sav = read_spss(file, sav_mm),
+         sav = read_spss(file, var_coding),
          txt = read_txt(file, encoding),
          csv = read_csv(file, encoding),
          xlsx = read_xlsx(file, sheet),
@@ -182,7 +101,7 @@ read_data <- function(file, sheet = NULL, sav_mm = FALSE, encoding = "UTF-8") {
 
 # Input wrappers ---------------------------------------------------------------
 
-read_spss <- function(file, sav_mm = FALSE) {
+read_spss <- function(file, var_coding) {
   
   if (!has_extension(file, "sav")) {
     stop("The specified path does not direct to a 'sav' file:\n", file, call. = FALSE)
@@ -190,17 +109,57 @@ read_spss <- function(file, sav_mm = FALSE) {
   
   df <- haven::read_sav(file)
   
-  lst <- lapply(df, function(x) {if (inherits(x, "labelled")) as.character(haven::as_factor(x)) else x })
-  lst <- set_missing(lst)
-  names(lst) <- tolower(names(lst))
-  
-  if (isTRUE(sav_mm)) {
-    lst <- list("df" = lst, "mm" = add_mm(lst))
-    lst$mm$text <- unlist(lapply(df, function(x) { 
-      x <- attr(x, "label"); if (is.null(x)) "" else x }))
+  # Extract label before converting from labelled
+  if (var_coding) {
+    
+    # Create an empty data.frame
+    mm <- matrix(rep(NA, ncol(df)*length(cfg$req_structure$mm)), nrow = ncol(df))
+    mm <- as.data.frame(mm)
+    names(mm) <- cfg$req_structure$mm
+    
+    # Populate mm
+    mm$manifest <- names(df)
+    mm$question <- lapply(df, attr, which = "label")
+    mm$question <- ifelse(is.null(mm$question), "", unlist(mm$question))
   }
   
-  return(lst)
+  # Convert labelled to factors
+  df <- lapply(df, function(x) { if (inherits(x, "labelled")) haven::as_factor(x) else x })
+  df <- as.data.frame(df, stringsAsFactors = FALSE)
+  
+  # Use factor levels to populate values in mm
+  if (var_coding) {
+    # Insert variable type
+    mm$type <- vapply(df, class, character(1))
+    
+    # Extract factor levels
+    factor_vars <- lapply(df, levels)
+    scale_vars <- unlist(lapply(factor_vars, function(x) sum(grepl("^[0-9]{1,2}.*", x)) == 10L))
+    
+    # Clean up the scale variable values (only endpoints)
+    factor_vars[scale_vars] <- lapply(factor_vars[scale_vars], function(x) {
+      scales <- gsub("^[0-9]{1,2}\\s*=?\\s*([[:alnum:]]*)", "\\1", x)
+      scales[scales != ""]
+    })
+    
+    # Set type to scale where true and add all values
+    mm$type[scale_vars] <- "scale"
+    mm$values <- unlist(lapply(factor_vars, paste, collapse = "\n"))
+    
+  }
+  
+  # Convert all columns to character, set missing and lowercase names
+  df <- vapply(df, as.character, character(nrow(df)))
+  df <- set_missing(df)
+  names(df) <- tolower(names(df))
+  
+  # Return
+  if (isTRUE(var_coding)) {
+    lst <- list("df" = df, "mm" = mm)
+    return(lst)
+  } else {
+    return(df)
+  }
   
 }
 
