@@ -50,7 +50,7 @@ topline <- function(df, mainentity = "q1", entity_other = "q1_open", scores = c(
     names(ents) <- tolower(names(ents))
   }
 
-  # Make a table for 'other' and sort it
+  # Make a table for 'other'
   other <- as.data.frame(table(na.omit(df[entity_other])), stringsAsFactors = FALSE)
   names(other) <- c("name", "n")
   

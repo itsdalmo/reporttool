@@ -184,14 +184,14 @@ read_rdata <- function(file) {
   
 }
 
-read_txt <- function(file, encoding) {
+read_txt <- function(file, encoding, header = FALSE) {
   
   if (!has_extension(file, "txt")) {
     stop("The specified path does not direct to a 'txt' file:\n", file, call. = FALSE)
   }
   
   args <- list(file = file, 
-               header = FALSE,
+               header = header,
                fileEncoding = encoding, 
                na.strings = cfg$missing_values,
                sep = "\t",
@@ -203,12 +203,6 @@ read_txt <- function(file, encoding) {
                stringsAsFactors = FALSE)
   
   df <- do.call(utils::read.table, args)
-  
-  # If more than one column is returned use header = TRUE
-  if (dim(df)[2] > 1L && nrow(df) > 1L) {
-    args["header"] <- TRUE
-    df <- do.call(utils::read.table, c(args, cfg$input_args$txt))
-  }
   
   # Lowercase names
   names(df) <- tolower(names(df))

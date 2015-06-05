@@ -299,7 +299,7 @@ add_modelnames <- function(nms, manifest) {
 add_entities <- function(mainentity) {
   
   ents <- na.omit(table(mainentity))
-  ents <- data.frame(ents)
+  ents <- as.data.frame(ents, stringsAsFactors = FALSE)
   
   names(ents) <- c("entity", "n")
   ents$marketshare <- ents$n/sum(ents$n)

@@ -35,30 +35,29 @@ read_sharepoint <- function(file) {
   
   # Read in the dataset if it has been converted to .xlsx
   data_dir <- list.files(file_dirs["data"])
-  data_files <- data_dir[grepl(".*em\\.xlsx$", tolower(data_dir))]
+  data_files <- data_dir[grepl(".*em\\.sav$", tolower(data_dir))]
   
   if (length(data_files) == 1L) {
-    df <- read_data(file.path(file_dirs["data"], data_files))
+    lst <- read_data(file.path(file_dirs["data"], data_files), var_coding = TRUE)
   } else {
-    stop("Make sure that you have converted the data to (one) xlsx file ending with \"EM\"\n", call. = FALSE)
+    stop("There is more than one .sav file ending with \"EM\"\n", call. = FALSE)
   }
   
   # Add measurement model and entities skeleton based on the data
-  mm <- add_mm(df)
-  ents <- add_entities(df$q1)
+  lst[["ents"]] <- add_entities(lst$df$q1)
   
-  input_exp <- c("config.txt", "measurement model.txt", "qtext.txt")
+  input_exp <- c("config.txt", "measurement model.txt")
   input_dir <- list.files(file_dirs["input"])
   input_files <- file.path(file_dirs["input"], input_dir[tolower(input_dir) %in% input_exp])
   
   if (length(input_files) == length(input_exp)) {
-    input_files <- setNames(input_files, c("cf", "mm", "qt"))
+    input_files <- setNames(input_files, c("cf", "mm"))
   } else {
     stop("The required files were not found in the input directory:\n", input_exp, call. = FALSE)
   }
   
-  input <- lapply(input_files, read_data, encoding = "latin1")
-  names(input) <- names(input_files)
+  input <- list("cf" = read_txt(input_files["cf"], encoding = "latin1", header = FALSE),
+                "mm" = read_txt(input_files["mm"], encoding = "latin1", header = TRUE))
   
   # Convert model to the appropriate format
   input$mm <- unlist(lapply(input$mm[-1], function(x, manifest) {manifest[x == -1, 1]}, input$mm[1]))
@@ -67,17 +66,13 @@ read_sharepoint <- function(file) {
   input$mm$latent <- gsub("([a-z]+)[0-9]+", "\\1", input$mm$latent)
   
   # Assign latent association to the measurement model (use match in case order differs)
-  mm$latent[match(input$mm$manifest, tolower(mm$manifest))] <- input$mm$latent
-  
-  # Use the same match to assign question text
-  mm$text[match(input$mm$manifest, tolower(mm$manifest))] <- input$qt$v1
+  lst$mm$latent[match(input$mm$manifest, tolower(lst$mm$manifest))] <- input$mm$latent
   
   # Add marketshares to entities
-  ents$marketshare <- input$cf$v4[match(input$cf$v2, ents$entity)]
+  lst$ents$marketshare <- input$cf[[4]][match(lst$ents$entity, input$cf[[2]])]
   
   # Combine the results and return them
-  input <- list("df" = df, "ents" = ents, "mm" = mm)
-  return(input)
+  return(lst)
   
 }
 
