@@ -69,7 +69,7 @@ read_sharepoint <- function(file) {
   lst$mm$latent[match(input$mm$manifest, tolower(lst$mm$manifest))] <- input$mm$latent
   
   # Add marketshares to entities
-  lst$ents$marketshare <- input$cf[[4]][match(lst$ents$entity, input$cf[[2]])]
+  lst$ents$marketshare <- gsub(",", "\\.", input$cf[[4]][match(lst$ents$entity, input$cf[[2]])])
   
   # Combine the results and return them
   return(lst)

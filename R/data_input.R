@@ -84,14 +84,10 @@ read_data <- function(file, sheet = NULL, codebook = FALSE, encoding = "UTF-8") 
     stop("Path does not exist:\n", file, call. = FALSE)
   }
   
-  if (!is_supported_ext(file)) {
-    stop("Path does not direct to a supported format:\n", file, call. = FALSE)
-  }
-  
   # Pick input-function based on extension
   switch(tolower(tools::file_ext(file)),
          sav = read_spss(file, codebook),
-         txt = read_txt(file, encoding),
+         txt = read_txt(file, encoding, header = TRUE),
          csv = read_csv(file, encoding),
          xlsx = read_xlsx(file, sheet),
          rdata = read_rdata(file),
@@ -120,7 +116,7 @@ read_spss <- function(file, codebook) {
     # Populate mm
     mm$manifest <- names(df)
     mm$question <- lapply(df, attr, which = "label")
-    mm$question <- ifelse(is.null(mm$question), "", unlist(mm$question))
+    mm$question <- vapply(mm$question, function(x) ifelse(is.null(x), "", x), character(1))
   }
   
   # Convert labelled to factors
@@ -184,7 +180,7 @@ read_rdata <- function(file) {
   
 }
 
-read_txt <- function(file, encoding, header = FALSE) {
+read_txt <- function(file, encoding, header) {
   
   if (!has_extension(file, "txt")) {
     stop("The specified path does not direct to a 'txt' file:\n", file, call. = FALSE)
@@ -242,7 +238,7 @@ read_csv <- function(file, encoding) {
   return(df)
 }
 
-read_xlsx <- function(file, sheet = NULL) {
+read_xlsx <- function(file, sheet) {
   
   if(!has_extension(file, "xlsx")) {
     stop("The specified path does not direct to a 'xlsx' file:\n", file, call. = FALSE)

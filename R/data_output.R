@@ -192,7 +192,7 @@ write_data <- function(x, file = NULL, encoding = "UTF-8") {
          rdata = write_rdata(x, file),
          xlsx = write_xlsx(x, file),
          csv = write_csv(x, dirname(file), encoding),
-         txt = write_txt(x, dirname(file), encoding),
+         txt = write_txt(x, dirname(file), encoding, sep = "\t"),
          stop("Unrecognized output format: ", ext))
   
   invisible()

@@ -92,8 +92,9 @@ test_that("Write .txt works and returns expected result", {
   csv2 <- read_data("csv2.csv", encoding = "latin1")
   write_data(csv2, fileName)
   
-  txt <- read.table(fileName, sep=",", header=TRUE, fileEncoding="UTF-8",
+  txt <- read.table(fileName, sep="\t", header=TRUE, fileEncoding="UTF-8",
                     colClasses = "character", stringsAsFactors = FALSE)
+  txt <- read_data(fileName)
   txt <- set_missing(txt)
   
   expect_identical(txt, csv2)
