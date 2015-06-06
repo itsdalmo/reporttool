@@ -76,10 +76,10 @@ read_sharepoint <- function(file) {
   
 }
 
-#' Extract from a study directory on sharepoint
+#' Write input files
 #'
-#' This function extracts whatever data is available in our standard file 
-#' structure and tries to structure it like a input.xlsx file.
+#' This function creates the necessary input files for model estimation, in the
+#' specified directory.
 #' 
 #' @param lst A survey_data object.
 #' @param dir The directory on sharepoint where you would like to write the input

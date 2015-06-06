@@ -29,6 +29,9 @@ A few wrappers to make a common tasks less verbose.
 
 
 \describe{
+   \item{\code{intranet_link}}{Converts any http(s) link with a .se domain
+   to a link for a network drive (sharepoint) on windows.}
+
    \item{\code{get_sheet_names}}{Takes the path to a .xlsx file and returns
    the sheetnames in the file if any sheets exist. Quicker than using
    openxlsx::loadWorkbook() and names() when you do not need to preserve
