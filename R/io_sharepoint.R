@@ -38,7 +38,7 @@ read_sharepoint <- function(file) {
   data_files <- data_dir[grepl(".*em\\.sav$", tolower(data_dir))]
   
   if (length(data_files) == 1L) {
-    lst <- read_data(file.path(file_dirs["data"], data_files), var_coding = TRUE)
+    lst <- read_data(file.path(file_dirs["data"], data_files), codebook = TRUE)
   } else {
     stop("There is more than one .sav file ending with \"EM\"\n", call. = FALSE)
   }

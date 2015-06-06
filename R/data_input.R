@@ -64,8 +64,8 @@ from_clipboard <- function(sep = "\t", header = TRUE, dec = ".", encoding = "") 
 #' @param file Path to a Rdata, sav (SPSS), txt, csv, csv2 or xlsx file.
 #' @param sheet Optional: If you are trying to read a xlsx file, you can also
 #' specify which sheets to read.
-#' @param var_coding Optional: When reading sav-files, the function returns a list
-#' with the data and the variable coding (formatted like a measurement model).
+#' @param codebook Optional: When reading sav-files, the function returns a list
+#' with the data and the SPSS codebook (formatted like a measurement model).
 #' @param encoding The encoding to use for txt and csv-files.
 #' @author Kristian D. Olsen
 #' @return A data.frame. If more than one sheet is read from a xlsx file 
@@ -76,7 +76,7 @@ from_clipboard <- function(sep = "\t", header = TRUE, dec = ".", encoding = "") 
 #' @examples 
 #' x <- read_data("test.xlsx")
 
-read_data <- function(file, sheet = NULL, var_coding = FALSE, encoding = "UTF-8") {
+read_data <- function(file, sheet = NULL, codebook = FALSE, encoding = "UTF-8") {
   
   file <- validate_path(file)
   
@@ -90,7 +90,7 @@ read_data <- function(file, sheet = NULL, var_coding = FALSE, encoding = "UTF-8"
   
   # Pick input-function based on extension
   switch(tolower(tools::file_ext(file)),
-         sav = read_spss(file, var_coding),
+         sav = read_spss(file, codebook),
          txt = read_txt(file, encoding),
          csv = read_csv(file, encoding),
          xlsx = read_xlsx(file, sheet),
@@ -101,7 +101,7 @@ read_data <- function(file, sheet = NULL, var_coding = FALSE, encoding = "UTF-8"
 
 # Input wrappers ---------------------------------------------------------------
 
-read_spss <- function(file, var_coding) {
+read_spss <- function(file, codebook) {
   
   if (!has_extension(file, "sav")) {
     stop("The specified path does not direct to a 'sav' file:\n", file, call. = FALSE)
@@ -110,7 +110,7 @@ read_spss <- function(file, var_coding) {
   df <- haven::read_sav(file)
   
   # Extract label before converting from labelled
-  if (var_coding) {
+  if (codebook) {
     
     # Create an empty data.frame
     mm <- matrix(rep(NA, ncol(df)*length(cfg$req_structure$mm)), nrow = ncol(df))
@@ -128,7 +128,7 @@ read_spss <- function(file, var_coding) {
   df <- as.data.frame(df, stringsAsFactors = FALSE)
   
   # Use factor levels to populate values in mm
-  if (var_coding) {
+  if (codebook) {
     # Insert variable type
     mm$type <- vapply(df, class, character(1))
     
@@ -154,7 +154,7 @@ read_spss <- function(file, var_coding) {
   names(df) <- tolower(names(df))
   
   # Return
-  if (isTRUE(var_coding)) {
+  if (isTRUE(codebook)) {
     lst <- list("df" = df, "mm" = mm)
     return(lst)
   } else {

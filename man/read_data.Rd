@@ -4,7 +4,7 @@
 \alias{read_data}
 \title{Read common data formats}
 \usage{
-read_data(file, sheet = NULL, var_coding = FALSE, encoding = "UTF-8")
+read_data(file, sheet = NULL, codebook = FALSE, encoding = "UTF-8")
 }
 \arguments{
 \item{file}{Path to a Rdata, sav (SPSS), txt, csv, csv2 or xlsx file.}
@@ -12,8 +12,8 @@ read_data(file, sheet = NULL, var_coding = FALSE, encoding = "UTF-8")
 \item{sheet}{Optional: If you are trying to read a xlsx file, you can also
 specify which sheets to read.}
 
-\item{var_coding}{Optional: When reading sav-files, the function returns a list
-with the data and the variable coding (formatted like a measurement model).}
+\item{codebook}{Optional: When reading sav-files, the function returns a list
+with the data and the SPSS codebook (formatted like a measurement model).}
 
 \item{encoding}{The encoding to use for txt and csv-files.}
 }

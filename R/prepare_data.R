@@ -310,7 +310,7 @@ add_entities <- function(mainentity) {
 
 add_weights <- function(mainentity, ents) {
   
-  obs <- data.frame(table(mainentity))
+  obs <- as.data.frame(table(mainentity), stringsAsFactors = FALSE)
   obs$ms <- ents$marketshare[match(obs$mainentity, ents$entity)]
   
   # Calculate weight and return it
