@@ -1,3 +1,5 @@
+#' @method print survey
+#' @export
 print.survey <- function(lst, width = getOption("width")) {
   
   cat("Object:", quote(lst), "\n")
@@ -13,6 +15,8 @@ print.survey <- function(lst, width = getOption("width")) {
   
 }
 
+#' @method print mm
+#' @export
 print.mm <- function(mm, width = getOption("width")) {
   
   cat("Measurement model:\n")
@@ -48,6 +52,8 @@ print.mm <- function(mm, width = getOption("width")) {
   
 }
 
+#' @method print ents
+#' @export
 print.ents <- function(ents, width = getOption("width")) {
   
   # Lowercase for easier referencing
