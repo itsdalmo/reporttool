@@ -141,6 +141,7 @@ read_spss <- function(file, codebook) {
     # Set type to scale where true and add all values
     mm$type[scale_vars] <- "scale"
     mm$values <- unlist(lapply(factor_vars, paste, collapse = "\n"))
+    class(mm) <- append("mm", class(mm))
     
   }
   
