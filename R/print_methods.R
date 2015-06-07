@@ -15,9 +15,9 @@ print.survey <- function(lst, width = getOption("width")) {
   
 }
 
-#' @method print mm
+#' @method print survey_mm
 #' @export
-print.mm <- function(mm, width = getOption("width")) {
+print.survey_mm <- function(mm, width = getOption("width")) {
   
   cat("Measurement model:\n")
   
@@ -52,9 +52,9 @@ print.mm <- function(mm, width = getOption("width")) {
   
 }
 
-#' @method print ents
+#' @method print survey_ents
 #' @export
-print.ents <- function(ents, width = getOption("width")) {
+print.survey_ents <- function(ents, width = getOption("width")) {
   
   # Lowercase for easier referencing
   names(ents) <- tolower(names(ents))
