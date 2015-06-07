@@ -1,8 +1,5 @@
 #' @export
-prepare_data <- function(input = NULL, rawdata = NULL, latents = NULL, impute = TRUE, write = TRUE) {
-  
-  # Check latents
-  if (is.null(latents)) latents <- "mean"
+prepare_data <- function(input = NULL, rawdata = NULL, latents = NULL, impute = FALSE) {
   
   # Read in the data if input is a .xlsx file
   if (is.character(input) && has_extension(input, "xlsx")) {
@@ -146,14 +143,8 @@ prepare_data <- function(input = NULL, rawdata = NULL, latents = NULL, impute = 
   # Return the processed input with list/sheets in correct order
   input <- input[names(item_names)[names(item_names) %in% names(input)]]
   
-  if (isTRUE(write)) {
-    # Use long names when writing to .xlsx
-    names(input) <- ordered_replace(names(input), names(item_names), item_names)
-    write_data(input, "prepared_data.xlsx")
-  } else {
-    return(input)
-  }
-
+  input
+  
 }
 
 # Functions for preparing data -------------------------------------------------
