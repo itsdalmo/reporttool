@@ -9,7 +9,7 @@
 #' and a measurement model (latent association, question text, values etc.)
 #' @export
 #' @examples 
-#' x <- read_em("https://the.intranet.se/EPSI/example")
+#' x <- read_sharepoint("https://the.intranet.se/EPSI/example")
 
 read_sharepoint <- function(file) {
   
@@ -89,7 +89,7 @@ read_sharepoint <- function(file) {
 #' and a measurement model (latent association, question text, values etc.)
 #' @export
 #' @examples 
-#' x <- read_em("https://the.intranet.se/EPSI/example")
+#' x <- write_sharepoint("https://the.intranet.se/EPSI/example")
 
 write_sharepoint <- function(lst, dir) {
   

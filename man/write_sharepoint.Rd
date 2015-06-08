@@ -21,7 +21,7 @@ This function creates the necessary input files for model estimation, in the
 specified directory.
 }
 \examples{
-x <- read_em("https://the.intranet.se/EPSI/example")
+x <- write_sharepoint("https://the.intranet.se/EPSI/example")
 }
 \author{
 Kristian D. Olsen

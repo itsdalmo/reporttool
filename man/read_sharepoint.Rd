@@ -18,7 +18,7 @@ This function extracts whatever data is available in our standard file
 structure and tries to structure it like a input.xlsx file.
 }
 \examples{
-x <- read_em("https://the.intranet.se/EPSI/example")
+x <- read_sharepoint("https://the.intranet.se/EPSI/example")
 }
 \author{
 Kristian D. Olsen
