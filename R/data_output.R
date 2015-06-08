@@ -249,8 +249,8 @@ write_xlsx <- function(lst, file) {
   
   
   lapply(names(lst), function(nm, lst, wb) {
-    to_sheet(lst[[nm]], wb = wb, sheet = nm, row = 1L, style = FALSE, append = FALSE)}, 
-    lst, wb)
+    to_sheet(lst[[nm]], wb = wb, sheet = nm, row = 1L, format_style = FALSE, 
+             format_values = FALSE, append = FALSE)}, lst, wb)
   
   openxlsx::saveWorkbook(wb, file, overwrite = TRUE)
   
