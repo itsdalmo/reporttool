@@ -117,6 +117,7 @@ read_spss <- function(file, codebook) {
     mm$manifest <- names(df)
     mm$question <- lapply(df, attr, which = "label")
     mm$question <- vapply(mm$question, function(x) ifelse(is.null(x), "", x), character(1))
+    
   }
   
   # Convert labelled to factors
@@ -125,6 +126,7 @@ read_spss <- function(file, codebook) {
   
   # Use factor levels to populate values in mm
   if (codebook) {
+    
     # Insert variable type
     mm$type <- vapply(df, class, character(1))
     
@@ -141,7 +143,9 @@ read_spss <- function(file, codebook) {
     # Set type to scale where true and add all values
     mm$type[scale_vars] <- "scale"
     mm$values <- unlist(lapply(factor_vars, paste, collapse = "\n"))
-    class(mm) <- append("mm", class(mm))
+    
+    # Add survey_mm to class
+    class(mm) <- append("survey_mm", class(mm))
     
   }
   
@@ -152,8 +156,7 @@ read_spss <- function(file, codebook) {
   
   # Return
   if (isTRUE(codebook)) {
-    lst <- list("df" = df, "mm" = mm)
-    return(lst)
+    return(list("df" = df, "mm" = mm))
   } else {
     return(df)
   }
