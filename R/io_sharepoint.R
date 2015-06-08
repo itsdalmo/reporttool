@@ -71,8 +71,12 @@ read_sharepoint <- function(file) {
   # Add marketshares to entities
   lst$ents$marketshare <- gsub(",", "\\.", input$cf[[4]][match(lst$ents$entity, input$cf[[2]])])
   
-  # Combine the results and return them
-  return(lst)
+  # Combine the results and return them (set classes as well)
+  class(lst$ents) <- append("survey_ents", class(lst$ents))
+  class(lst$mm) <- append("survey_mm", class(lst$ents))
+  class(lst) <- append("survey", class(lst))
+  
+  lst
   
 }
 
