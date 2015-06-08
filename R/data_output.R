@@ -52,9 +52,13 @@ to_clipboard <- function(df, encoding = "") {
 #' @param title The title to give to the table (only used if style = TRUE).
 #' @param sheet Name of the sheet to write to, will be created if it does not exist.
 #' @param row Optional: Also specify the startingrow for writing data.
-#' @param style Set to FALSE if you do not want styling for the data.
-#' @param append Whether or not the function should append data or clean the
-#' sheet before writing.
+#' @param format_style Set to FALSE if you do not want styling for the data.
+#' @param format_values Set to FALSE and no formatting will be applied based on
+#' variable type. With TRUE, character columns will be left justified, numeric
+#' will have 1 decimal place, integer 0, and columns with values between 1 and 0
+#' as percentages.
+#' @param append Whether or not the function should append or clean the
+#' sheet of existing data before writing.
 #' @author Kristian D. Olsen
 #' @return A list containing data.frames matching the sheets in the .xlsx file.
 #' If only one sheet is read, the function returns a data.frame instead.
@@ -65,7 +69,8 @@ to_clipboard <- function(df, encoding = "") {
 #' x %>% to_sheet(wb, sheet = "test", append = FALSE)
 #' openxlsx::saveWorkbook(wb, "test.xlsx", overwrite = TRUE)
 
-to_sheet <- function(df, wb, title = "Table", sheet="analysis", row=1L, style = TRUE, append = TRUE) {
+to_sheet <- function(df, wb, title = "Table", sheet = "analysis", row = 1L, 
+                     format_style = TRUE, format_values = TRUE, append = TRUE) {
   
   if (!inherits(wb, "Workbook")) {
     stop("wb argument must be a (loaded) openxlsx workbook")
@@ -95,7 +100,7 @@ to_sheet <- function(df, wb, title = "Table", sheet="analysis", row=1L, style = 
   } else {
     
     # When styling the title must be written first
-    if (isTRUE(style)) {
+    if (isTRUE(format_style)) {
       openxlsx::writeData(wb, sheet, title, startRow = row)
       table_row <- row + 1
     } else {
@@ -106,31 +111,11 @@ to_sheet <- function(df, wb, title = "Table", sheet="analysis", row=1L, style = 
     openxlsx::writeData(wb, sheet, df, startRow = table_row)
   }
   
-  # Apply additional styling to the table
-  if (isTRUE(style)) {
-    # Get row and column index
-    last_row <- table_row+nrow(df)
-    all_rows <- table_row:last_row
-    all_cols <- 1:ncol(df)
+  # Apply additional formatting if desired
+  if (isTRUE(format_style) || isTRUE(format_values)) {
     
-    # Add title, style the cells and merge them
-    openxlsx::addStyle(wb, sheet, xlsx_style_title, rows = row, cols = all_cols, gridExpand = TRUE)
-    openxlsx::mergeCells(wb, sheet, rows = rep(row, length(all_cols)), cols = all_cols)
+    format_xlsx(df, wb, sheet, table_row, style = format_style, values = format_values)
     
-    # Style the entire table
-    openxlsx::addStyle(wb, sheet, xlsx_style_table, rows = all_rows, cols = all_cols, gridExpand = TRUE)
-    
-    # Alter the style of first
-    openxlsx::addStyle(wb, sheet, xlsx_style_firstrow, rows = table_row, cols = all_cols, gridExpand = TRUE)
-    
-    # ..  and last row
-    if (nrow(df) > 2L) {
-      openxlsx::addStyle(wb, sheet, xlsx_style_lastrow, rows = last_row, cols = all_cols, gridExpand = TRUE)
-    }
-    
-    # Change the text orientation of the first column
-    openxlsx::addStyle(wb, sheet, openxlsx::createStyle(halign = "left"), 
-                       rows = all_rows, cols = 1, gridExpand = TRUE, stack = TRUE)
   }
   
 }

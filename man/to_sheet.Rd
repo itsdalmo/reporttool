@@ -5,7 +5,7 @@
 \title{Write data to sheet (in an openxlsx workbook)}
 \usage{
 to_sheet(df, wb, title = "Table", sheet = "analysis", row = 1L,
-  style = TRUE, append = TRUE)
+  format_style = TRUE, format_values = TRUE, append = TRUE)
 }
 \arguments{
 \item{df}{The data to write.}
@@ -18,10 +18,15 @@ to_sheet(df, wb, title = "Table", sheet = "analysis", row = 1L,
 
 \item{row}{Optional: Also specify the startingrow for writing data.}
 
-\item{style}{Set to FALSE if you do not want styling for the data.}
+\item{format_style}{Set to FALSE if you do not want styling for the data.}
 
-\item{append}{Whether or not the function should append data or clean the
-sheet before writing.}
+\item{format_values}{Set to FALSE and no formatting will be applied based on
+variable type. With TRUE, character columns will be left justified, numeric
+will have 1 decimal place, integer 0, and columns with values between 1 and 0
+as percentages.}
+
+\item{append}{Whether or not the function should append or clean the
+sheet of existing data before writing.}
 }
 \value{
 A list containing data.frames matching the sheets in the .xlsx file.
