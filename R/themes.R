@@ -184,5 +184,5 @@ xlsx_style_lastrow <- openxlsx::createStyle(fontName = "Trebuchet MS",
 
 xlsx_numeric <- openxlsx::createStyle(numFmt = "0.0")
 xlsx_integer <- openxlsx::createStyle(numFmt = "0")
-xlsx_percent <- openxlsx::createStyle(numFmt = "PERCENTAGE")
+xlsx_percent <- openxlsx::createStyle(numFmt = "0.0%")
 xlsx_character <- openxlsx::createStyle(halign = "left")
