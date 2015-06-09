@@ -5,6 +5,7 @@
 \alias{clean_score}
 \alias{get_sheet_names}
 \alias{intranet_link}
+\alias{lowercase_names}
 \alias{ordered_replace}
 \alias{rescale_score}
 \alias{set_missing}
@@ -21,6 +22,8 @@ ordered_replace(x, match_by, replacement = NULL)
 get_sheet_names(file)
 
 intranet_link(https)
+
+lowercase_names(x)
 }
 \description{
 A few wrappers to make a common tasks less verbose.
@@ -50,6 +53,9 @@ A few wrappers to make a common tasks less verbose.
 
    \item{\code{rescale_score}}{Takes vectors representing 10-point likert
    scales and transforms them to 100-point scales. (x-1)*(100/9)}
+
+   \item{\code{lowercase_names}}{Used to lowercase columnnames in lists
+   (instead of an anonyomous function.)}
 }
 }
 \examples{
@@ -57,6 +63,7 @@ df <- set_missing(df)
 df$Q3 <- clean_score(df$Q3)
 df$Q3 <- rescale_score(df$Q3)
 ordered_replace("measurement model", with(cfg$sheet_names, setNames(long, short)))
+lst <- lapply(lst, lowercase_names)
 }
 \author{
 Kristian D. Olsen
