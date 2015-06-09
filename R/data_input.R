@@ -173,8 +173,9 @@ read_rdata <- function(file) {
   lst <- new.env(parent = emptyenv())
   load(file, envir = lst)
   
-  # Convert the environment to a list
+  # Convert the environment to a list and lowercase names
   lst <- as.list(lst)
+  lst <- lapply(lst, lowercase_names)
   
   if (length(lst) == 1L) {
     lst <- lst[[1]]
@@ -266,7 +267,7 @@ read_xlsx <- function(file, sheet) {
   
   # Lowercase names
   if (inherits(lst, "list")) {
-    lst <- lapply(lst, tolower_cols)
+    lst <- lapply(lst, lowercase_names)
   } 
   
   names(lst) <- tolower(names(lst))

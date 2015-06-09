@@ -26,6 +26,9 @@
 #'
 #'    \item{\code{rescale_score}}{Takes vectors representing 10-point likert 
 #'    scales and transforms them to 100-point scales. (x-1)*(100/9)}
+#'    
+#'    \item{\code{lowercase_names}}{Used to lowercase columnnames in lists 
+#'    (instead of an anonyomous function.)}
 #' }
 #' 
 #' @name Utilities
@@ -36,6 +39,7 @@
 #' df$Q3 <- clean_score(df$Q3)
 #' df$Q3 <- rescale_score(df$Q3)
 #' ordered_replace("measurement model", with(cfg$sheet_names, setNames(long, short)))
+#' lst <- lapply(lst, lowercase_names)
 
 #' @rdname utilities
 set_missing <- function(df, na.strings = cfg$missing_values) {
@@ -140,6 +144,18 @@ intranet_link <- function(https) {
   
 }
 
+#' @rdname utilities
+#' @export
+lowercase_names <- function(x) {
+  
+  if(!is.null(names(x))) {
+    names(x) <- tolower(names(x))
+  }
+  
+  x
+  
+}
+
 
 # MISC -------------------------------------------------------------------------
 isFALSE <- function(x) identical(x, FALSE)
@@ -167,14 +183,4 @@ has_extension <- function(path, ext) {
 is_supported_ext <- function(...) {
   exts <- vapply(tolower(list(...)), tools::file_ext, character(1))
   all(exts %in% cfg$input_formats)
-}
-
-# Lowercase all columnnames
-tolower_cols <- function(df) {
-  
-  if(!is.null(names(df))) {
-    names(df) <- tolower(names(df))
-  }
-  
-  df
 }
