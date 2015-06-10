@@ -99,9 +99,10 @@ to_sheet <- function(df, wb, title = "Table", sheet = "analysis", row = 1L,
     warning(sheet, ": No columnames in data. An empty sheet was created", call. = FALSE)
   } else {
     
-    # When styling the title must be written first
+    # When styling the title must be written first (and convert df names to titles)
     if (isTRUE(format_style)) {
       openxlsx::writeData(wb, sheet, title, startRow = row)
+      names(df) <- paste0(toupper(substr(names(df), 1, 1)), substring(names(df), 2))
       table_row <- row + 1
     } else {
       table_row <- row
