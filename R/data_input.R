@@ -116,7 +116,7 @@ read_spss <- function(file, codebook) {
     # Populate mm
     mm$manifest <- names(df)
     mm$question <- lapply(df, attr, which = "label")
-    mm$question <- vapply(mm$question, function(x) ifelse(is.null(x), "", x), character(1))
+    mm$question <- vapply(mm$question, function(x) ifelse(is.null(x), "", as.character(x)), character(1))
     
   }
   
