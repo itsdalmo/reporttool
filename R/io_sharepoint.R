@@ -66,7 +66,7 @@ read_sharepoint <- function(file) {
   input$mm$latent <- gsub("([a-z]+)[0-9]+", "\\1", input$mm$latent)
   
   # Assign latent association to the measurement model (use match in case order differs)
-  lst$mm$latent[match(input$mm$manifest, tolower(lst$mm$manifest))] <- input$mm$latent
+  lst$mm$latent[match(tolower(input$mm$manifest), tolower(lst$mm$manifest))] <- input$mm$latent
   
   # Add marketshares to entities
   lst$ents$marketshare <- gsub(",", "\\.", input$cf[[4]][match(lst$ents$entity, input$cf[[2]])])
