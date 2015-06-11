@@ -115,12 +115,12 @@ get_questionnaire <- function(file, industry = "Energy", study = "District Heati
   
   # Sequence along the dictionary and replace values
   for (i in 1:nrow(dict)) {
-    quest[] <- lapply(q_df, function(x) gsub(paste0("\\{", dict$placeholder[i], "\\}"), dict[i, study_col], x))
+    quest[] <- lapply(quest, function(x) gsub(paste0("\\{", dict$placeholder[i], "\\}"), dict[i, study_col], x))
   }
   
   # Replace {XX} with whatever value is specified
   if (!is.null(entity)) {
-    quest[] <- lapply(q_df, function(x) gsub("\\{XX\\}", entity, x))
+    quest[] <- lapply(quest, function(x) gsub("\\{XX\\}", entity, x))
   }
 
   # Return
