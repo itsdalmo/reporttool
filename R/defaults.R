@@ -1,3 +1,18 @@
+#' @rdname utilities
+#' @export
+rt_defaults <- function(x) {
+  
+  y <- cfg[grep(x, names(cfg), ignore.case = TRUE)]
+  
+  # Drop list if only one entry is returned
+  if (length(y) == 1L) {
+    y[[1]]
+  } else {
+    y
+  }
+
+}
+
 # Default values ---------------------------------------------------------------
 cfg <- list(
   

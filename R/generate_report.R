@@ -81,88 +81,31 @@ generate_rmd <- function(entity, md, dir) {
 }
 
 #' @export
-get_input <- function(file, assign = TRUE, save = TRUE,  envir = parent.frame()) {
+get_input <- function(file, envir, assign = TRUE) {
   
   # Validate path
   file <- validate_path(file)
   
-  dir <- dirname(file)
-  file <- basename(file)
+  # Read in the data and convert it to class survey
+  input <- read_data(file)
+  input <- as.survey(lst)
   
-  # Path to .Rdata
-  rdata <- file.path(dir, gsub(".[a-zA-Z]*$", ".Rdata", file))
+  # Replace names for mainentity in the data
+  me_name <- setNames(tolower(input$mm$manifest[input$mm$latent == "mainentity"]), "mainentity")
+  input <- lapply(input, function(x, re) { names(x) <- ordered_replace(names(x), re) }, me_name)
   
-  # Read .Rdata if it exists
-  if (file.exists(rdata)) {
-    load(rdata, envir = envir)
-  } else {
-    lst <- read_data(file.path(dir, file))
-    lst <- prepare_input_data(lst)
-    
-    # See if data should be assigned
-    if (assign) {
-      assign_input_data(lst, envir)
-      
-      # Save assigned data if wanted
-      if (save) {
-        save(list = names(lst), file = rdata, envir = envir)
-      }
-    } else if (save) {
-      stop("Saving data requires that it is also assigned", call. = FALSE)
-      
-      # If data is not assigned, return it instead  
-    } else {
-      return(lst)
-    }
-    
+  # And subentities (if they exist)
+  if ("subentity" %in% input$mm$latent) {
+    se_name <- setNames(tolower(input$mm$manifest[input$mm$latent == "subentity"]), "subentity")
+    input <- lapply(input, function(x, re) { names(x) <- ordered_replace(names(x), re) }, se_name)
   }
   
-}
-
-prepare_input_data <- function(lst) {
-  
-  if (!inherits(lst, "list")) {
-    stop("This function only accepts a list as input", call. = FALSE)
+  # Assign the list to the desired environment (if desired)
+  if (isTRUE(assign)) {
+    envir <- as.list(envir)
+    input <- list2env(c(input, envir), envir = NULL, parent = emptyenv())
   }
   
-  # Rename sheets/listed items
-  item_names <- with(cfg$sheet_names, setNames(long, short))
+  input
   
-  if (any(item_names %in% names(lst))) {
-    names(lst) <- ordered_replace(names(lst), item_names, names(item_names))
-  } else {
-    stop("The required data is not present in the provided list", call. = FALSE)
-  }
-  
-  survey_data <- which(names(lst) %in% c("df", "cd", "hd"))
-  
-  # Convert variables associated with a latent to numeric
-  
-  
-  # Make groupcolumns easily identifiable
-  main <- "mainentity" %in% lst$mm$latent
-  sub <- "subentity" %in% lst$mm$latent
-  
-  if (main) {
-    lst[survey_data] <- lapply(lst[survey_data], function(x, mm, rep) {
-      names(x)[names(x) %in% tolower(mm$manifest[mm$latent == rep])] <- rep
-      x 
-    }, mm = lst$mm, rep = "mainentity")
-  }
-  
-  if (sub) {
-    lst[survey_data] <- lapply(lst[survey_data], function(x, mm, rep) {
-      names(x)[names(x) %in% tolower(mm$manifest[mm$latent == rep])] <- rep 
-      x 
-    }, mm = lst$mm, rep = "subentity")
-  }
-  
-  return(lst)
-  
-}
-
-assign_input_data <- function(lst, envir) {
-  for (i in names(lst)) {
-    assign(i, lst[[i]], envir = envir)
-  }
 }

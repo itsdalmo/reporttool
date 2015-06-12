@@ -13,7 +13,7 @@ prepare_data <- function(input = NULL, rawdata = NULL, latents = NULL, impute = 
   
   # Change familiar sheetnames to their shorthand version
   item_names <- with(cfg$sheet_names, setNames(long, short))
-  names(input) <- ordered_replace(names(input), item_names, names(item_names))
+  names(input) <- ordered_replace(names(input), item_names)
   
   # Get rawdata if it is given
   if (!is.null(rawdata)) {
@@ -176,6 +176,7 @@ impute_missing <- function(df, vars) {
   df[df$imp_id %in% imp_data$imp_id, vars] <- imp_data[vars]
   
   df[vars]
+  
 }
 
 latents_pls <- function(input, ent_var, model) {
@@ -250,6 +251,7 @@ latents_mean <- function(df, model) {
 }
 
 # Functions for cleaning the data ----------------------------------------------
+
 add_mm <- function(df) {
   
   # Gather data for measurement model
@@ -283,7 +285,7 @@ add_modelnames <- function(nms, manifest) {
     nms <- append(nms[1:extra_cols], tolower(manifest))
   }
   
-  return(nms)
+  nms
   
 }
 
@@ -296,7 +298,8 @@ add_entities <- function(mainentity) {
   ents$marketshare <- ents$n/sum(ents$n)
   ents$other <- rep("No", nrow(ents))
   
-  return(ents)
+  ents
+  
 }
 
 add_weights <- function(mainentity, ents) {
@@ -307,4 +310,5 @@ add_weights <- function(mainentity, ents) {
   # Calculate weight and return it
   obs$w <- obs$Freq/(obs$ms * sum(obs$Freq))
   obs$w[match(mainentity, obs$mainentity)]
+  
 }

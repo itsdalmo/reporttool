@@ -9,6 +9,13 @@ output:
 
 ```{r, error=FALSE, results='hide'}
 
+# Replace entity and path to data ----------------------------------------------
+
+input <- "REPLACE_DATA"
+entity <- "REPLACE_ENTITY"
+
+# Package dependencies ---------------------------------------------------------
+
 # Reading and manipulating data
 suppressMessages(require(epsitools))
 suppressMessages(require(openxlsx))
@@ -27,15 +34,30 @@ suppressMessages(require(scales))
 suppressMessages(require(xtable))
 suppressMessages(require(stringr))
 
-# Hardcoding (na.strings, latents, colors and respondent cutoff for missing values)
-missingvalues <- c("NA", " ", "", "#DIV/0!", "#NULL!", "#NAVN?", "#NAME?")
-latents <- c("image", "expect", "prodq", "servq", "value", "epsi", "loyal")
-ggcolors <- c("#F8766D", "#00BFC4", "#D89000", "#00BF7D", "#9590FF", "#A3A500", "#EA8331")
-mv <- .3
+# Default values --------------------------------------------------------------
 
-# Set relative path, and entity for study
-input <- "REPLACE_DATA"
-entity <- "REPLACE_ENTITY"
+latents <- rt_defaults("missing_values")
+palette <- rt_defaults("ggcolors")
+cutoff <- .3
+
+# Check if the data should be loaded ------------------------------------------
+# (Could already be loaded by reporttool::generate_report)
+
+data_needed <- !all(exists("df"), exists("mm"), exists("ents"))
+
+```
+
+```{r, eval=data_needed, error=FALSE, results='hide'}
+
+# Get the data ----------------------------------------------------------------
+
+data <- read_data(input)
+
+# Get and replace long sheetnames with their shorthand version
+nms <- rt_defaults("sheet_names")
+names(data) <- ordered_replace(names(data), setNames(nms$long, nms$short))
+
+# Explicitly assign 
 
 df <- read.xlsx(input, sheet = "data") %>% data.frame(stringsAsFactors = FALSE)
 cd <- read.xlsx(input, sheet = "contrast data") %>% data.frame(stringsAsFactors = FALSE)
@@ -43,19 +65,7 @@ hd <- read.xlsx(input, sheet = "historic data") %>% data.frame(stringsAsFactors 
 mm <- read.xlsx(input, sheet = "measurement model") %>% data.frame(stringsAsFactors = FALSE)
 cf <- read.xlsx(input, sheet = "config") %>% data.frame(stringsAsFactors = FALSE)
 
-# Lowercase columns for reliable referencing.
-names(df) <- tolower(names(df))
-names(cd) <- tolower(names(cd))
-names(hd) <- tolower(names(hd))
-names(mm) <- tolower(names(mm))
-names(cf) <- tolower(names(cf))
 
-# Set missing values
-df[] %<>% sapply(function(x) ifelse(x %in% missingvalues, NA, x))
-cd[] %<>% sapply(function(x) ifelse(x %in% missingvalues, NA, x))
-hd[] %<>% sapply(function(x) ifelse(x %in% missingvalues, NA, x))
-mm[] %<>% sapply(function(x) ifelse(x %in% missingvalues, NA, x))
-cf[] %<>% sapply(function(x) ifelse(x %in% missingvalues, NA, x))
 
 # Replace names of mainentity and subentity
 if ("mainentity" %in% tolower(mm$latent)) {

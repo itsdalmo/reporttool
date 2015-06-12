@@ -5,6 +5,9 @@
 #' @section List of utilities:
 #' 
 #' \describe{
+#'    \item{\code{rt_defaults}}{Get default settings from the reporttool package.
+#'    \code{x} is a search-string which is not case sensitive.}
+#' 
 #'    \item{\code{intranet_link}}{Converts any http(s) link with a .se domain
 #'    to a link for a network drive (sharepoint) on windows.}  
 #' 
@@ -40,6 +43,7 @@
 #' df$Q3 <- rescale_score(df$Q3)
 #' ordered_replace("measurement model", with(cfg$sheet_names, setNames(long, short)))
 #' lst <- lapply(lst, lowercase_names)
+#' rt_defaults("latent")
 
 #' @rdname utilities
 set_missing <- function(df, na.strings = cfg$missing_values) {
@@ -93,11 +97,10 @@ ordered_replace <- function(x, match_by, replacement = NULL) {
   # Replace x with values from replace (based on 'match')
   if (any(x %in% y)) {
     x[x %in% y] <- names(y)[match(x, y, nomatch = 0)]
-  } else {
-    warning("x had no matches in 'match_by'. No values replaced\n", call. = FALSE)
-  }
+  } 
   
-  return(x)  
+  x
+  
 }
 
 #  Copied from sourcecode
@@ -156,8 +159,8 @@ lowercase_names <- function(x) {
   
 }
 
-
 # MISC -------------------------------------------------------------------------
+
 isFALSE <- function(x) identical(x, FALSE)
 
 validate_path <- function(path) {
@@ -174,13 +177,10 @@ validate_path <- function(path) {
   path <- sub("/$", "", path)
   
   path
+  
 }
 
 has_extension <- function(path, ext) {
   identical(tolower(tools::file_ext(path)), ext)
 }
 
-is_supported_ext <- function(...) {
-  exts <- vapply(tolower(list(...)), tools::file_ext, character(1))
-  all(exts %in% cfg$input_formats)
-}
