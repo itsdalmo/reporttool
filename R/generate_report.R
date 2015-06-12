@@ -1,15 +1,18 @@
-#' @title Generate report
-#' @description Generate one or more reports using the templates in this package.
+#' Generate report
+#'
+#' Generate one or more reports using the templates in this package.
+#' 
 #' @param report Path to the report template (.Rmd) for a specific study.
+#' @param entity Optional: Name of a specific entity to create a report for.
 #' @param data Optional: path to input.xlsx (if NULL, assumes that this file can 
 #' be found in working directory.)
-#' @param entity Optional: character vector with one or more entities for generating reports.
-#' @return A .Rmd and .pdf file for each entity (in the data, or for each specified).
+#' @return Nothing. A .Rmd file and desired output is created for each entity in
+#' the data, or as specified.
 #' @author Kristian D. Olsen
-#' @examples
-#' generate_report("/Internal/Internal_report_2014.Rmd", entity=c("EPSI", "SKI"))
-
 #' @export
+#' @examples 
+#' generate_report("/Internal/Internal_report_2014.Rmd", entity=c("EPSI", "SKI"))
+ 
 generate_report <- function(report=NULL, entity=NULL, data=NULL, type="pdf") {
   
   report <- validate_path(report)
@@ -29,24 +32,19 @@ generate_report <- function(report=NULL, entity=NULL, data=NULL, type="pdf") {
   if (!file.exists(data)) {
     stop("File not found: ", data, call. = FALSE)
   }
+
+  # Read in the input-file
+  input <- get_survey(data)
   
-  # Check if the entity is specified, if not - use the mainentity and generate a report for each.
+  # Check if entity is specified, if not - use mainentity and generate a report each
   if (is.null(entity)) {
     message("No entity specified, creating report for all (main) entities in:\n", data)
-    
-    # Load the data
-    mm <- read_sheets(data, sheets="measurement model", clean.missing = TRUE)
-    df <- read_sheets(data, sheets="data", clean.missing = TRUE)
-    
-    # Lowercase variables for easier referencing
-    names(mm) <- tolower(names(mm))
-    names(df) <- tolower(names(df))
-    
-    # Get name of mainentity variable
-    mainentity <- tolower(mm$manifest[tolower(mm$latent) %in% "mainentity"])
-    
-    entity <- unique(df[[mainentity]])
+    entity <- unique(input$df$mainentity)
   }
+  
+  # Convert input to an environment to avoid loading data multiple times
+  # when generating more than one report
+  input_envir <- list2env(input, parent = environment())
   
   # Read in the report template
   md <- readLines(report, encoding="UTF-8")
@@ -63,8 +61,9 @@ generate_report <- function(report=NULL, entity=NULL, data=NULL, type="pdf") {
   
   # Generate the wanted report-type
   switch(type,
-         pdf = lapply(entity, generate_beamer, dir, environment()),
-         stop("Please use a supported output format.", call. = FALSE))
+         pdf = lapply(entity, generate_beamer, dir, input_envir),
+         ppt = stop("Not yet supported.\n", call. = FALSE),
+         stop("Please use a supported output format.\n", call. = FALSE))
   
   invisible()
 }
@@ -80,32 +79,38 @@ generate_rmd <- function(entity, md, dir) {
   
 }
 
+#' Get survey data
+#'
+#' This function reads in and converts data to a survey. Obviously requires that
+#' whatever data is read in can be converted to a survey, which means that the file-type
+#' will usually be .xlsx or .Rdata.
+#' 
+#' @param file Path to the input file
+#' @return Either a list with the
+#' @author Kristian D. Olsen
 #' @export
-get_input <- function(file, envir, assign = TRUE) {
+#' @examples 
+#' generate_report("/Internal/Internal_report_2014.Rmd", entity=c("EPSI", "SKI"))
+
+get_survey <- function(file) {
   
   # Validate path
   file <- validate_path(file)
   
   # Read in the data and convert it to class survey
   input <- read_data(file)
-  input <- as.survey(lst)
   
   # Replace names for mainentity in the data
-  me_name <- setNames(tolower(input$mm$manifest[input$mm$latent == "mainentity"]), "mainentity")
-  input <- lapply(input, function(x, re) { names(x) <- ordered_replace(names(x), re) }, me_name)
+  me_name <- setNames(tolower(input$mm$manifest[input$mm$latent %in% "mainentity"]), "mainentity")
+  input <- lapply(input, function(x, re) { names(x) <- ordered_replace(names(x), re);  x }, me_name)
   
   # And subentities (if they exist)
   if ("subentity" %in% input$mm$latent) {
-    se_name <- setNames(tolower(input$mm$manifest[input$mm$latent == "subentity"]), "subentity")
+    se_name <- setNames(tolower(input$mm$manifest[input$mm$latent %in% "subentity"]), "subentity")
     input <- lapply(input, function(x, re) { names(x) <- ordered_replace(names(x), re) }, se_name)
   }
   
-  # Assign the list to the desired environment (if desired)
-  if (isTRUE(assign)) {
-    envir <- as.list(envir)
-    input <- list2env(c(input, envir), envir = NULL, parent = emptyenv())
-  }
-  
-  input
+  # Return
+  as.survey(input)
   
 }

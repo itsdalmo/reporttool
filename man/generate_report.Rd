@@ -9,13 +9,14 @@ generate_report(report = NULL, entity = NULL, data = NULL, type = "pdf")
 \arguments{
 \item{report}{Path to the report template (.Rmd) for a specific study.}
 
-\item{entity}{Optional: character vector with one or more entities for generating reports.}
+\item{entity}{Optional: Name of a specific entity to create a report for.}
 
 \item{data}{Optional: path to input.xlsx (if NULL, assumes that this file can
 be found in working directory.)}
 }
 \value{
-A .Rmd and .pdf file for each entity (in the data, or for each specified).
+Nothing. A .Rmd file and desired output is created for each entity in
+the data, or as specified.
 }
 \description{
 Generate one or more reports using the templates in this package.

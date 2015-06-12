@@ -32,6 +32,23 @@ as.survey.list <- function(x) {
   x$mm <- as.survey_mm(x$mm)
   x$ents <- as.survey_ents(x$ents)
   
+  # Make sure latents exist in the data
+  latents <- cfg$latent_names
+  manifest <- paste0(tolower(x$mm$manifest[tolower(x$mm$latent) %in% latents]), "em")
+  
+  if (!all(latents %in% names(x$df))) {
+    stop("Latents were not found in the data. Make sure you have run prepare_data first\n", call. = FALSE)
+  }
+  
+  # Model scales
+  if (!all(manifest %in% names(x$df))) {
+    stop("Manifest variables (em) were not found in the data\n", call. = FALSE)
+  }
+  
+  # And weights
+  if (!"w" %in% names(x$df)) {
+    stop("Weights (w) were not found in the data\n", call. = FALSE)
+  }
   
   structure(x, class = append("survey", class(x)))
   

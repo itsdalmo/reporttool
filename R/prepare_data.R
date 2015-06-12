@@ -1,38 +1,43 @@
+#' Prepare survey data
+#'
+#' This function expects an input file containing raw data. Ideally the input also
+#' includes a measurement model and entities w/marketshares, but it attempts to 
+#' create these based on the data (to help achieve the desired structure) if they
+#' are not found.
+#' 
+#' @param input Either a path to a file, or a list containing the raw data and/or
+#' measurement model/entities.
+#' @param latents Specify either 'pls' or 'mean' to calculate latents based on
+#' the latent specification in the measurement model. Requires that latents are in
+#' fact specified.
+#' @param impute Specify whether missing values should be imputed for observations
+#' that are retained.
+#' @param cutoff The missing-values cutoff; defaults to .3 (30%). Any observations 
+#' with a missing percent above this threshold are excluded when imputing missing
+#' values and calculating latents.
+#' @return A list containing the processed data, measurement model and entities.
+#' @author Kristian D. Olsen
 #' @export
-prepare_data <- function(input = NULL, rawdata = NULL, latents = NULL, impute = FALSE) {
+#' @examples 
+#' generate_report("/Internal/Internal_report_2014.Rmd", entity=c("EPSI", "SKI"))
+
+prepare_data <- function(input = NULL, latents = NULL, impute = FALSE, cutoff = .3) {
   
-  # Read in the data if input is a .xlsx file
-  if (is.character(input) && has_extension(input, "xlsx")) {
+  # Read in the data
+  if (is.character(input) && length(input) == 1L) {
     input <- validate_path(input)
-    input <- read_data(input)
-  } else if (is.null(input)) {
-    input <- list("df" = NULL)
+    message("Reading data from:\n", input)
+    input <- read_data(input, codebook = TRUE)
+  } else if (inherits(input, "data.frame")) {
+    # Assumes that the data.frame contains the rawdata
+    input <- list("df" = input)
   } else if (!inherits(input, "list")) {
-    stop("Unexpected format in argument 'input'\n", call. = FALSE)
+    stop ("input must be a path, data.frame (rawdata) or list\n", call. = FALSE)
   }
   
-  # Change familiar sheetnames to their shorthand version
+  # Change familiar names to their shorthand version (data = df, etc.)
   item_names <- with(cfg$sheet_names, setNames(long, short))
   names(input) <- ordered_replace(names(input), item_names)
-  
-  # Get rawdata if it is given
-  if (!is.null(rawdata)) {
-    
-    if ("df" %in% names(input) && !is.null(input$df)) {
-      warning("Data exists in input and will be overwritten\n", call. = FALSE)
-    } 
-    
-    # Rawdata can be .xlsx or a data.frame
-    if (is.character(rawdata) && has_extension(rawdata, "xlsx")) {
-      rawdata <- validate_path(rawdata)
-      input[["df"]] <- read_data(rawdata)
-    } else if (inherits(rawdata, "data.frame")) {
-      input[["df"]] <- rawdata
-    } else {
-      stop("Unexpected format in argument 'rawdata'\n", call. = FALSE)
-    }
-    
-  } 
   
   # Create a measurement model from data if necessary --------------------------
   missing_mm <- !all("mm" %in% names(input) && nrow(input$mm) > 0)
@@ -92,6 +97,7 @@ prepare_data <- function(input = NULL, rawdata = NULL, latents = NULL, impute = 
     entity_var <- tolower(input$mm$manifest[input$mm$latent %in% "mainentity"])
   } else if ("q1" %in% tolower(input$mm$manifest)) {
     warning("Using 'q1' as mainentity variable\n", call. = FALSE)
+    input$mm$latent[tolower(input$mm$manifest) %in% "q1"] <- "mainentity"
     entity_var <- "q1"
   } else {
     entity_var <- character(0)
@@ -148,6 +154,7 @@ prepare_data <- function(input = NULL, rawdata = NULL, latents = NULL, impute = 
 }
 
 # Functions for preparing data -------------------------------------------------
+
 impute_missing <- function(df, vars) {
   
   # For reproducibility reasons
@@ -254,21 +261,33 @@ latents_mean <- function(df, model) {
 
 add_mm <- function(df) {
   
-  # Gather data for measurement model
-  n <- length(names(df))
+  # Create an empty data.frame
+  mm <- matrix(rep(NA, ncol(df)*length(cfg$req_structure$mm)), nrow = ncol(df))
+  mm <- as.data.frame(mm, stringsAsFactors = FALSE)
+  names(mm) <- cfg$req_structure$mm
   
-  mm <- data.frame("latent" = character(n), 
-                    "manifest" = names(df),
-                    "text" = gsub("\\.", " ", names(df)),
-                    "values" = character(n),
-                    stringsAsFactors = FALSE)
+  # Extract information from the data
+  mm$manifest <- names(df)
+  mm$question <- gsub("\\.", " ", mm$manifest)
+  mm$type <- vapply(df, class, character(1))
   
-  # If a variable has 9 or less unique values, add possible responses to "values"
-  mm$values <- unlist(lapply(df, function(x) {
-    x <- unique(x); if (length(x) <= 9) paste0(" \"", x[!is.na(x)], "\"", collapse=",") else NA}))
+  # Set type and try to determine whether it is a scale
+  character_vars <- mm$manifest[mm$type %in% "character"]
+  scale_vars <- unlist(lapply(df[character_vars], function(x) {
+    n <- length(x); sum(grepl("^[0-9]{1,2}[^0-9][[:alpha:][:punct:] ]+", x)) >= n-1 }))
   
-  # Return measurement model
-  return(mm)
+  # Clean up the scale variable values (only endpoints)
+  values <- lapply(df[scale_vars], function(x) {
+    scales <- gsub("^[0-9]{1,2}\\s*=?\\s*([[:alnum:]]*)", "\\1", unique(x))
+    scales[scales != ""]
+  })
+  
+  if (length(values)) {
+    mm$values[scale_vars] <- unlist(lapply(values, paste, collapse = "\n"))
+  }
+  
+  # Return
+  mm
   
 }
 

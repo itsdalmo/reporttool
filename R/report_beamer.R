@@ -25,8 +25,8 @@ beamer_template <- function(dev = "cairo_pdf", toc = TRUE, keep_tex = FALSE, sli
   dir <- "rmd/beamer/"
   
   # Locate file to include in preamble, and the report template
-  preamble <- file.path(getwd(), "preamble.tex")
-  template <- system.file(file.path(dir, "report_template_beamer.tex"), package="reporttool")
+  preamble <- file.path(getwd(), "beamer_preamble.tex")
+  template <- system.file(file.path(dir, "beamer_template.tex"), package="reporttool")
   
   # Edit beamer_presentation
   format <- rmarkdown::beamer_presentation(template = template,
@@ -34,7 +34,7 @@ beamer_template <- function(dev = "cairo_pdf", toc = TRUE, keep_tex = FALSE, sli
                                            toc = toc,
                                            keep_tex = keep_tex,
                                            slide_level = slide_level,
-                                           includes = includes(in_header = preamble),
+                                           includes = rmarkdown::includes(in_header = preamble),
                                            pandoc_args = c("--latex-engine=xelatex"))
   
   # Change the default chunk-options

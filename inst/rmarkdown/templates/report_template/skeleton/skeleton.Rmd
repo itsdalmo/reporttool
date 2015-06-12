@@ -40,67 +40,20 @@ latents <- rt_defaults("missing_values")
 palette <- rt_defaults("ggcolors")
 cutoff <- .3
 
-# Check if the data should be loaded ------------------------------------------
+# Load the data if necessary --------------------------------------------------
 # (Could already be loaded by reporttool::generate_report)
 
-data_needed <- !all(exists("df"), exists("mm"), exists("ents"))
-
-```
-
-```{r, eval=data_needed, error=FALSE, results='hide'}
-
-# Get the data ----------------------------------------------------------------
-
-data <- read_data(input)
-
-# Get and replace long sheetnames with their shorthand version
-nms <- rt_defaults("sheet_names")
-names(data) <- ordered_replace(names(data), setNames(nms$long, nms$short))
-
-# Explicitly assign 
-
-df <- read.xlsx(input, sheet = "data") %>% data.frame(stringsAsFactors = FALSE)
-cd <- read.xlsx(input, sheet = "contrast data") %>% data.frame(stringsAsFactors = FALSE)
-hd <- read.xlsx(input, sheet = "historic data") %>% data.frame(stringsAsFactors = FALSE)
-mm <- read.xlsx(input, sheet = "measurement model") %>% data.frame(stringsAsFactors = FALSE)
-cf <- read.xlsx(input, sheet = "config") %>% data.frame(stringsAsFactors = FALSE)
-
-
-
-# Replace names of mainentity and subentity
-if ("mainentity" %in% tolower(mm$latent)) {
-  names(df)[names(df) %in% tolower(mm$manifest[mm$latent == "mainentity"])] <- "mainentity"
-  names(cd)[names(cd) %in% tolower(mm$manifest[mm$latent == "mainentity"])] <- "mainentity"
-  names(hd)[names(hd) %in% tolower(mm$manifest[mm$latent == "mainentity"])] <- "mainentity"
+if (!all(exists("df"), exists("mm"), exists("ents"))) {
+  data <- get_input(input)
+  assign(names(data), data)
 }
-
-if ("subentity" %in% tolower(mm$latent)) {
-  names(df)[names(df) %in% tolower(mm$manifest[mm$latent == "subentity"])] <- "subentity"
-  names(cd)[names(cd) %in% tolower(mm$manifest[mm$latent == "subentity"])] <- "subentity"
-  names(hd)[names(hd) %in% tolower(mm$manifest[mm$latent == "subentity"])] <- "subentity"
-}
-
-# Check if weights (w) exist in the data and add a 'natural' weight if not.
-if (nrow(df) > 0 && is.null(df$w)) 
-  df$w <- 1
-
-if (nrow(df) > 0 && !is.null(df$w)) 
-  df$w <- as.numeric(df$w)
-
-if (nrow(cd) > 0 && is.null(cd$w)) 
-  cd$w <- 1
-
-if (nrow(cd) > 0 && !is.null(cd$w)) 
-  cd$w <- as.numeric(cd$w)
-
-# Replace {XX} in question text with a shortname for the entity (FIX)
-# mm %<>% mutate(text = gsub("\\{XX\\}", "TB", text))
 
 # Remove common suffixes in entity names (e.g, "barnehage")
 if (!is.na(cf$replacement[cf$original == "entity_short"]))
   entity_short <- sub(paste0(" ?", cf$replacement[cf$original == "entity_short"], "[^ ]+ ?"), "", entity, ignore.case=TRUE)
 
-# Get the names for averages
+
+# Get names for averages and chunk eval options -------------------------------
 ent_sum <- cf$replacement[cf$original == "average"]
 ctr_sum <- cf$replacement[cf$original == "contrast_average"]
 stu_sum <- cf$replacement[cf$original == "study_average"]
@@ -119,7 +72,6 @@ statement_categorical <- "statement_categorical" %in% tolower(mm$latent)
 open_noncomplaint <- "open_noncomplaint" %in% tolower(mm$latent)
 open_wouldcomplain <- "open_wouldcomplain" %in% tolower(mm$latent)
 ```
-
 
 ```{r, error=FALSE, results='hide'}
 # Convert date columns and get collection dates

@@ -110,11 +110,11 @@ read_spss <- function(file, codebook) {
     
     # Create an empty data.frame
     mm <- matrix(rep(NA, ncol(df)*length(cfg$req_structure$mm)), nrow = ncol(df))
-    mm <- as.data.frame(mm)
+    mm <- as.data.frame(mm, stringsAsFactors = FALSE)
     names(mm) <- cfg$req_structure$mm
     
     # Populate mm
-    mm$manifest <- names(df)
+    mm$manifest <- gsub("[#$]", ".", names(df))
     mm$question <- lapply(df, attr, which = "label")
     mm$question <- vapply(mm$question, function(x) ifelse(is.null(x), "", as.character(x)), character(1))
     
@@ -132,7 +132,7 @@ read_spss <- function(file, codebook) {
     
     # Extract factor levels
     factor_vars <- lapply(df, levels)
-    scale_vars <- unlist(lapply(factor_vars, function(x) sum(grepl("^[0-9]{1,2}.*", x)) == 10L))
+    scale_vars <- unlist(lapply(factor_vars, function(x) sum(grepl("^[0-9]{1,2}[^0-9][[:alpha:][:punct:] ]*", x)) == 10L))
     
     # Clean up the scale variable values (only endpoints)
     factor_vars[scale_vars] <- lapply(factor_vars[scale_vars], function(x) {
@@ -143,9 +143,6 @@ read_spss <- function(file, codebook) {
     # Set type to scale where true and add all values
     mm$type[scale_vars] <- "scale"
     mm$values <- unlist(lapply(factor_vars, paste, collapse = "\n"))
-    
-    # Add survey_mm to class
-    class(mm) <- append("survey_mm", class(mm))
     
   }
   
