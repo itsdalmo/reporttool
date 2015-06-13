@@ -61,10 +61,9 @@ prepare_data <- function(input = NULL, latents = NULL, impute = FALSE, cutoff = 
     } else {
       warning(paste(msg, "Replacing."), call. = FALSE)
     }
+    
+    input$mm <- mm_suggestion
   }
-  
-  input$mm <- mm_suggestion
-  
   
   # Check if columnnames are correct (manifest added as lower case)
   if (!all(tolower(input$mm$manifest) %in% names(input$df))) {
@@ -75,6 +74,19 @@ prepare_data <- function(input = NULL, latents = NULL, impute = FALSE, cutoff = 
   # Functions that require latents to be specified in measurement model --------
   contains_latents <- all(cfg$latent_names %in% tolower(input$mm$latent))
   
+  # Suggest latent association
+  if (!contains_latents) {
+    warning("Latents were not found in the data, suggestion added\n", call. = FALSE)
+    for (i in names(cfg$latent_association)) {
+      
+      vars <- cfg$latent_association[[i]]
+      match <- if (length(vars) == 1L)  paste0("^", vars, "[[:alpha:]]*$") else paste0("^", vars, "$", collapse = "|")
+      
+      input$mm$latent[grepl(match, input$mm$manifest) & !grepl("em$", input$mm$manifest)] <- i
+      
+    }
+  }
+
   if (contains_latents) {
     # Get model scales
     model <- input$mm[tolower(input$mm$latent) %in% cfg$latent_names, c("latent", "manifest")]
@@ -145,7 +157,7 @@ prepare_data <- function(input = NULL, latents = NULL, impute = FALSE, cutoff = 
   }
   
   # Calculating latents requires that latents are specified -------------------
-  if (contains_latents && !all(cfg$latent_names %in% tolower(names(input$df)))) {
+  if (contains_latents && !all(cfg$latent_names %in% tolower(names(input$df))) && !is.null(latents)) {
     
     # Mean calculation only requires latents
     if (tolower(latents) == "mean") {
@@ -290,26 +302,16 @@ add_mm <- function(df) {
   # Set type and try to determine whether it is a scale
   character_vars <- mm$manifest[mm$type %in% "character"]
   scale_vars <- unlist(lapply(df[character_vars], function(x) {
-    n <- length(x); sum(grepl("^[0-9]{1,2}[^0-9][[:alpha:][:punct:] ]+", x)) >= n-1 }))
+    n <- length(x); sum(grepl("^[0-9]{1,2}[^0-9][[:alpha:][:punct:] ]*", x)) >= n-1 }))
   
   # Clean up the scale variable values (only endpoints)
   values <- lapply(df[scale_vars], function(x) {
-    scales <- gsub("^[0-9]{1,2}\\s*=?\\s*([[:alnum:]]*)", "\\1", unique(x))
+    scales <- gsub("^[0-9]{1,2}\\s*=?\\s*([[:alpha:]]*)", "\\1", unique(x))
     scales[scales != ""]
   })
   
   if (length(values)) {
     mm$values[scale_vars] <- unlist(lapply(values, paste, collapse = "\n"))
-  }
-  
-  # Make a suggestion for latent association
-  for (i in names(cfg$latent_association)) {
-    
-    vars <- cfg$latent_association[[i]]
-    match <- if (length(vars) == 1L) paste0("^", vars, "[[:alpha:]]*$") else paste0("^", vars, "$", collapse = "|")
-    
-    mm$latent[grepl(match, mm$manifest) & !grepl("em$", mm$manifest)] <- i
-    
   }
   
   # Return

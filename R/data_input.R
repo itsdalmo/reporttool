@@ -132,11 +132,11 @@ read_spss <- function(file, codebook) {
     
     # Extract factor levels
     factor_vars <- lapply(df, levels)
-    scale_vars <- unlist(lapply(factor_vars, function(x) sum(grepl("^[0-9]{1,2}[^0-9][[:alpha:][:punct:] ]*", x)) == 10L))
+    scale_vars <- unlist(lapply(factor_vars, function(x) sum(grepl("^[0-9]{1,2}[[:alpha:][:punct:] ]*", x)) == 10L))
     
     # Clean up the scale variable values (only endpoints)
     factor_vars[scale_vars] <- lapply(factor_vars[scale_vars], function(x) {
-      scales <- gsub("^[0-9]{1,2}\\s*=?\\s*([[:alnum:]]*)", "\\1", x)
+      scales <- gsub("^[0-9]{1,2}\\s*=?\\s*([[:alpha:]]*)", "\\1", x)
       scales[scales != ""]
     })
     
