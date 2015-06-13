@@ -47,7 +47,7 @@ prepare_data <- function(input = NULL, latents = NULL, impute = FALSE, cutoff = 
     warning("Measurement model was not found in input, generating suggestion\n", call. = FALSE)
     input[["mm"]] <- add_mm(input$df)
   } else if (missing_mm_cols) {
-    stop("Measurement model exists, but does not contain the expected columns\n", call. = FALSE)
+    stop("Measurement model does not contain the necessary columns\n", call. = FALSE)
   }
   
   # Check if columnnames are correct (manifest added as lower case)
@@ -87,7 +87,7 @@ prepare_data <- function(input = NULL, latents = NULL, impute = FALSE, cutoff = 
     # Impute missing values
     if (any(isTRUE(impute), tolower(latents) == "pls")) {
       warning("Imputing missing values\n", call. = FALSE)
-      input$df[model$EM] <- impute_missing(input$df, model$EM)
+      input$df[model$EM] <- impute_missing(input$df, model$EM, cutoff)
     } 
     
   }
@@ -137,8 +137,8 @@ prepare_data <- function(input = NULL, latents = NULL, impute = FALSE, cutoff = 
       input$df[levels(model$latent)] <- latents_mean(input$df, model)
     
     } else if (tolower(latents) == "pls" && length(entity_var)) {
-      warning("Imputing missing and adding latents (pls) to data\n", call. = FALSE)
-      input <- latents_pls(input, entity_var, model)
+      warning("Adding latents (pls) to data\n", call. = FALSE)
+      input <- latents_pls(input, entity_var, model, cutoff)
       
     } else {
       stop("Please specify a valid calculation for latents (mean or pls)\n", call. = FALSE)
@@ -155,7 +155,7 @@ prepare_data <- function(input = NULL, latents = NULL, impute = FALSE, cutoff = 
 
 # Functions for preparing data -------------------------------------------------
 
-impute_missing <- function(df, vars) {
+impute_missing <- function(df, vars, cutoff) {
   
   # For reproducibility reasons
   set.seed(1000)
@@ -170,7 +170,7 @@ impute_missing <- function(df, vars) {
   # Impute missing values
   nvars <- ncol(df[vars])
   bounds <- matrix(c(1:nvars, rep(0, nvars), rep(100, nvars)), ncol=3)
-  imp_data <- df[df$percent_missing <= .3, ]
+  imp_data <- df[df$percent_missing <= cutoff, ]
   
   # Capture output due to print usage in Amelia-package
   junk <- capture.output(
@@ -186,7 +186,7 @@ impute_missing <- function(df, vars) {
   
 }
 
-latents_pls <- function(input, ent_var, model) {
+latents_pls <- function(input, ent_var, model, cutoff) {
 
   # For reproducibility we set the seed
   set.seed(1000)
@@ -197,7 +197,7 @@ latents_pls <- function(input, ent_var, model) {
   
   # Create identifier for a join after analysis
   df$imp_id <- 1:nrow(df)
-  mod_data <- df[df$percent_missing <= .3, ]
+  mod_data <- df[df$percent_missing <= cutoff, ]
 
   # Get latent names
   manifests <- model$EM
@@ -284,6 +284,16 @@ add_mm <- function(df) {
   
   if (length(values)) {
     mm$values[scale_vars] <- unlist(lapply(values, paste, collapse = "\n"))
+  }
+  
+  # Make a suggestion for latent association
+  for (i in names(cfg$latent_association)) {
+    
+    vars <- cfg$latent_association[[i]]
+    match <- if (length(vars) == 1L) paste0("^", vars, "[[:alpha:]]*$") else paste0("^", vars, "$", collapse = "|")
+    
+    mm$latent[grepl(match, mm$manifest) & !grepl("em$", mm$manifest)] <- i
+    
   }
   
   # Return

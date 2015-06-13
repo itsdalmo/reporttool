@@ -74,5 +74,13 @@ cfg <- list(
                        "servq" = c(1,1,1,0,0,0,0),
                        "value" = c(0,0,1,1,0,0,0),
                        "epsi" = c(1,0,1,1,1,0,0),
-                       "loyal" = c(0,0,0,0,0,1,0))
+                       "loyal" = c(0,0,0,0,0,1,0)),
+  
+  "latent_association" = list("image" = "q4",
+                              "expect" = "q5",
+                              "prodq" = "q7p",
+                              "servq" = "q7s",
+                              "value" = "q8",
+                              "epsi" = c("q3", "q6", "q16"),
+                              "loyal" = c("q10", "q15", "q15b"))
 )
