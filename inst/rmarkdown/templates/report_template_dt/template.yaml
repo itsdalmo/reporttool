@@ -1,4 +1,4 @@
-name: EPSI report template - data.table (PDF)
+name: reporttool beamer - data.table (PDF)
 description: >
   A template for creating beamer reports. Includes a few standard plots and keywords
   that can be replaced in batched reporting. Uses data.table.

@@ -47,14 +47,20 @@ generate_report <- function(report=NULL, entity=NULL, data=NULL, type="pdf") {
   input_envir <- list2env(input, parent = environment())
   
   # Read in the report template
-  md <- readLines(report, encoding="UTF-8")
+  md <- readLines(report, encoding = "UTF-8")
   
   # Replace date with current date, and data with fixed path
   md <- sub("REPLACE_DATE", format(Sys.Date(), "%Y"), md, fixed=TRUE)
   md <- sub("REPLACE_DATA", data, md, fixed=TRUE)
   
-  # Make sure the Reports directory exists
+  # Make sure the Markdown and Reports directory exists
   dir.create(file.path(dir, "Reports"), showWarnings = FALSE)
+  dir.create(file.path(dir, "Markdown"), showWarnings = FALSE)
+  
+  # Copy beamer theme files if they do not exist
+  if (identical(tolower(type), "pdf")) {
+    copy_beamer_theme(file.path(dir, "Markdown"))
+  }
   
   # Iterate over the entities and create their individual .Rmd files.
   lapply(entity, generate_rmd, md, dir)
@@ -107,7 +113,7 @@ get_survey <- function(file) {
   # And subentities (if they exist)
   if ("subentity" %in% input$mm$latent) {
     se_name <- setNames(tolower(input$mm$manifest[input$mm$latent %in% "subentity"]), "subentity")
-    input <- lapply(input, function(x, re) { names(x) <- ordered_replace(names(x), re) }, se_name)
+    input <- lapply(input, function(x, re) { names(x) <- ordered_replace(names(x), re); x }, se_name)
   }
   
   # Return

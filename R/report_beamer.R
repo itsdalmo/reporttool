@@ -86,5 +86,6 @@ generate_beamer <- function(entity, dir, envir) {
                     intermediates_dir = file.path(dir, "Markdown"),
                     output_dir = file.path(dir, "Reports"),
                     quiet = TRUE,
-                    envir = envir)
+                    envir = envir, 
+                    encoding = "UTF-8")
 }

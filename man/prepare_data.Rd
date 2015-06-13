@@ -31,7 +31,7 @@ create these based on the data (to help achieve the desired structure) if they
 are not found.
 }
 \examples{
-generate_report("/Internal/Internal_report_2014.Rmd", entity=c("EPSI", "SKI"))
+prepared <- prepare_data("test.xlsx", latents = "pls", impute = TRUE, cutoff = .3)
 }
 \author{
 Kristian D. Olsen

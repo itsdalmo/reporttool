@@ -92,7 +92,7 @@ print.survey <- function(lst, width = getOption("width")) {
 as.survey_mm <- function(x) UseMethod("as.survey_mm")
 
 as.survey_mm.default <- function(x) {
-  stop("as.survey expects a 'data.frame' \n", call. = FALSE)
+  stop("as.survey_mm expects a 'data.frame' \n", call. = FALSE)
 }
 
 as.survey_mm.data.frame <- function(x) {
@@ -174,7 +174,7 @@ print.survey_mm <- function(mm, width = getOption("width")) {
 as.survey_ents <- function(x) UseMethod("as.survey_ents")
 
 as.survey_ents.default <- function(x) {
-  stop("as.survey expects a 'data.frame' \n", call. = FALSE)
+  stop("as.survey_ents expects a 'data.frame' \n", call. = FALSE)
 }
 
 as.survey_ents.data.frame <- function(x) {

@@ -19,7 +19,7 @@
 #' @author Kristian D. Olsen
 #' @export
 #' @examples 
-#' generate_report("/Internal/Internal_report_2014.Rmd", entity=c("EPSI", "SKI"))
+#' prepared <- prepare_data("test.xlsx", latents = "pls", impute = TRUE, cutoff = .3)
 
 prepare_data <- function(input = NULL, latents = NULL, impute = FALSE, cutoff = .3) {
   
@@ -47,8 +47,24 @@ prepare_data <- function(input = NULL, latents = NULL, impute = FALSE, cutoff = 
     warning("Measurement model was not found in input, generating suggestion\n", call. = FALSE)
     input[["mm"]] <- add_mm(input$df)
   } else if (missing_mm_cols) {
-    stop("Measurement model does not contain the necessary columns\n", call. = FALSE)
+    msg <- "Measurement model does not contain the necessary columns."
+    mm_suggestion <- add_mm(input$df)
+    mm_org <- input$mm[vapply(input$mm, function(x) !all(is.na(x)), logical(1))]
+    
+    # See if any/vital information can be retained
+    if (nrow(input$mm) == nrow(mm_suggestion)) {
+      warning(paste(msg, "Adding."), call. = FALSE)
+      mm_suggestion[names(mm_org)] <- mm_org
+    } else if ("question" %in% names(mm_org) && nrow(mm_org) < nrow(mm_suggestion)) {
+      warning(paste(msg, "Retaining questions."), call. = FALSE)
+      mm_suggestion$question[1:nrow(mm_org)] <- mm_org$question
+    } else {
+      warning(paste(msg, "Replacing."), call. = FALSE)
+    }
   }
+  
+  input$mm <- mm_suggestion
+  
   
   # Check if columnnames are correct (manifest added as lower case)
   if (!all(tolower(input$mm$manifest) %in% names(input$df))) {
