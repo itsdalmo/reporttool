@@ -1,4 +1,4 @@
-context("i/o functions")
+context("i/o")
 test_that("Read/write single-sheet-xlsx works (clean missing and lowercase names)" , {
   
   # Read
@@ -7,7 +7,7 @@ test_that("Read/write single-sheet-xlsx works (clean missing and lowercase names
   expect_is(xlsx, "data.frame")
   expect_identical(tolower(names(xlsx)), names(xlsx))
   expect_identical(xlsx$mainentity, paste("Test", 1:3))
-  expect_identical(xlsx$missing, rep(NA_real_, 3))
+  expect_identical(xlsx$missing, rep(NA_character_, 3))
   
   # Write
   fileName <- file.path(tempdir(), "xlsx.xlsx")
@@ -29,7 +29,6 @@ test_that("Read/write works with lists of data", {
   sheet2 <- read_data("csv2.csv", encoding = "latin1")
   
   lst <- list("csv" = sheet1, "csv2" = sheet2)
-  lst$csv2$missing <- as.numeric(lst$csv2$missing)
   
   # Write csv
   dirName <- file.path(tempdir())
@@ -65,9 +64,6 @@ test_that("Read/write .csv works and returns expected result", {
   xlsx <- read_data("xlsx.xlsx")
   csv <- read_data("csv.csv", encoding = "latin1")
   csv2 <- read_data("csv2.csv", encoding = "latin1")
-  
-  # XLSX does type conversion
-  xlsx$missing <- as.character(xlsx$missing)
   
   expect_identical(csv, csv2)
   expect_identical(csv2, xlsx)
@@ -120,6 +116,21 @@ test_that("Read/write .Rdata works and returns expected result", {
   expect_identical(names(w_rdata), tolower(names(w_rdata)))
   
   unlink(fileName, recursive = TRUE, force = TRUE)
+  
+})
+
+test_that("Read .sav works and returns expected result", {
+  
+  sav <- read_data("sav.sav")
+  xlsx <- read_data("xlsx.xlsx")
+  
+  expect_identical(sav, xlsx)
+  
+  sav_cb <- read_data("sav.sav", codebook = TRUE)
+  
+  # Note that, mm will list type as numeric because conversion
+  # to character is done after.
+  expect_identical(sav_cb$mm$manifest, names(sav_cb$df))
   
 })
 

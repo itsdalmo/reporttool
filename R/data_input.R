@@ -114,7 +114,7 @@ read_spss <- function(file, codebook) {
     names(mm) <- cfg$req_structure$mm
     
     # Populate mm
-    mm$manifest <- gsub("[#$]", ".", names(df))
+    mm$manifest <- tolower(gsub("[#$]", ".", names(df)))
     mm$question <- lapply(df, attr, which = "label")
     mm$question <- vapply(mm$question, function(x) ifelse(is.null(x), "", as.character(x)), character(1))
     
@@ -259,7 +259,9 @@ read_xlsx <- function(file, sheet) {
   lst <- lapply(sheet, openxlsx::read.xlsx, xlsxFile = file)
   names(lst) <- sheet
   
-  # Set all list entries to be data.frame and/or clean NA
+  # Set all list entries to be data.frame and/or clean NA. All columns to character
+  lst <- lapply(lst, function(x) {
+    if (length(x)) vapply(x, as.character, character(nrow(x))) })
   lst <- lapply(lst, set_missing)
   
   # Lowercase names
