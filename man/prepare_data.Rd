@@ -4,7 +4,8 @@
 \alias{prepare_data}
 \title{Prepare survey data}
 \usage{
-prepare_data(input = NULL, latents = NULL, impute = FALSE, cutoff = 0.3)
+prepare_data(input = NULL, latents = "mean", impute = FALSE,
+  cutoff = 0.3)
 }
 \arguments{
 \item{input}{Either a path to a file, or a list containing the raw data and/or

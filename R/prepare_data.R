@@ -21,12 +21,13 @@
 #' @examples 
 #' prepared <- prepare_data("test.xlsx", latents = "pls", impute = TRUE, cutoff = .3)
 
-prepare_data <- function(input = NULL, latents = NULL, impute = FALSE, cutoff = .3) {
+prepare_data <- function(input = NULL, latents = "mean", impute = FALSE, cutoff = .3) {
   
-  # Read in the data
+  # READY THE DATA -------------------------------------------------------------
+  
   if (is.character(input) && length(input) == 1L) {
     input <- validate_path(input)
-    message("Reading data from:\n", input)
+    message("Reading data from:\n", input, "\n")
     input <- read_data(input, codebook = TRUE)
   } else if (inherits(input, "data.frame")) {
     # Assumes that the data.frame contains the rawdata
@@ -39,137 +40,99 @@ prepare_data <- function(input = NULL, latents = NULL, impute = FALSE, cutoff = 
   item_names <- with(cfg$sheet_names, setNames(long, short))
   names(input) <- ordered_replace(names(input), item_names)
   
-  # Create a measurement model from data if necessary --------------------------
-  missing_mm <- !all("mm" %in% names(input) && nrow(input$mm) > 0)
-  missing_mm_cols <- !all(cfg$req_structure$mm %in% names(input$mm))
+  # ADD/VALIDATE THE MEASUREMENT MODEL -----------------------------------------
   
-  if (missing_mm) {
-    warning("Measurement model was not found in input, generating suggestion\n", call. = FALSE)
+  if (!all("mm" %in% names(input) && nrow(input$mm) > 0)) {
     input[["mm"]] <- add_mm(input$df)
-  } else if (missing_mm_cols) {
-    msg <- "Measurement model does not contain the necessary columns."
-    mm_suggestion <- add_mm(input$df)
-    mm_org <- input$mm[vapply(input$mm, function(x) !all(is.na(x)), logical(1))]
-    
-    # See if any/vital information can be retained
-    if (nrow(input$mm) == nrow(mm_suggestion)) {
-      warning(paste(msg, "Adding."), call. = FALSE)
-      mm_suggestion[names(mm_org)] <- mm_org
-    } else if ("question" %in% names(mm_org) && nrow(mm_org) < nrow(mm_suggestion)) {
-      warning(paste(msg, "Retaining questions."), call. = FALSE)
-      mm_suggestion$question[1:nrow(mm_org)] <- mm_org$question
-    } else {
-      warning(paste(msg, "Replacing."), call. = FALSE)
-    }
-    
-    input$mm <- mm_suggestion
+    warning("Measurement model was not found in input, generated a suggestion.", call. = FALSE)
+  } else {
+    input[["mm"]] <- validate_mm(input$df, input$mm)
   }
   
-  # Check if columnnames are correct (manifest added as lower case)
+  if (!all(cfg$latent_names %in% tolower(input$mm$latent))) {
+    input$mm$latent <- add_latents(input$mm)
+    warning("Latent association was not specified, attempted to add suggestion.", call. = FALSE)
+  }
+  
+  # CHECK COLUMNNAMES IN DATA --------------------------------------------------
+  
   if (!all(tolower(input$mm$manifest) %in% names(input$df))) {
-    warning("Replacing columnnames in data\n", call. = FALSE)
     names(input$df) <- add_modelnames(names(input$df), input$mm$manifest)
+    warning("Replaced columnnames in data.", call. = FALSE)
   }
   
-  # Functions that require latents to be specified in measurement model --------
+  # ADD EM VARIABLES AND MISSING % ---------------------------------------------
   contains_latents <- all(cfg$latent_names %in% tolower(input$mm$latent))
   
-  # Suggest latent association
-  if (!contains_latents) {
-    warning("Latents were not found in the data, suggestion added\n", call. = FALSE)
-    for (i in names(cfg$latent_association)) {
-      
-      vars <- cfg$latent_association[[i]]
-      match <- if (length(vars) == 1L)  paste0("^", vars, "[[:alpha:]]*$") else paste0("^", vars, "$", collapse = "|")
-      
-      input$mm$latent[grepl(match, input$mm$manifest) & !grepl("em$", input$mm$manifest)] <- i
-      
-    }
-  }
-
   if (contains_latents) {
+    
     # Get model scales
     model <- input$mm[tolower(input$mm$latent) %in% cfg$latent_names, c("latent", "manifest")]
     model$latent <- factor(tolower(model$latent), levels=cfg$latent_names, ordered = TRUE)
     model$manifest <- tolower(model$manifest)
-    
-    # Clean model scales
-    input$df[model$manifest] <- lapply(input$df[model$manifest], clean_score)
-    
-    # Add EM-variables (rescaled) if they do not already exist
     model$EM <- paste0(model$manifest, "em")
     
+    # Clean and rescale scores
     if (!all(model$EM %in% tolower(names(input$df)))) {
-      warning("Adding rescaled scores to data\n", call. = FALSE)
-      input$df[model$EM] <- lapply(input$df[model$manifest], rescale_score)
+      input$df[model$EM] <- lapply(input$df[model$manifest], clean_score)
+      input$df[model$EM] <- lapply(input$df[model$EM], rescale_score)
+      warning("Added cleaned and rescaled scores to data.", call. = FALSE)
     }
     
     # Add missing-calculation to data
     if (!"percent_missing" %in% names(input$df)) {
-      warning("Adding %-missing to data\n", call. = FALSE)
-      
       input$df["percent_missing"] <- apply(input$df[tolower(model$EM)], 1,
                                            function(x) sum(is.na(x))/length(x))
+      warning("Added %-missing to data.", call. = FALSE)
     }
     
     # Impute missing values
     if (any(isTRUE(impute), tolower(latents) == "pls")) {
-      warning("Imputing missing values\n", call. = FALSE)
       input$df[model$EM] <- impute_missing(input$df, model$EM, cutoff)
     } 
     
   }
   
-  # Functions that require mainentity to specified in latents (or q1) ----------
+  # ADD ENTITIES ---------------------------------------------------------------
+  
   if ("mainentity" %in% tolower(input$mm$latent)) {
     entity_var <- tolower(input$mm$manifest[input$mm$latent %in% "mainentity"])
-  } else if ("q1" %in% tolower(input$mm$manifest)) {
-    warning("Using 'q1' as mainentity variable\n", call. = FALSE)
-    input$mm$latent[tolower(input$mm$manifest) %in% "q1"] <- "mainentity"
-    entity_var <- "q1"
   } else {
     entity_var <- character(0)
   }
   
   if (length(entity_var)) {
-    # Check if valid entities have been specified
-    missing_entity <- all("ents" %in% names(input) && nrow(input$ents) > 0)
-    missing_entity_cols <- all(cfg$req_structure$ents %in% names(input$ents))
     
-    if (!missing_entity) {
-      warning("Entities were not specified in input, generating suggestion\n", call. = FALSE)
+    if (!all("ents" %in% names(input) && nrow(input$ents) > 0)) {
       input[["ents"]] <- add_entities(input$df[[entity_var]])
-    } else if (!missing_entity_cols) {
-      stop("Entities exist, but does not contain the expected columns\n", call. = FALSE)
+      warning("Entities were not found in input, generated a suggestion.", call. = FALSE)
+    } else {
+      input[["ents"]] <- validate_entities(input$df[[entity_var]], input$ents)
     }
     
     # Add weights to the data if they do not exist
-    missing_w <- !"w" %in% names(input$df)
-    
-    if (missing_w && length(input$ents$marketshare) == nrow(input$ents)) {
-      warning("Adding weights from entities\n", call. = FALSE)
+    if (!"w" %in% names(input$df)) {
       input$df["w"] <- add_weights(input$df[[entity_var]], input$ents)
-    } else if (missing_w) {
-      warning("Adding neutral weights to data\n", call. = FALSE)
-      input$df["w"] <- 1
+      warning("Added weights from entities.", call. = FALSE)
     }
     
   }
   
-  # Calculating latents requires that latents are specified -------------------
-  if (contains_latents && !all(cfg$latent_names %in% tolower(names(input$df))) && !is.null(latents)) {
+  # ADD LATENT SCORES ----------------------------------------------------------
+  
+  if (!all(cfg$latent_names %in% tolower(names(input$df))) && contains_latents) {
     
     # Mean calculation only requires latents
     if (tolower(latents) == "mean") {
-      warning("Adding latents (mean) to data\n", call. = FALSE)
       input$df[levels(model$latent)] <- latents_mean(input$df, model)
+      warning("Added latents (mean) to data.", call. = FALSE)
     
     } else if (tolower(latents) == "pls" && length(entity_var)) {
-      warning("Adding latents (pls) to data\n", call. = FALSE)
       input <- latents_pls(input, entity_var, model, cutoff)
+      warning("Added latents (pls) to data.", call. = FALSE)
       
     } else {
-      stop("Please specify a valid calculation for latents (mean or pls)\n", call. = FALSE)
+      stop("Please specify a valid calculation for latents (mean or pls)", call. = FALSE)
     }
 
   }
@@ -181,7 +144,7 @@ prepare_data <- function(input = NULL, latents = NULL, impute = FALSE, cutoff = 
   
 }
 
-# Functions for preparing data -------------------------------------------------
+# IMPUTE MISSING / CALCULATE LATENTS -------------------------------------------
 
 impute_missing <- function(df, vars, cutoff) {
   
@@ -205,11 +168,18 @@ impute_missing <- function(df, vars, cutoff) {
     imp_data <- Amelia::amelia(imp_data, 5, bounds = bounds, boot.type="none", idvars = c("percent_missing", "imp_id")))
   
   # Get the imputed dataset
-  imp_data <- imp_data$imputations$imp5
-  
-  # Merge imputed rows with the data and return it
-  df[df$imp_id %in% imp_data$imp_id, vars] <- imp_data[vars]
-  
+  if ("message" %in% names(imp_data)) {
+    warning("Missing values could not be imputed. Cannot calculate PLS-latents.", call. = FALSE)
+  } else {
+    
+    # Get the imputed data
+    imp_data <- imp_data$imputations$imp5
+    
+    # Merge imputed rows with the data and return it
+    df[df$imp_id %in% imp_data$imp_id, vars] <- imp_data[vars]
+    warning("Imputed missing values.", call. = FALSE)
+  }
+
   df[vars]
   
 }
@@ -285,7 +255,7 @@ latents_mean <- function(df, model) {
   
 }
 
-# Functions for cleaning the data ----------------------------------------------
+# ADD MEASUREMENT MODEL --------------------------------------------------------
 
 add_mm <- function(df) {
   
@@ -310,6 +280,7 @@ add_mm <- function(df) {
     scales[scales != ""]
   })
   
+  # Return if any scale variables were found
   if (length(values)) {
     mm$values[scale_vars] <- unlist(lapply(values, paste, collapse = "\n"))
   }
@@ -319,22 +290,41 @@ add_mm <- function(df) {
   
 }
 
-add_modelnames <- function(nms, manifest) {
+validate_mm <- function(df, mm_org) {
   
-  extra_cols <- length(manifest) - length(nms)
+  # Create a new mm and compare it to the existing
+  mm_new <- add_mm(df)
+  mm_org <- mm_org[vapply(mm_org, function(x) !all(is.na(x)), logical(1))]
   
-  if (extra_cols > 0L) {
-    stop("Manifest contains more variables than the data", call. = FALSE)
-  } else if (extra_cols == 0L) {
-    nms <- tolower(manifest)
+  if (all(names(mm_new) %in% names(mm_org))) {
+    return(mm_org)
   } else {
-    warning("Data has more variables than manifest, names have been appended", call. = FALSE)
-    nms <- append(nms[1:extra_cols], tolower(manifest))
+    msg <- "Measurement model did not contain the expected data."
   }
   
-  nms
+  # Reuse existing columns if possible
+  if (any(names(mm_org) %in% names(mm_new))) {
+    
+    existing_cols <- mm_org[names(mm_org) %in% names(mm_new)]
+    
+    if (nrow(mm_org) == nrow(mm_new)) {
+      mm_new[names(mm_new) %in% names(mm_org)] <- existing_cols
+      warning(paste(msg, "Reused existing information."), call. = FALSE)
+    } else if (nrow(mm_org) < nrow(mm_new)) {
+      mm_new[1:nrow(mm_org), names(mm_new) %in% names(mm_org)] <- existing_cols
+      warning(paste(msg, "Appended to existing information."), call. = FALSE)
+    } else if (nrow(mm_org) > nrow(mm_new)) {
+      warning(paste(msg, "Replaced existing model."), call. = FALSE)
+    }
+    
+  }
+  
+  # Return
+  mm_new
   
 }
+
+# ADD ENTITIES -----------------------------------------------------------------
 
 add_entities <- function(mainentity) {
   
@@ -349,6 +339,42 @@ add_entities <- function(mainentity) {
   
 }
 
+validate_entities <- function(mainentity, ents_org) {
+  
+  # Create a new mm and compare it to the existing
+  ents_new <- add_entities(mainentity)
+  ents_org <- ents_org[vapply(ents_org, function(x) !all(is.na(x)), logical(1))]
+  
+  if (all(names(ents_new) %in% names(ents_org))) {
+    return(ents_org)
+  } else {
+    msg <- "Entities did not contain the expected data."
+  }
+  
+  # Reuse existing columns if possible
+  if (any(names(ents_org) %in% names(ents_new))) {
+    
+    existing_cols <- ents_org[names(ents_org) %in% names(ents_new)]
+    
+    if (nrow(ents_org) == nrow(ents_new)) {
+      ents_new[names(ents_new) %in% names(ents_org)] <- existing_cols
+      warning(paste(msg, "Reused existing information."), call. = FALSE)
+    } else if (nrow(ents_org) < nrow(ents_new)) {
+      ents_new[1:nrow(ents_org), names(ents_new) %in% names(ents_org)] <- existing_cols
+      warning(paste(msg, "Appended to existing information."), call. = FALSE)
+    } else if (nrow(ents_org) > nrow(ents_new)) {
+      warning(paste(msg, "Replaced existing."), call. = FALSE)
+    }
+    
+  }
+  
+  # Return
+  ents_new
+  
+}
+
+# ADD WEIGHTS ------------------------------------------------------------------
+
 add_weights <- function(mainentity, ents) {
   
   obs <- as.data.frame(table(mainentity), stringsAsFactors = FALSE)
@@ -359,3 +385,54 @@ add_weights <- function(mainentity, ents) {
   obs$w[match(mainentity, obs$mainentity)]
   
 }
+
+# ADD MODEL NAMES --------------------------------------------------------------
+
+add_modelnames <- function(nms, manifest) {
+  
+  extra_cols <- length(manifest) - length(nms)
+  
+  if (extra_cols > 0L) {
+    stop("Manifest contains more variables than the data", call. = FALSE)
+  } else if (extra_cols == 0L) {
+    nms <- tolower(manifest)
+  } else {
+    nms <- append(nms[1:extra_cols], tolower(manifest))
+    warning("Data has more variables than manifest, names have been appended.", call. = FALSE)
+  }
+  
+  nms
+  
+}
+
+# ADD LATENTS ------------------------------------------------------------------
+
+add_latents <- function(mm) {
+  
+  mm$manifest <- tolower(mm$manifest)
+  
+  # Add latents if variables have standard names
+  for (i in names(cfg$latent_association)) {
+    
+    vars <- cfg$latent_association[[i]]
+    
+    # Match greedily if latent only has one var associated
+    if (length(vars) == 1L) {
+      match <- paste0("^", vars, "[[:alpha:]]*$")
+    } else {
+      match <- paste0("^", vars, "$", collapse = "|")
+    }
+    
+    mm$latent[grepl(match, mm$manifest) & !grepl("em$", mm$manifest)] <- i
+    
+  }
+  
+  # Suggest q1 as mainentity if it exists
+  if ("q1" %in% tolower(mm$manifest)) {
+    mm$latent[tolower(mm$manifest) %in% "q1"] <- "mainentity"
+  }
+  
+  mm$latent
+  
+}
+
