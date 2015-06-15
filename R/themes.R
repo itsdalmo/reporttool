@@ -58,8 +58,8 @@ plot_shared_legend <- function(...) {
   plots <- list(...)
   
   grobs <- ggplot2::ggplotGrob(plots[[1]] + ggplot2::theme(legend.position = "bottom"))$grobs
-  legends <- g[[which(vapply(g, function(x) x$name, character(1)) == "guide-box")]]
-  heights <- sum(l$height)
+  legends <- grobs[[which(lapply(grobs, function(x) x$name) == "guide-box")]]
+  heights <- sum(legends$height)
   
   gridExtra::grid.arrange(
     do.call(gridExtra::arrangeGrob, lapply(plots, function(x) {
@@ -69,6 +69,7 @@ plot_shared_legend <- function(...) {
     heights = grid::unit.c(grid::unit(1, "npc") - heights, heights))
   
 }
+
 
 # Function used to format style and values in xlsx wrappers --------------------
 
