@@ -63,7 +63,7 @@ rmd_to_r <- function(rmd, encoding = "UTF-8", write = TRUE) {
   start_idx <- grep(cfg$rmd_pat$chunk_start, rmd)
   end_idx <- grep(cfg$rmd_pat$chunk_end, rmd)
   
-  if (length(chunk_start) == length(chunk_end)) {
+  if (length(start_idx) == length(end_idx)) {
     chunk_idx <- Map(':', start_idx, end_idx)   
   } else {
     stop("The .Rmd file contains unused chunk start/end indicators", call. = FALSE)
