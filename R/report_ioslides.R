@@ -11,7 +11,7 @@
 #' @examples 
 #' render("index.Rmd", "reporttool::io_template")
 
-io_template <- function(dev = "svg", smaller = TRUE) {
+io_template <- function(dev = "png", smaller = TRUE) {
   
   # Edit beamer_presentation
   format <- rmarkdown::ioslides_presentation(dev = dev, smaller = smaller)
