@@ -14,7 +14,7 @@
 io_template <- function(dev = "svg", smaller = TRUE) {
   
   # Edit beamer_presentation
-  format <- rmarkdown::beamer_presentation(dev = dev, smaller = smaller)
+  format <- rmarkdown::ioslides_presentation(dev = dev, smaller = smaller)
   
   # Change the default chunk-options
   format$knitr$opts_chunk$echo <- FALSE
