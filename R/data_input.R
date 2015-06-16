@@ -120,15 +120,8 @@ read_spss <- function(file, codebook) {
     
   }
   
-  # Convert labelled to factors (as_factor was not reliable)
-  df <- lapply(df, function(x) { 
-    if (inherits(x, "labelled")) { 
-      labs <- attr(x, "labels")
-      factor(x, levels = unname(labs), labels = names(labs))
-    } else {
-        x
-    }})
-  
+  # Convert labelled to factors
+  df <- lapply(df, function(x) { if (inherits(x, "labelled")) haven::as_factor(x) else x })
   df <- as.data.frame(df, stringsAsFactors = FALSE)
   
   # Use factor levels to populate values in mm
