@@ -4,7 +4,7 @@
 \alias{io_template}
 \title{ioslides template}
 \usage{
-io_template(dev = "svg", smaller = TRUE)
+io_template(dev = "png", smaller = TRUE)
 }
 \arguments{
 \item{dev}{Defaults to svg for higher quality graphics. Standard in ioslides
