@@ -21,7 +21,7 @@
 #' @examples 
 #' prepared <- prepare_data("test.xlsx", latents = "pls", impute = TRUE, cutoff = .3)
 
-prepare_data <- function(input = NULL, latents = "mean", impute = FALSE, cutoff = .3) {
+prepare_data <- function(input = NULL, latents = NULL, impute = FALSE, cutoff = .3) {
   
   # READY THE DATA -------------------------------------------------------------
   
@@ -87,7 +87,7 @@ prepare_data <- function(input = NULL, latents = "mean", impute = FALSE, cutoff 
     }
     
     # Impute missing values
-    if (any(isTRUE(impute), tolower(latents) == "pls")) {
+    if (any(isTRUE(impute), !is.null(latents) && tolower(latents) == "pls")) {
       input$df[model$EM] <- impute_missing(input$df, model$EM, cutoff)
     } 
     
@@ -123,16 +123,16 @@ prepare_data <- function(input = NULL, latents = "mean", impute = FALSE, cutoff 
   if (!all(cfg$latent_names %in% tolower(names(input$df))) && contains_latents) {
     
     # Mean calculation only requires latents
-    if (tolower(latents) == "mean") {
+    if (!is.null(latents) && tolower(latents) == "mean") {
       input$df[levels(model$latent)] <- latents_mean(input$df, model)
       warning("Added latents (mean) to data.", call. = FALSE)
     
-    } else if (tolower(latents) == "pls" && length(entity_var)) {
+    } else if (!is.null(latents) && tolower(latents) == "pls" && length(entity_var)) {
       input <- latents_pls(input, entity_var, model, cutoff)
       warning("Added latents (pls) to data.", call. = FALSE)
       
     } else {
-      stop("Please specify a valid calculation for latents (mean or pls)", call. = FALSE)
+      warning("Latents were not added (specify 'pls' or 'mean' to add)", call. = FALSE)
     }
 
   }
