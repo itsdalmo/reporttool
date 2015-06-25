@@ -66,8 +66,6 @@ write_questionnaire <- function(quest, file, study = "District heating") {
 #' placeholders in the text with their respective dictionary entry. 
 #'
 #' @param file Path to the master questionnaire
-#' @param industry Specify which industry the study you would like to extract
-#' belongs to
 #' @param study The study to extract and replace values for.
 #' @param entity Optional: Replace {XX} in the questionnaire with whatever you
 #' specify.
@@ -76,7 +74,7 @@ write_questionnaire <- function(quest, file, study = "District heating") {
 #' @examples 
 #' x <- get_questionnaire("masterquest.xlsx", "Energy", "Electricity", entity = "[S2]")
 
-get_questionnaire <- function(file, industry = "Energy", study = "District Heating", entity = NULL) {
+get_questionnaire <- function(file, study = "District Heating", entity = NULL) {
   
   # Read in the master questionnaire
   mq <- read_data(file)
@@ -86,7 +84,6 @@ get_questionnaire <- function(file, industry = "Energy", study = "District Heati
   names(mq) <- tolower(names(mq))
   
   # Lowercase the arguments
-  industry <- tolower(industry)
   study <- tolower(study)
   
   # Match name of study column in the dictionary
