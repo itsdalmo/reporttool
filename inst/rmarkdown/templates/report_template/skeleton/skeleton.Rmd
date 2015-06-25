@@ -49,7 +49,9 @@ if (!all(exists("df"), exists("mm"), exists("ents"))) {
 
 # Remove common suffixes in entity names (e.g, "barnehage")
 if (!is.na(cf$replacement[cf$original == "entity_short"])) {
-    entity_short <- sub(paste0(" ?", cf$replacement[cf$original == "entity_short"], "[^ ]+ ?"), "", entity, ignore.case=TRUE)
+  entity_short <- sub(paste0(" ?", cf$replacement[cf$original == "entity_short"], "[^ ]+ ?"), "", entity, ignore.case=TRUE)
+} else {
+  entity_short <- entity
 }
 
 # Get names for averages and chunk eval options -------------------------------
@@ -68,8 +70,12 @@ statement_metric <- "statement_metric" %in% tolower(mm$latent)
 statement_categorical <- "statement_categorical" %in% tolower(mm$latent)
 
 # Check variables for open answers in complaints
+complaint <- any(c("open_complaint", "open_wouldcomplain") %in% tolower(mm$latent))
 open_noncomplaint <- "open_noncomplaint" %in% tolower(mm$latent)
 open_wouldcomplain <- "open_wouldcomplain" %in% tolower(mm$latent)
+oa_positive <- "oa_positive" %in% tolower(mm$latent)
+oa_negative <- "oa_negative" %in% tolower(mm$latent)
+open_answer <- "open_answer" %in% tolower(mm$latent)
 ```
 
 ```{r, error=FALSE, results='hide'}
@@ -124,7 +130,7 @@ lat_info <- mm %>%
 - Målgruppen for denne undersøkelsen er foreldre med barn i `r entity`.
 - Svarene er avgitt på web i perioden `r survey$start` til `r survey$end`, og er gjort via Research.net[^1].
 - Respondentene (de som er invitert til å delta) kan potensielt motta 3 e-poster - hvorav den første er en standard utsendelse, samt 2 påminnelser til de som ikke svarte på den første utsendelsen og evt. den første påminnelsen.
-- Av de `r respondents$total` inviterte har totalt `r respondents$answered` svart (`r paste0(respondents$valid_percent, "%")`). 
+- Av de `r respondents$total` inviterte har totalt `r respondents$valid` svart (`r paste0(respondents$valid_percent, "%")`). 
 `r if (subentities) paste0("- ", "Svarprosent per ", tolower(cf$replacement[cf$original == "subentity"]), ": ", paste(valid_sub$res, collapse = ", "))`
 - Det er hentet inn svar på `r lat_info$model` spørsmål som bygger opp under hovedanalysen. I tillegg til dette så har det vært stilt inntil `r lat_info$total-lat_info$model` spørsmål som bidrar med ytterligere innsikt i forhold til kundeopplevelsen (totalt `r lat_info$total`). 
 - Tilsvarende studier gjennomføres ved en rekke andre norske barnehager.
@@ -140,16 +146,16 @@ lat_info <- mm %>%
 ## Skala og svar
 
 
-- Indeksen for kundetilfredshet presenteres som en verdi mellom 0 og 100, og er det sentrale målet i disse målingene. Dette er en indeksverdi, ikke en prosentverdi. Jo høyere verdi desto bedre anser kundene (de foresatte) at barnehagen oppfyller deres krav og forventninger. 
+- Indeksen for kundetilfredshet presenteres som en verdi mellom 0 og 100, og er det sentrale målet i disse målingene. Dette er en indeksverdi, ikke en prosentverdi. Jo høyere verdi desto bedre anser kundene at banken oppfyller deres krav og forventninger. 
 - Spørsmålene svares på en skala fra 1 til 10, hvor 1 betyr "helt uenig" eller "veldig misfornøyd" og hvor 10 betyr "helt enig" eller "veldig fornøyd".
 - Resultatene gjøres i etterkant om til en 100-punkts skala.
 
-- Som en generell regel kan man si at: 
-    - Målinger under 60 er lavt/veldig lavt, 
+- Som en generell regel kan man si at:
+    - Målinger under 60 er lavt/veldig lavt (vanskeligheter med å motivere kundene til å bli).
     - Målinger fra 60 - 75 er gjennomsnittlig  
-    - Målinger over 75 anses som høyt/veldig høyt. 
+    - Målinger over 75 anses som høyt/veldig høyt (peker på en sterk relasjon mellom bankkontoret og kundene).  
 
-- **NB**: Ved nedbrytninger på avdelingsnivå er tallgrunnlaget begrenset. På dette nivået bør resultatene tolkes med en viss grad av forsiktighet, da hvert enkelt svar har større vekt og ekstremverdier kan gi tildels store utslag.
+- Som en tommelfingerregel så er forskjeller på mer enn 3 poeng signifikante. Dette innebærer at man med en viss grad av sikkerhet kan si at forskjellen mellom to indeksverdier er for stor til å være tilfeldig. 
 - Se www.epsi-norway.org for mer informasjon om metode og modell, eller om EPSI for øvrig.
 
 ## Aspekter i EPSI modellen
@@ -179,47 +185,32 @@ lat_info <- mm %>%
 # Frametitle
 cat("##", "","\n", sep=" ")
 
-# Gather the data for plotting
-pd <- df %>%
-      select(mainentity, one_of(latents)) %>%
-      filter(mainentity == entity) %>%
-      group_by(mainentity) %>%
-      summarise_each(funs(m = mean(as.numeric(.), na.rm=T)))
-
 # Add the contrast (average of the current or previous study)
 if (contrast) {
-  pd <- cd %>%
-        select(one_of(latents), w) %>%
-        summarise_each(funs(wm = weighted.mean(as.numeric(.), w=w, na.rm=T)), -w) %>%
-        mutate(mainentity = ctr_sum) %>%
-        bind_rows(pd, .)
+  pd <- df %>% filter(mainentity == entity) %>% bind_rows(., mutate(cd, mainentity = ctr_sum))
 } else {
-  pd <- df %>%
-        select(one_of(latents), w) %>%
-        summarise_each(funs(wm = weighted.mean(as.numeric(.), w=w, na.rm=T)), -w) %>%
-        mutate(mainentity = stu_sum) %>%
-        bind_rows(pd, .)
+  pd <- df %>% filter(mainentity == entity) %>% bind_rows(., mutate(df, mainentity = stu_sum))
 }
 
-# Change to 'long' format for ggplot,
-# and replace variable names with proper labels.
+# Gather the data for the table
+pd <- pd %>%
+      select(mainentity, one_of(latents), w) %>%
+      mutate_each(funs(n = as.numeric(.)), -mainentity) %>%
+      group_by(mainentity) %>%
+      summarise_each(funs(wm = weighted.mean(., w=w, na.rm = TRUE)), -w)
+
+# Convert to proper format for plotting
 pd <- pd %>% 
       gather(latent, score, -mainentity) %>%
       mutate(latent = as.character(latent)) %>%
       left_join(cf, by = c("latent" = "original")) %>%
-      mutate(latent = factor(replacement, levels=unique(replacement))) %>%
-      mutate(mainentity = factor(mainentity, levels=unique(mainentity))) %>%
+      mutate(latent = factor(replacement, levels=unique(replacement)), ordered = TRUE) %>%
+      mutate(mainentity = factor(mainentity, levels = c(entity, if (contrast) ctr_sum else stu_sum), ordered = TRUE)) %>%
       select(mainentity, latent, score)
 
 # Get the vertical justification for geom text
 vjust <- pd %>% spread(mainentity, score)
-
-if (ncol(vjust) > 3) {
-  vjust$overlap <- rowMeans(vjust[, 2:ncol(vjust)])
-} else {
-  vjust$overlap <- vjust[[ncol(vjust)]]
-}
-
+vjust$overlap <- if (ncol(vjust) > 3) rowMeans(vjust[, 2:ncol(vjust)]) else vjust[[ncol(vjust)]]
 vjust <- ifelse(vjust[[entity]] < vjust[["overlap"]], "2", "-1")
 
 # Calculate appropriate range for y-axis
@@ -244,46 +235,32 @@ p + geom_line(size=1) +
 # Frametitle
 cat("##", "","\n", sep=" ")
 
-# Gather the data for plotting
-pd <- df %>%
-      select(mainentity, one_of(latents)) %>%
-      filter(mainentity == entity) %>%
-      summarise_each(funs(m = mean(as.numeric(.), na.rm=T)), -mainentity) %>%
-      mutate(mainentity = paste(ent_sum, entity_short), subentity = mainentity)
-
-pd <- df %>%
+# Gather the data for the table
+pd <- pd %>%
       select(mainentity, subentity, one_of(latents)) %>%
       filter(mainentity == entity) %>%
-      group_by(mainentity, subentity) %>% 
-      summarise_each(funs(m = mean(as.numeric(.), na.rm=T))) %>%
-      bind_rows(pd, .) %>%
-      select(-mainentity) %>%
-      rename(mainentity = subentity)
-
-# Change to 'long' format for ggplot,
-# and replace variable names with proper labels.
-pd <- pd %>%
-      gather(latent, score, -mainentity) %>%
+      mutate_each(funs(n = as.numeric(.)), -mainentity, -subentity) %>%
+      bind_rows(mutate(., mainentity = paste(ent_sum, entity_short)), mutate(., mainentity = subentity)) %>%
+      group_by(mainentity) %>%
+      summarise_each(funs(m = mean(., na.rm = TRUE)))
+      
+# Convert to proper format for plotting
+pd <- pd %>% 
+      gather(latent, score, -mainentity, -subentity) %>%
       mutate(latent = as.character(latent)) %>%
       left_join(cf, by = c("latent" = "original")) %>%
-      mutate(latent = factor(replacement, levels=unique(replacement))) %>%
-      mutate(mainentity = factor(mainentity, levels=unique(mainentity))) %>%
+      mutate(latent = factor(replacement, levels=unique(replacement)), ordered = TRUE) %>%
+      mutate(mainentity = factor(mainentity, levels = c(paste(ent_sum, entity_short)), unique(subentity), ordered = TRUE)) %>%
       select(mainentity, latent, score)
 
 # Get the vertical justification for geom text
 vjust <- pd %>% spread(mainentity, score)
-
-if (ncol(vjust) > 3) {
-  vjust$overlap <- rowMeans(vjust[, 2:ncol(vjust)])
-} else {
-  vjust$overlap <- vjust[[ncol(vjust)]]
-}
-
-vjust <- ifelse(vjust[[paste(ent_sum, entity_short)]] < vjust[["overlap"]], "2", "-1")
+vjust$overlap <- if (ncol(vjust) > 3) rowMeans(vjust[, 2:ncol(vjust)]) else vjust[[ncol(vjust)]]
+vjust <- ifelse(vjust[[entity]] < vjust[["overlap"]], "2", "-1")
 
 # Calculate appropriate range for y-axis
-y_max <- ifelse(max(pd[,3]) < 90, round(max(pd[,3])+10, -1), 100)
-y_min <- ifelse(min(pd[,3]) > 10, round(min(pd[,3])-10, -1), 0)
+y_max <- ifelse(max(pd[["score"]]) < 90, round(max(pd[["score"]])+10, -1), 100)
+y_min <- ifelse(min(pd[["score"]]) > 10, round(min(pd["score"])-10, -1), 0)
 
 # Make the average a dashed line
 pd$lines <- ifelse(pd$mainentity == paste(ent_sum, entity_short), "solid", "dashed")
@@ -329,8 +306,7 @@ pd <- df %>%
       mutate("mainentity" = survey$period[1]) %>%
       bind_rows(., pd)
 
-# Change to 'long' format for ggplot,
-# and replace variable names with proper labels.
+# Convert to proper format for plotting
 pd <- pd %>%
       gather(latent, score, -mainentity) %>%
       mutate(latent = as.character(latent)) %>%
@@ -341,18 +317,12 @@ pd <- pd %>%
 
 # Get the vertical justification for geom text
 vjust <- pd %>% spread(mainentity, score)
-
-if (ncol(vjust) > 3) {
-  vjust$overlap <- rowMeans(vjust[, 2:ncol(vjust)])
-} else {
-  vjust$overlap <- vjust[[ncol(vjust)]]
-}
-
-vjust <- ifelse(vjust[[survey$period[1]]] < vjust[["overlap"]], "2", "-1")
+vjust$overlap <- if (ncol(vjust) > 3) rowMeans(vjust[, 2:ncol(vjust)]) else vjust[[ncol(vjust)]]
+vjust <- ifelse(vjust[[entity]] < vjust[["overlap"]], "2", "-1")
 
 # Calculate appropriate range for y-axis
 y_max <- ifelse(max(pd[["score"]]) < 90, round(max(pd[["score"]])+10, -1), 100)
-y_min <- ifelse(min(pd[["score"]]) > 10, round(min(pd[["score"]])-10, -1), 0)
+y_min <- ifelse(min(pd[["score"]]) > 10, round(min(pd["score"])-10, -1), 0)
 
 # Create the profile-plot
 p <- ggplot(data=pd, aes(x=latent, y=score, group=mainentity, colour=mainentity))
@@ -376,34 +346,24 @@ if (contrast) {
   cat("##", "Differansen mellom", entity, "og", tolower(stu_sum) ,"\n", sep=" ")
 }
 
-
 # Get list of manifest names in correct order.
-manifests <- data.frame("latent" = latents, stringsAsFactors=F) %>%
+manifests <- data.frame("latent" = latents, stringsAsFactors = FALSE) %>%
              left_join(mutate(mm, latent = tolower(latent)), by = c("latent" = "latent")) %>%
-             mutate(question = ifelse(str_length(question) >= 90, 
-                                  paste0(strtrim(question, width=90-3), "..."), question))
+             mutate(question = ifelse(str_length(question) >= 90, paste0(strtrim(question, width=90-3), "..."), question))
 
-# Gather the data for the table
-pd <- df %>%
-      select(mainentity, one_of(paste0(tolower(manifests$manifest), "em"))) %>%
-      filter(mainentity == entity) %>%
-      group_by(mainentity) %>%
-      summarise_each(funs(m = mean(as.numeric(.), na.rm=T)))
 
 # Add the contrast (average of the current or previous study)
 if (contrast) {
-  pd <- cd %>%
-        select(one_of(paste0(tolower(manifests$manifest), "em")), w) %>%
-        summarise_each(funs(wm = weighted.mean(as.numeric(.), w=w, na.rm=T)), -w) %>% 
-        mutate(mainentity = ctr_sum) %>%
-        bind_rows(pd, .)
+  pd <- df %>% filter(mainentity == entity) %>% bind_rows(., mutate(cd, mainentity = ctr_sum))
 } else {
-  pd <- df %>%
-        select(one_of(paste0(tolower(manifests$manifest), "em")), w) %>%
-        summarise_each(funs(wm = weighted.mean(as.numeric(.), w=w, na.rm=T)), -w) %>%
-        mutate(mainentity = stu_sum) %>%
-        bind_rows(pd, .)
+  pd <- df %>% filter(mainentity == entity) %>% bind_rows(., mutate(df, mainentity = stu_sum))
 }
+
+# Gather the data for the table
+pd <- pd %>%
+      select(mainentity, one_of(paste0(tolower(manifests$manifest), "em")), w) %>%
+      group_by(mainentity) %>%
+      summarise_each(funs(wm = weighted.mean(as.numeric(.), w=w, na.rm=T)), -w)
 
 # Convert to a longer format and convert to proper variable names.
 pd <- pd %>%
@@ -412,25 +372,19 @@ pd <- pd %>%
       left_join(manifests, by = c("manifest" = "manifest")) %>%
       mutate(manifest = gsub("^q", "Q", manifest)) %>%
       mutate(manifest = factor(manifest, levels=unique(manifest))) %>%
-      mutate(mainentity = factor(mainentity, levels=unique(mainentity))) %>%
+      mutate(mainentity = factor(mainentity, levels = c(entity, if (contrast) ctr_sum else stu_sum), ordered = TRUE)) %>%
       spread(mainentity, score, fill=0)
 
-# Shorten the entity name.
-names(pd)[names(pd) == entity] <- entity_short
-
 # Calculate the difference between the entity and the average
-if (stu_sum %in% names(pd))
-  pd$difference <- pd[[entity_short]] - pd[[stu_sum]]
+if (stu_sum %in% names(pd)) {
+    pd$difference <- pd[[entity]] - pd[[stu_sum]]
+    pd$difference[pd[[stu_sum]] == 0] <- NA
+} 
 
-if (ctr_sum %in% names(pd))
-  pd$difference <- pd[[entity_short]] - pd[[ctr_sum]]
-
-# Check if there is an actual difference to calculate
-if (stu_sum %in% names(pd))
-  pd$difference[pd[[stu_sum]] == 0] <- NA
-
-if (ctr_sum %in% names(pd))
+if (ctr_sum %in% names(pd)) {
+  pd$difference <- pd[[entity]] - pd[[ctr_sum]]
   pd$difference[pd[[ctr_sum]] == 0] <- NA
+}
 
 # Ready the data for plotting
 pd <- pd %>%
@@ -440,10 +394,11 @@ pd <- pd %>%
       mutate(question = paste(manifest, question, sep = " - ")) %>%
       mutate(question = factor(question, levels=rev(unique(question))))
 
+# Calculate appropriate range for y-axis
 y_min <- 5*floor(min(pd$difference, na.rm=TRUE)/4)
 y_max <- 5*ceiling(max(pd$difference, na.rm=TRUE)/4)
 
-
+# Create the plot
 p <- ggplot(data=pd, aes(x=question, y=difference, fill=sign))
 p + geom_bar(stat="identity", width=0.5, position="dodge") + 
     coord_flip(ylim = c(y_min, y_max)) +
@@ -466,90 +421,74 @@ p + geom_bar(stat="identity", width=0.5, position="dodge") +
 
 ```{r}
 # Frametitle
-cat("##", "","\n", sep=" ")
+if (contrast) {
+  cat("##", "Differansen mellom", entity, "og", tolower(ctr_sum) ,"\n", sep=" ")
+} else {
+  cat("##", "Differansen mellom", entity, "og", tolower(stu_sum) ,"\n", sep=" ")
+}
 
 # Get list of manifest names in correct order.
-manifests <- data.frame("latent" = latents, stringsAsFactors=F) %>%
+manifests <- data.frame("latent" = latents, stringsAsFactors = FALSE) %>%
              left_join(mutate(mm, latent = tolower(latent)), by = c("latent" = "latent"))
 
-# Gather the data for the table
-pd <- df %>%
-      select(mainentity, one_of(paste0(tolower(manifests$manifest), "em"))) %>%
-      filter(mainentity == entity) %>%
-      group_by(mainentity) %>%
-      summarise_each(funs(m = mean(as.numeric(.), na.rm=T)))
 
 # Add the contrast (average of the current or previous study)
 if (contrast) {
-  pd <- cd %>%
-        select(one_of(paste0(tolower(manifests$manifest), "em")), w) %>%
-        summarise_each(funs(wm = weighted.mean(as.numeric(.), w=w, na.rm=T)), -w) %>%
-        mutate(mainentity = ctr_sum) %>%
-        bind_rows(pd, .)
+  pd <- df %>% filter(mainentity == entity) %>% bind_rows(., mutate(cd, mainentity = ctr_sum))
 } else {
-  pd <- df %>%
-        select(one_of(paste0(tolower(manifests$manifest), "em")), w) %>%
-        summarise_each(funs(wm = weighted.mean(as.numeric(.), w=w, na.rm=T)), -w) %>%
-        mutate(mainentity = stu_sum) %>%
-        bind_rows(pd, .)
+  pd <- df %>% filter(mainentity == entity) %>% bind_rows(., mutate(df, mainentity = stu_sum))
 }
+
+# Gather the data for the table
+pd <- pd %>%
+      select(mainentity, one_of(paste0(tolower(manifests$manifest), "em")), w) %>%
+      group_by(mainentity) %>%
+      summarise_each(funs(wm = weighted.mean(as.numeric(.), w=w, na.rm=T)), -w)
 
 # Convert to a longer format and convert to proper variable names.
 pd <- pd %>%
       gather(manifest, score, -mainentity) %>% 
       mutate(manifest = gsub("em$|EM$", "", manifest)) %>%
       left_join(manifests, by = c("manifest" = "manifest")) %>%
-      select(-type, -values) %>%
       mutate(manifest = gsub("^q", "Q", manifest)) %>%
       mutate(manifest = factor(manifest, levels=unique(manifest))) %>%
-      mutate(mainentity = factor(mainentity, levels=unique(mainentity))) %>%
-      spread(mainentity, score)
-
-
-
-# Todo: Avoid doing the subsitution twice, but had problems with encoding.
-table_head <- names(pd)
-table_head <- sub(paste0(" ?", cf$replacement[cf$original == "entity_short"], "[^ ]+ ?"), "", table_head, ignore.case=T)
-
-table_head[tolower(table_head) %in% tolower(cf$original)] <-
-  cf$replacement[tolower(cf$original) %in% tolower(table_head)]
-
-# Insert shortened names
-names(pd) <- table_head
-
-# names(pd)[3] <- iconv(names(pd)[3], from="UTF-8",  to="latin1")
-if (Sys.info()[1] == "Windows")
-  names(pd) <- sapply(names(pd), 
-                        function(x) ifelse(Encoding(x) != "unknown", 
-                                         iconv(x, from="UTF-8", to="latin1"), x))
+      mutate(mainentity = factor(mainentity, levels = c(entity, if (contrast) ctr_sum else stu_sum), ordered = TRUE)) %>%
+      select(latent, manifest, question, mainentity, score) %>%
+      spread(mainentity, score, fill=0) %>%
+      mutate(latent = factor(latent, levels = latents, ordered = TRUE)) %>%
+      arrange(latent)
 
 # Calculate the difference between the entity and the average
-if ( all(c(stu_sum, entity_short) %in% names(pd)) )
-  pd$difference <- pd[[entity_short]] - pd[[stu_sum]]
+if (stu_sum %in% names(pd)) {
+    pd$difference <- pd[[entity]] - pd[[stu_sum]]
+    pd$difference[pd[[stu_sum]] == 0] <- NA
+} 
 
-if ( all(c(ctr_sum, entity_short) %in% names(pd)) )
-  pd$difference <- pd[[entity_short]] - pd[[ctr_sum]]
+if (ctr_sum %in% names(pd)) {
+  pd$difference <- pd[[entity]] - pd[[ctr_sum]]
+  pd$difference[pd[[ctr_sum]] == 0] <- NA
+}
 
-# Change the name of "difference"
-if ("difference" %in% names(pd))
-  names(pd)[names(pd) == "difference"] <- cf$replacement[cf$original == "difference"]
+# Replace headers with the translation from config
+names(pd) <- ordered_replace(names(pd), setNames(cf$original, cf$replacement))
+
+# Fix encoding issues on windows
+if (Sys.info()[1] == "Windows") {
+  names(pd) <- vapply(names(pd), function(x) {
+    ifelse(Encoding(x) != "unknown", iconv(x, "UTF-8", "latin1"), x)}, character(1))
+}
 
 # Get length of column headers for the table, and truncate manifest text if needed:
-text_limit <- 110 - 2*length(names(pd)) - sum(str_length(names(pd)[-2]))
-text_limit <- floor(text_limit/5)*5
+max_length <- 110 - 2*length(names(pd)) - sum(str_length(names(pd)[-2]))
+max_length <- floor(max_length/5)*5
 
-# Minimum text_limit should be the name of the text column
 min_length <- str_length(cf$replacement[cf$original == "question"])
-
-if (text_limit < min_length)
-  text_limit <- min_length
+max_length <- if (max_length < min_length)  min_length else max_length
 
 # Shorten the strings and insert them into the data
 text <- pd[[cf$replacement[cf$original == "question"]]]
-
-pd[[cf$replacement[cf$original == "question"]]] <- 
-  ifelse(str_length(text) >= text_limit, paste0(strtrim(text, width=text_limit-3), "..."), text)
-
+text <- ifelse(str_length(text) >= max_length, paste0(strtrim(text, width=max_length-3), "..."), text)
+pd[[cf$replacement[cf$original == "question"]]] <- text
 
 # Divide the data for the two tables
 first_table <- filter(pd, latent %in% latents[1:3]) %>%
@@ -566,7 +505,6 @@ second_table <- capture.output(print.xtable(second_table, size="\\tiny", comment
 
 first_table <- gsub("(\\s|^)(-\\d?\\d\\.\\d*)", "\\1\\\\textcolor[HTML]{D2232B}{\\2}", first_table)
 second_table <-  gsub("(\\s|^)(-\\d?\\d\\.\\d*)", "\\1\\\\textcolor[HTML]{D2232B}{\\2}", second_table)
-
 
 # Print the first table
 cat(first_table, sep="\n")
@@ -587,80 +525,51 @@ cat(second_table, sep="\n")
 cat("##", "", "\n", sep=" ")
 
 # Get list of manifest names in correct order.
-manifests <- data.frame("latent" = latents, stringsAsFactors=F) %>%
+manifests <- data.frame("latent" = latents, stringsAsFactors = FALSE) %>%
              left_join(mutate(mm, latent = tolower(latent)), by = c("latent" = "latent"))
 
 # Gather the data for the table
 pd <- df %>%
       select(mainentity, subentity, one_of(paste0(tolower(manifests$manifest), "em"))) %>%
       filter(mainentity == entity) %>%
-      group_by(mainentity, subentity) %>%
-      summarise_each(funs(m = mean(as.numeric(.), na.rm=T)))
-
-# Add the contrast (average of the entity)
-pd <- df %>%
-      select(mainentity, one_of(paste0(tolower(manifests$manifest), "em"))) %>%
-      filter(mainentity == entity) %>%
-      summarise_each(funs(m = mean(as.numeric(.), na.rm=T)), -mainentity) %>%
-      mutate(subentity = ent_sum) %>%
-      bind_rows(pd, .) %>%
-      select(-mainentity)
-
+      mutate_each(funs(n = as.numeric(.)), -mainentity, -subentity) %>%
+      bind_rows(mutate(., mainentity = paste(ent_sum, entity_short)), mutate(., mainentity = subentity)) %>%
+      group_by(mainentity) %>%
+      summarise_each(funs(m = mean(., na.rm = TRUE)))
+      
 # Convert to a longer format and convert to proper variable names.
-pd <- gather(pd, manifest, score, -subentity) %>% 
+pd <- pd %>%
+      gather(manifest, score, -mainentity) %>% 
       mutate(manifest = gsub("em$|EM$", "", manifest)) %>%
       left_join(manifests, by = c("manifest" = "manifest")) %>%
-      select(-type, -values) %>%
       mutate(manifest = gsub("^q", "Q", manifest)) %>%
       mutate(manifest = factor(manifest, levels=unique(manifest))) %>%
-      mutate(subentity = factor(subentity, levels=unique(subentity))) %>%
-      spread(subentity, score)
+      mutate(mainentity = factor(mainentity, levels = c(paste(ent_sum, entity_short)), unique(subentity), ordered = TRUE)) %>%
+      select(latent, manifest, question, mainentity, score) %>%
+      spread(mainentity, score, fill=0) %>%
+      mutate(latent = factor(latent, levels = latents, ordered = TRUE)) %>%
+      arrange(latent)
 
+# Replace headers with the translation from config
+names(pd) <- ordered_replace(names(pd), setNames(cf$original, cf$replacement))
 
-
-# Todo: Avoid doing the subsitution twice, but had problems with encoding.
-table_head <- names(pd)
-table_head <- sub(paste0(" ?", cf$replacement[cf$original == "entity_short"], "[^ ]+ ?"), "", table_head, ignore.case=T)
-
-table_head[tolower(table_head) %in% tolower(cf$original)] <-
-  cf$replacement[tolower(cf$original) %in% tolower(table_head)]
-
-# Insert shortened names
-names(pd) <- table_head
-
-# names(data)[3] <- iconv(names(data)[3], from="UTF-8",  to="latin1")
-if (Sys.info()[1] == "Windows")
-  names(pd) <- sapply(names(pd), 
-                        function(x) ifelse(Encoding(x) != "unknown", 
-                                         iconv(x, from="UTF-8", to="latin1"), x))
-
-# Calculate the difference between the entity and the average
-if ( all(c(ent_sum, entity_short) %in% names(pd)) )
-  pd$difference <- pd[[entity_short]] - pd[[ent_sum]]
-
-if ( all(c(ctr_sum, entity_short) %in% names(pd)) )
-  pd$difference <- pd[[entity_short]] - pd[[ctr_sum]]
-
-# Change the name of "difference"
-if ("difference" %in% names(pd))
-  names(pd)[names(pd) == "difference"] <- cf$replacement[cf$original == "difference"]
+# Fix encoding issues on windows
+if (Sys.info()[1] == "Windows") {
+  names(pd) <- vapply(names(pd), function(x) {
+    ifelse(Encoding(x) != "unknown", iconv(x, "UTF-8", "latin1"), x)}, character(1))
+}
 
 # Get length of column headers for the table, and truncate manifest text if needed:
-text_limit <- 110 - 2*length(names(pd)) - sum(str_length(names(pd)[-2]))
-text_limit <- floor(text_limit/5)*5
+max_length <- 110 - 2*length(names(pd)) - sum(str_length(names(pd)[-2]))
+max_length <- floor(max_length/5)*5
 
-# Minimum text_limit should be the name of the text column
 min_length <- str_length(cf$replacement[cf$original == "question"])
-
-if (text_limit < min_length)
-  text_limit <- min_length
+max_length <- if (max_length < min_length)  min_length else max_length
 
 # Shorten the strings and insert them into the data
 text <- pd[[cf$replacement[cf$original == "question"]]]
-
-pd[[cf$replacement[cf$original == "question"]]] <- 
-  ifelse(str_length(text) >= text_limit, paste0(strtrim(text, width=text_limit-3), "..."), text)
-
+text <- ifelse(str_length(text) >= max_length, paste0(strtrim(text, width=max_length-3), "..."), text)
+pd[[cf$replacement[cf$original == "question"]]] <- text
 
 # Divide the data for the two tables
 first_table <- filter(pd, latent %in% latents[1:3]) %>%
@@ -840,56 +749,86 @@ p + geom_bar(stat="identity", width=0.5, position=position_dodge(width=0.6)) +
           panel.margin = unit(2, "lines"))
 ```
 
+# Anbefalingsadferd
+
+```{r}
+# Frametitle
+cat("##", mm$question[tolower(mm$latent) %in% "loyal" & grepl("15b$", tolower(mm$manifest))], "\n", sep=" ")
+
+# Add the contrast (average of the current or previous study)
+if (contrast) {
+  pd <- df %>% filter(mainentity == entity) %>% bind_rows(., mutate(cd, mainentity = ctr_sum))
+} else {
+  pd <- df %>% filter(mainentity == entity) %>% bind_rows(., mutate(df, mainentity = stu_sum))
+}
+
+# Get the variable name
+mvar <- mm$manifest[tolower(mm$latent) %in% "loyal" & grepl("15b$", tolower(mm$manifest))]
+
+# Gather the data
+pd <- pd %>%
+      mutate(recom = pd[[tolower(mvar)]]) %>%
+      select(mainentity, recom, w) %>%
+      filter(!is.na(recom)) %>%
+      mutate(w = as.numeric(w)) %>%
+      mutate(recom = clean_score(recom)) %>%
+      mutate(recom = ifelse(recom %in% 1:5L, "Negativ", ifelse(recom %in% 8:10L, "Positiv", "Nøytral"))) %>%
+      count(mainentity, recom, wt = w) %>%
+      mutate(proportion = prop.table(n)) %>%
+      select(-n)
+
+# Convert to proper format for plotting
+pd <- pd %>%
+      spread(recom, proportion, fill = 0) %>%
+      gather(recom, proportion, -mainentity) %>%
+      mutate(mainentity = factor(as.character(mainentity), levels = c(entity, if (contrast) ctr_sum else stu_sum)))
+
+# Create the plot
+p <- ggplot(pd, aes(x=recom, y=proportion, fill=mainentity, group=mainentity, ymin=0, ymax=1))
+p + geom_bar(stat="identity", width=0.5, position=position_dodge(width=0.6)) +
+    scale_x_discrete(labels = function(x) str_wrap(as.character(x), width = 15)) + 
+    scale_y_continuous(labels=percent) +
+    geom_text(aes(label=paste0(round(proportion*100, digits=0), "%")),  
+              size=3, colour="#23373b", position=position_dodge(width=0.6), vjust=-1.1, hjust=.35) +
+    guides(fill = guide_legend(keywidth = .5, keyheight = .5)) +
+    plot_theme() + 
+    theme(title = element_text(hjust = -.1))
+
+```
+
+
 # Andel klager
 
 ```{r}
 # Frametitle
-cat("##", mm$question[mm$latent == "complaint" & !is.na(mm$latent)], "\n", sep=" ")
-
-# Variable
-mvar <- mm$manifest[mm$latent == "complaint" & !is.na(mm$latent)]
-
-# Gather the data for the table
-pd <- df %>%
-      mutate(complaint = df[[tolower(mvar)]]) %>%
-      select(mainentity, complaint) %>%
-      filter(mainentity == entity) %>%
-      mutate(complaint = factor(complaint, levels=unique(na.omit(complaint)))) %>%
-      count(mainentity, complaint) %>%
-      na.omit() %>%
-      mutate(proportion = prop.table(n)) %>%
-      select(-n)
+cat("##", mm$question[mm$latent %in% "complaint"][1], "\n", sep=" ")
 
 # Add the contrast (average of the current or previous study)
 if (contrast) {
-  pd <- cd %>%
-        mutate(complaint = cd[[tolower(mvar)]]) %>%
-        select(complaint, w) %>%
-        mutate(complaint = factor(complaint, levels=unique(na.omit(complaint)))) %>%
-        count(complaint, wt=w) %>%
-        na.omit() %>%
-        mutate(proportion = prop.table(n)) %>%
-        select(-n) %>%
-        mutate(mainentity = ctr_sum) %>%
-        bind_rows(pd, .)
-
+  pd <- df %>% filter(mainentity == entity) %>% bind_rows(., mutate(cd, mainentity = ctr_sum))
 } else {
-  pd <- df %>%
-        mutate(complaint = df[[tolower(mvar)]]) %>%
-        select(complaint, w) %>%
-        mutate(complaint = factor(complaint, levels=unique(na.omit(complaint)))) %>%
-        count(complaint, wt=w) %>%
-        na.omit() %>%
-        mutate(proportion = prop.table(n)) %>%
-        select(-n) %>%
-        mutate(mainentity = stu_sum) %>%
-        bind_rows(pd, .)
+  pd <- df %>% filter(mainentity == entity) %>% bind_rows(., mutate(df, mainentity = stu_sum))
 }
 
+# Get the variable name
+mvar <- mm$manifest[mm$latent %in% "complaint"]
+mvar_values <- unlist(str_split(mm$values[mm$manifest %in% mvar], "\n"))
+
+# Gather the data for the table
+pd <- pd %>%
+      mutate(complaint = pd[[tolower(mvar)]]) %>%
+      select(mainentity, complaint) %>%
+      filter(!is.na(complaint)) %>%
+      mutate(complaint = factor(complaint, levels = mvar_values, ordered = TRUE)) %>%
+      count(mainentity, complaint) %>%
+      mutate(proportion = prop.table(n)) %>%
+      select(-n)
+
 # Convert to proper format for plotting
-pd %<>% spread(complaint, proportion, fill = 0) %>%
-        gather(complaint, proportion, -mainentity) %>%
-        mutate(mainentity = factor(as.character(mainentity), levels = c(entity, if (contrast) ctr_sum else stu_sum)))
+pd <- pd %>%
+      spread(complaint, proportion, fill = 0, drop = FALSE) %>%
+      gather(complaint, proportion, -mainentity) %>%
+      mutate(mainentity = factor(as.character(mainentity), levels = c(entity, if (contrast) ctr_sum else stu_sum)))
 
 # Create the plot
 p <- ggplot(pd, aes(x=complaint, y=proportion, fill=mainentity, group=mainentity, ymin=0, ymax=1))
@@ -901,16 +840,19 @@ p + geom_bar(stat="identity", width=0.5, position=position_dodge(width=0.6)) +
     guides(fill = guide_legend(keywidth = .5, keyheight = .5)) +
     plot_theme() + 
     theme(title = element_text(hjust = -.1))
+
+# Workbook (create and add open answers etc if needed)
+wb <- createWorkbook()
 ```
 
 # Klager
 
-```{r, results='hide'}
+```{r, eval=complaint}
 # Frametitle
-frametitle <- paste("##", mm$question[mm$latent == "open_complaint" & !is.na(mm$latent)][1], "(uredigerte svar)")
+frametitle <- paste("##", "Hva dreide klagen seg om?", "(uredigerte svar)")
 
 # Variable
-mvar <- mm$manifest[mm$latent == "open_complaint" & !is.na(mm$latent)]
+mvar <- mm$manifest[mm$latent %in% c("open_complaint", "open_wouldcomplain")]
 
 pd <- df %>%
       select(mainentity, one_of(tolower(mvar))) %>%
@@ -921,61 +863,38 @@ pd <- df %>%
       mutate(nchars = str_length(complaint), nlines = ceiling(nchars/135), tlines = cumsum(nlines)) %>%
       mutate(page = ifelse(tlines <= 25, 1, ifelse(tlines <= 50 & tlines > 25, 2, 3)))
 
+# Inform if no complaints were found
 if (nrow(pd) == 0) {
-  E0 <- FALSE
-  E1 <- FALSE
-  E2 <- FALSE
-  E3 <- FALSE
-  E_none <- TRUE
   
-  } else if (max(pd$tlines > 75)) {
-  E0 <- TRUE
-  E1 <- FALSE
-  E2 <- FALSE
-  E3 <- FALSE
-  E_none <- FALSE
+  cat(frametitle, "Ingen årsaker oppgitt av respondentene.", sep="\n")
 
+  # Write to sheet if text is too long (>3 pages)
+  } else if (max(pd$tlines) > 75) {
+  
+  cat(frametitle, "Se vedlagt regneark i Excel format.", sep="\n")
+  pd %>% mutate(complaint = gsub("^- ", "", complaint)) %>%
+         select("Klager" = complaint) %>%
+         to_sheet(wb, title = frametitle, sheet = "Klaget")
+  
+  # Print the results
   } else {
-  E0 <- FALSE
-  E1 <- any(pd$page == 1)
-  E2 <- any(pd$page == 2)
-  E3 <- any(pd$page == 3)
-  E_none <- FALSE   
-}
+
+  for (i in unique(pd$page)) { cat(frametitle, pd$complaint[pd$page == i], "\n", sep="\n") }
+  
+  }
+
+# Make sure changes to WB are registered
+wb <- wb
 ```
 
-```{r, eval=E0}
-# Frame title and content
-cat(frametitle, "Se vedlagt regneark i Excel format.", sep="\n")
+# Åpne svar
 
-# Write data
-pd %>% mutate(complaint = gsub("^- ", "", complaint)) %>% 
-       select("Klager" = complaint) %>%
-       write.csv2(paste0("Reports/", entity, " - klager", ".csv"), fileEncoding="latin1")
-```
-
-```{r, eval=E1, results='asis'}
-cat(frametitle, pd$complaint[pd$page == 1], sep="\n")
-```
-
-```{r, eval=E2, results='asis'}
-cat(frametitle, pd$complaint[pd$page == 2], sep="\n")
-```
-
-```{r, eval=E3, results='asis'}
-cat(frametitle, pd$complaint[pd$page == 3], sep="\n")
-```
-
-```{r, eval=E_none}
-cat(frametitle, "Ingen årsaker oppgitt av respondentene.", sep="\n")
-```
-
-```{r, eval=open_wouldcomplain, results='hide'}
+```{r, eval=open_answer}
 # Frametitle
-frametitle <- paste("##", mm$question[mm$latent == "open_wouldcomplain" & !is.na(mm$latent)][1], "(uredigerte svar)")
+frametitle <- paste("##", mm$question[mm$latent %in% "open_answer"][1], "(uredigerte svar)")
 
 # Variable
-mvar <- mm$manifest[mm$latent == "open_wouldcomplain" & !is.na(mm$latent)]
+mvar <- mm$manifest[mm$latent %in% "open_answer"]
 
 pd <- df %>%
       select(mainentity, one_of(tolower(mvar))) %>%
@@ -986,255 +905,114 @@ pd <- df %>%
       mutate(nchars = str_length(complaint), nlines = ceiling(nchars/135), tlines = cumsum(nlines)) %>%
       mutate(page = ifelse(tlines <= 25, 1, ifelse(tlines <= 50 & tlines > 25, 2, 3)))
 
+# Inform if no complaints were found
 if (nrow(pd) == 0) {
-  E0 <- FALSE
-  E1 <- FALSE
-  E2 <- FALSE
-  E3 <- FALSE
-  E_none <- TRUE
   
-  } else if (max(pd$tlines > 75)) {
-  E0 <- TRUE
-  E1 <- FALSE
-  E2 <- FALSE
-  E3 <- FALSE
-  E_none <- FALSE
+  cat(frametitle, "Ingen årsaker oppgitt av respondentene.", sep="\n")
 
+  # Write to sheet if text is too long (>3 pages)
+  } else if (max(pd$tlines) > 75) {
+  
+  cat(frametitle, "Se vedlagt regneark i Excel format.", sep="\n")
+  pd %>% mutate(complaint = gsub("^- ", "", complaint)) %>%
+         select("Klager" = complaint) %>%
+         to_sheet(wb, title = frametitle, sheet = "Åpne svar")
+  
+  # Print the results
   } else {
-  E0 <- FALSE
-  E1 <- any(pd$page == 1)
-  E2 <- any(pd$page == 2)
-  E3 <- any(pd$page == 3)
-  E_none <- FALSE   
-}
+
+  for (i in unique(pd$page)) { cat(frametitle, pd$complaint[pd$page == i], "\n", sep="\n") }
+  
+  }
+
+# Make sure changes to WB are registered
+wb <- wb
 ```
 
-```{r, eval=all(E0, open_wouldcomplain)}
-# Frame title and content
-cat(frametitle, "Se vedlagt regneark i Excel format.", sep="\n")
-
-# Write data
-pd %>% mutate(complaint = gsub("^- ", "", complaint)) %>% 
-       select("Klager" = complaint) %>%
-       write.csv2(paste0("Reports/", entity, " - grunn til klage", ".csv"), fileEncoding="latin1")
-```
-
-```{r, eval=all(E1, open_wouldcomplain), results='asis'}
-cat(frametitle, pd$complaint[pd$page == 1], sep="\n")
-```
-
-```{r, eval=all(E2, open_wouldcomplain), results='asis'}
-cat(frametitle, pd$complaint[pd$page == 2], sep="\n")
-```
-
-```{r, eval=all(E3, open_wouldcomplain), results='asis'}
-cat(frametitle, pd$complaint[pd$page == 3], sep="\n")
-```
-
-```{r, eval=all(E_none, open_wouldcomplain)}
-cat(frametitle, "Ingen årsaker oppgitt av respondentene.", sep="\n")
-```
-
-`r if (open_noncomplaint) "# Ikke klaget"`
-
-```{r, eval=open_noncomplaint, results='hide'}
+```{r, eval=oa_positive}
 # Frametitle
-frametitle <- paste("##", mm$question[mm$latent == "open_noncomplaint" & !is.na(mm$latent)][1], "(uredigerte svar)")
+frametitle <- paste("##", mm$question[mm$latent %in% "oa_positive"][1], "(uredigerte svar)")
 
 # Variable
-mvar <- mm$manifest[mm$latent == "open_noncomplaint" & !is.na(mm$latent)]
+mvar <- mm$manifest[mm$latent %in% "oa_positive"]
 
 pd <- df %>%
       select(mainentity, one_of(tolower(mvar))) %>%
-      gather(var, noncomplaint, -mainentity) %>%
-      filter(mainentity == entity & !is.na(noncomplaint)) %>%
-      mutate(noncomplaint = gsub("^[!#$%()*,.:;<=>@^_`|~.{}-]|[\\\\]*", "", noncomplaint)) %>%
-      mutate(noncomplaint = paste("-", noncomplaint)) %>%
-      mutate(nchars = str_length(noncomplaint), nlines = ceiling(nchars/135), tlines = cumsum(nlines)) %>%
+      gather(var, complaint, -mainentity) %>%
+      filter(mainentity == entity & !is.na(complaint)) %>%
+      mutate(complaint = gsub("^[!#$%()*,.:;<=>@^_`|~.{}-]|[\\\\]*", "", complaint)) %>%
+      mutate(complaint = paste("-", complaint)) %>%
+      mutate(nchars = str_length(complaint), nlines = ceiling(nchars/135), tlines = cumsum(nlines)) %>%
       mutate(page = ifelse(tlines <= 25, 1, ifelse(tlines <= 50 & tlines > 25, 2, 3)))
 
+# Inform if no complaints were found
 if (nrow(pd) == 0) {
-  E0 <- FALSE
-  E1 <- FALSE
-  E2 <- FALSE
-  E3 <- FALSE
-  E_none <- TRUE
   
-  } else if (max(pd$tlines > 75)) {
-  E0 <- TRUE
-  E1 <- FALSE
-  E2 <- FALSE
-  E3 <- FALSE
-  E_none <- FALSE
+  cat(frametitle, "Ingen årsaker oppgitt av respondentene.", sep="\n")
 
-  } else {
-  E0 <- FALSE
-  E1 <- any(pd$page == 1)
-  E2 <- any(pd$page == 2)
-  E3 <- any(pd$page == 3)
-  E_none <- FALSE   
-}
-```
-
-```{r, eval=all(E0, open_noncomplaint)}
-# Frame title and content
-cat(frametitle, "Se vedlagt regneark i Excel format.", sep="\n")
-
-# Write data
-pd %>% mutate(noncomplaint = gsub("^- ", "", noncomplaint)) %>% 
-       select("Ikke_klaget" = noncomplaint) %>%
-       write.csv2(paste0("Reports/", entity, " - ikke klaget", ".csv"), fileEncoding="latin1")
-```
-
-```{r, eval=all(E1, open_noncomplaint), results='asis'}
-cat(frametitle, pd$noncomplaint[pd$page == 1], sep="\n")
-```
-
-```{r, eval=all(E2, open_noncomplaint), results='asis'}
-cat(frametitle, pd$noncomplaint[pd$page == 2], sep="\n")
-```
-
-```{r, eval=all(E3, open_noncomplaint), results='asis'}
-cat(frametitle, pd$noncomplaint[pd$page == 3], sep="\n")
-```
-
-```{r, eval=all(E_none, open_noncomplaint)}
-cat(frametitle, "Ingen årsaker oppgitt av respondentene.", sep="\n")
-```
-
-# Åpne svar
-
-```{r, results='hide'}
-# Frametitle
-frametitle <- paste("##", mm$question[mm$latent == "oa_positive" & !is.na(mm$latent)][1], "(uredigerte svar)")
-
-# Variable
-mvar <- mm$manifest[mm$latent == "oa_positive" & !is.na(mm$latent)]
-
-# Åpne svar
-pd <- df %>%
-      select(mainentity, one_of(tolower(mvar))) %>%
-      gather(var, openanswer, -mainentity) %>%
-      filter(mainentity == entity & !is.na(openanswer)) %>%
-      mutate(openanswer = gsub("^[!#$%()*,.:;<=>@^_`|~.{}-]|[\\\\]*", "", openanswer)) %>%
-      mutate(openanswer = paste("-", openanswer)) %>%
-      mutate(nchars = str_length(openanswer), nlines = ceiling(nchars/135), tlines = cumsum(nlines)) %>%
-      mutate(page = ifelse(tlines <= 25, 1, ifelse(tlines <= 50 & tlines > 25, 2, 3)))
-
-
-if (nrow(pd) == 0) {
-  E0 <- FALSE
-  E1 <- FALSE
-  E2 <- FALSE
-  E3 <- FALSE
-  E_none <- TRUE
+  # Write to sheet if text is too long (>3 pages)
+  } else if (max(pd$tlines) > 75) {
   
-  } else if (max(pd$tlines > 75)) {
-  E0 <- TRUE
-  E1 <- FALSE
-  E2 <- FALSE
-  E3 <- FALSE
-  E_none <- FALSE
-
+  cat(frametitle, "Se vedlagt regneark i Excel format.", sep="\n")
+  pd %>% mutate(complaint = gsub("^- ", "", complaint)) %>%
+         select("Klager" = complaint) %>%
+         to_sheet(wb, title = frametitle, sheet = "Positivt")
+  
+  # Print the results
   } else {
-  E0 <- FALSE
-  E1 <- any(pd$page == 1)
-  E2 <- any(pd$page == 2)
-  E3 <- any(pd$page == 3)
-  E_none <- FALSE   
-}
+
+  for (i in unique(pd$page)) { cat(frametitle, pd$complaint[pd$page == i], "\n", sep="\n") }
+  
+  }
+
+# Make sure changes to WB are registered
+wb <- wb
 ```
 
-```{r, eval=E0}
-# Frame title and content
-cat(frametitle, "Se vedlagt regneark i Excel format.", sep="\n")
-
-# Write data
-pd %>% mutate(openanswer = gsub("^- ", "", openanswer)) %>% 
-       select("Apne svar" = openanswer) %>%
-       write.csv2(paste0("Reports/", entity, " - positive åpne svar", ".csv"), fileEncoding="latin1")
-```
-
-```{r, eval=E1, results='asis'}
-cat(frametitle, pd$openanswer[pd$page == 1], sep="\n")
-```
-
-```{r, eval=E2, results='asis'}
-cat(frametitle, pd$openanswer[pd$page == 2], sep="\n")
-```
-
-```{r, eval=E3, results='asis'}
-cat(frametitle, pd$openanswer[pd$page == 3], sep="\n")
-```
-
-```{r, eval=E_none}
-cat(frametitle, "Ingen åpne svar fra respondentene.", sep="\n")
-```
-
-```{r, results='hide'}
+```{r, eval=oa_negative}
 # Frametitle
 frametitle <- paste("##", mm$question[mm$latent == "oa_negative" & !is.na(mm$latent)][1], "(uredigerte svar)")
 
 # Variable
-mvar <- mm$manifest[mm$latent == "oa_negative" & !is.na(mm$latent)]
+mvar <- mm$manifest[mm$latent %in% "oa_negative"]
 
-# Åpne svar
 pd <- df %>%
       select(mainentity, one_of(tolower(mvar))) %>%
-      gather(var, openanswer, -mainentity) %>%
-      filter(mainentity == entity & !is.na(openanswer)) %>%
-      mutate(openanswer = gsub("^[!#$%()*,.:;<=>@^_`|~.{}-]|[\\\\]*", "", openanswer)) %>%
-      mutate(openanswer = paste("-", openanswer)) %>%
-      mutate(nchars = str_length(openanswer), nlines = ceiling(nchars/135), tlines = cumsum(nlines)) %>%
+      gather(var, complaint, -mainentity) %>%
+      filter(mainentity == entity & !is.na(complaint)) %>%
+      mutate(complaint = gsub("^[!#$%()*,.:;<=>@^_`|~.{}-]|[\\\\]*", "", complaint)) %>%
+      mutate(complaint = paste("-", complaint)) %>%
+      mutate(nchars = str_length(complaint), nlines = ceiling(nchars/135), tlines = cumsum(nlines)) %>%
       mutate(page = ifelse(tlines <= 25, 1, ifelse(tlines <= 50 & tlines > 25, 2, 3)))
 
-
+# Inform if no complaints were found
 if (nrow(pd) == 0) {
-  E0 <- FALSE
-  E1 <- FALSE
-  E2 <- FALSE
-  E3 <- FALSE
-  E_none <- TRUE
   
-  } else if (max(pd$tlines > 75)) {
-  E0 <- TRUE
-  E1 <- FALSE
-  E2 <- FALSE
-  E3 <- FALSE
-  E_none <- FALSE
+  cat(frametitle, "Ingen årsaker oppgitt av respondentene.", sep="\n")
 
+  # Write to sheet if text is too long (>3 pages)
+  } else if (max(pd$tlines) > 75) {
+  
+  cat(frametitle, "Se vedlagt regneark i Excel format.", sep="\n")
+  pd %>% mutate(complaint = gsub("^- ", "", complaint)) %>%
+         select("Klager" = complaint) %>%
+         to_sheet(wb, title = frametitle, sheet = "Forbedring")
+  
+  # Print the results
   } else {
-  E0 <- FALSE
-  E1 <- any(pd$page == 1)
-  E2 <- any(pd$page == 2)
-  E3 <- any(pd$page == 3)
-  E_none <- FALSE   
+
+  for (i in unique(pd$page)) { cat(frametitle, pd$complaint[pd$page == i], "\n", sep="\n") }
+  
+  }
+
+# Make sure changes to WB are registered
+wb <- wb
+```
+
+```{r, results='hide'}
+# Write the wb if necessary
+if (length(sheets(wb))) {
+  saveWorkbook(wb, paste0("../Reports/", entity, " - åpne svar.xlsx"), overwrite = TRUE)
 }
-```
-
-```{r, eval=E0}
-# Frame title and content
-cat(frametitle, "Se vedlagt regneark i Excel format.", sep="\n")
-
-# Write data
-pd %>% mutate(openanswer = gsub("^- ", "", openanswer)) %>% 
-       select("Apne svar" = openanswer) %>%
-       write.csv2(paste0("Reports/", entity, " - negative åpne svar", ".csv"), fileEncoding="latin1")
-```
-
-```{r, eval=E1, results='asis'}
-cat(frametitle, pd$openanswer[pd$page == 1], sep="\n")
-```
-
-```{r, eval=E2, results='asis'}
-cat(frametitle, pd$openanswer[pd$page == 2], sep="\n")
-```
-
-```{r, eval=E3, results='asis'}
-cat(frametitle, pd$openanswer[pd$page == 3], sep="\n")
-```
-
-```{r, eval=E_none}
-cat(frametitle, "Ingen åpne svar fra respondentene.", sep="\n")
 ```
 
