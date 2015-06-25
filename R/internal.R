@@ -91,7 +91,7 @@ get_questionnaire <- function(file, study = "District Heating", entity = NULL) {
   
   # Subset the master questionnaire and dictionary
   dict <- mq$dictionary[, c("year", "placeholder", study_col)]
-  quest <- mq[[industry]][tolower(mq[[industry]]$study) == study,]
+  quest <- mq[["questionnaires"]][tolower(mq[["questionnaires"]]$study) == study,]
   
   # Replace the scale placeholder with the actual scale
   for (i in 1:nrow(quest)) {
