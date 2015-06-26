@@ -119,6 +119,9 @@ to_sheet <- function(df, wb, title = "Table", sheet = "analysis", row = 1L,
     
   }
   
+  # Invisibly return the rows that have been written to
+  invisible(setNames(c(table_row, table_row + nrow(df)), c("first", "last")))
+  
 }
 
 #' Write common file formats

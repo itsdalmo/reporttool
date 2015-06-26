@@ -42,20 +42,39 @@ write_questionnaire <- function(quest, file, study = "District heating") {
   # Use the split list to write to a xlsx_file
   wb <- openxlsx::createWorkbook()
   
-  lapply(split_quest, function(x) {
+  # Write the data and retain rows that have been written to
+  merge_rows <- lapply(split_quest, function(x) {
     
-    df <- x[, c("latent", "manifest", "values", "question")]
+    # Get columns
+    df <- x[, c("latent", "manifest", "question", "values")]
     title <- if (nrow(x) == 1L) x$question else paste0(unique(x$primer), collapse = "\n")
     
+    # Write the question
     to_sheet(df, wb, title = title, sheet = study)
     
   })
   
-  # Widen the column containing the question text, and save the workbook
-  openxlsx::setColWidths(wb, sheet = study, cols = 4, widths = 140)
-  openxlsx::saveWorkbook(wb, file, overwrite = TRUE)
+  lapply(merge_rows, function(x) {
+    
+    rows <- x["first"]:x["last"]
+    
+    # Merge values for question matrix
+    if (length(rows) > 2L) {
+      openxlsx::mergeCells(wb, sheet = study, cols = 4, rows = rows[-1])
+    }
+    
+    # Set values to wrap text
+    openxlsx::addStyle(wb, sheet = study, style = openxlsx::createStyle(wrapText = TRUE), 
+                       rows = rows[-1], cols = 4, gridExpand = TRUE, stack = TRUE)
+    
+  })
   
-  # Make sure nothing is printed
+  # Widen the columns containing the question text and values
+  openxlsx::setColWidths(wb, sheet = study, cols = 3, widths = 100)
+  openxlsx::setColWidths(wb, sheet = study, cols = 4, widths = 50)
+  
+  # Save and make sure nothing is printed
+  openxlsx::saveWorkbook(wb, file, overwrite = TRUE)
   invisible()
   
 }
@@ -67,6 +86,7 @@ write_questionnaire <- function(quest, file, study = "District heating") {
 #'
 #' @param file Path to the master questionnaire
 #' @param study The study to extract and replace values for.
+#' @param segment Business to consumer/business.
 #' @param entity Optional: Replace {XX} in the questionnaire with whatever you
 #' specify.
 #' @author Kristian D. Olsen
@@ -74,7 +94,7 @@ write_questionnaire <- function(quest, file, study = "District heating") {
 #' @examples 
 #' x <- get_questionnaire("masterquest.xlsx", "Energy", "Electricity", entity = "[S2]")
 
-get_questionnaire <- function(file, study = "District Heating", entity = NULL) {
+get_questionnaire <- function(file, study = "Banking", segment = "B2C", entity = NULL) {
   
   # Read in the master questionnaire
   mq <- read_data(file)
@@ -85,13 +105,15 @@ get_questionnaire <- function(file, study = "District Heating", entity = NULL) {
   
   # Lowercase the arguments
   study <- tolower(study)
+  segment <- tolower(segment)
   
   # Match name of study column in the dictionary
   study_col <- gsub(" ", ".", study)
   
   # Subset the master questionnaire and dictionary
   dict <- mq$dictionary[, c("year", "placeholder", study_col)]
-  quest <- mq[["questionnaires"]][tolower(mq[["questionnaires"]]$study) == study,]
+  quest <- mq[["questionnaires"]][tolower(mq[["questionnaires"]]$study) == study &
+                                  tolower(mq[["questionnaires"]]$segment) == segment,]
   
   # Replace the scale placeholder with the actual scale
   for (i in 1:nrow(quest)) {

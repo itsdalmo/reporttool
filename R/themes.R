@@ -93,10 +93,8 @@ format_xlsx <- function(df, wb, sheet, table_row, style = TRUE, values = TRUE) {
     # Alter the style of first row
     openxlsx::addStyle(wb, sheet, xlsx_style_firstrow, rows = table_row, cols = all_cols, gridExpand = TRUE)
     
-    # ..  and last row (if the data contains over two rows)
-    if (nrow(df) > 2L) {
-      openxlsx::addStyle(wb, sheet, xlsx_style_lastrow, rows = last_row, cols = all_cols, gridExpand = TRUE)
-    }
+    # ..  and last row
+    openxlsx::addStyle(wb, sheet, xlsx_style_lastrow, rows = last_row, cols = all_cols, gridExpand = TRUE)
   }
   
   # Optional formatting for numeric values
@@ -182,6 +180,17 @@ xlsx_style_lastrow <- openxlsx::createStyle(fontName = "Trebuchet MS",
                                              fgFill = "#CCE9EB",
                                              halign = "center",
                                              valign = "center")
+
+xlsx_style_lastrow <- openxlsx::createStyle(fontName = "Trebuchet MS",
+                                            fontSize = 8,
+                                            fontColour = "#000000",
+                                            border = "Bottom",
+                                            borderColour = "#0094A5",
+                                            borderStyle = "medium",
+                                            fgFill = "#FFFFFF",
+                                            halign = "center",
+                                            valign = "center")
+
 
 xlsx_numeric <- openxlsx::createStyle(numFmt = "0.0")
 xlsx_integer <- openxlsx::createStyle(numFmt = "0")
