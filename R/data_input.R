@@ -115,7 +115,9 @@ read_spss <- function(file, codebook) {
     names(mm) <- cfg$req_structure$mm
     
     # Populate mm
-    mm$manifest <- stringi::stri_trans_tolower(stri_replace_all(names(df), ".", regex = "[#$]"))
+    mm$manifest <- stringi::stri_replace_all(names(df), ".", regex = "[#$]")
+    mm$manifest <- stringi::stri_trans_tolower(names(df))
+    
     mm$question <- lapply(df, attr, which = "label")
     mm$question <- vapply(mm$question, function(x) ifelse(is.null(x), "", as.character(x)), character(1))
     

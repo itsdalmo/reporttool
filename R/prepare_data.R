@@ -168,7 +168,7 @@ impute_missing <- function(df, vars, cutoff) {
     imp_data <- Amelia::amelia(imp_data, 5, bounds = bounds, boot.type="none", idvars = c("percent_missing", "imp_id")))
   
   # Get the imputed dataset
-  if (!grepl("Normal", imp_data$message)) {
+  if (!stringi::stri_detect(imp_data$message, regex = "Normal")) {
     warning("Missing values could not be imputed. Cannot calculate PLS-latents.", call. = FALSE)
   } else {
     

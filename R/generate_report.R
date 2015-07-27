@@ -50,8 +50,8 @@ generate_report <- function(report=NULL, entity=NULL, data=NULL, type="pdf") {
   md <- readLines(report, encoding = "UTF-8")
   
   # Replace date with current date, and data with fixed path
-  md <- sub("REPLACE_DATE", format(Sys.Date(), "%Y"), md, fixed=TRUE)
-  md <- sub("REPLACE_DATA", data, md, fixed=TRUE)
+  md <- stringi::stri_replace(md, format(Sys.Date(), "%Y"), regex = "REPLACE_DATE")
+  md <- stringi::stri_replace(md, data, regex = "REPLACE_DATA")
   
   # Make sure the Markdown and Reports directory exists
   dir.create(file.path(dir, "Reports"), showWarnings = FALSE)
@@ -81,7 +81,7 @@ generate_rmd <- function(entity, md, dir) {
   path <- file(file.path(dir, "Markdown", paste0(entity, ".Rmd")), encoding = "UTF-8")
   on.exit(close(path), add = TRUE)
   
-  writeLines(gsub("REPLACE_ENTITY", entity, md, fixed=TRUE), path)
+  writeLines(stringi::stri_replace_all(md, entity, regex = "REPLACE_ENTITY"), path)
   
 }
 
