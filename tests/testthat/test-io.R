@@ -1,5 +1,5 @@
 context("i/o")
-test_that("Read/write single-sheet-xlsx works (clean missing and lowercase names)" , {
+test_that("Read/write single-sheet-xlsx (clean missing and lowercase names)" , {
   
   # Read
   xlsx <- read_data("xlsx.xlsx")
@@ -22,7 +22,7 @@ test_that("Read/write single-sheet-xlsx works (clean missing and lowercase names
   
 })
 
-test_that("Writing tables to xlsx with to_sheet works:" , {
+test_that("Writing tables to xlsx with to_sheet" , {
   
   # Read
   xlsx <- read_data("xlsx.xlsx")
@@ -49,7 +49,43 @@ test_that("Writing tables to xlsx with to_sheet works:" , {
   
 })
 
-test_that("Read/write works with lists of data", {
+test_that("Tables with to_clipboard and from_clipboard for Windows/OSX" , {
+  
+  if (Sys.info()["sysname"] %in% c("Windows", "Darwin")) {
+    
+    # Read file and write it to clipboard
+    xlsx <- read_data("xlsx.xlsx")
+    to_clipboard(xlsx)
+    
+    # Read clipboard and compare
+    cp_xlsx <- from_clipboard()
+    
+    # Compare
+    expect_identical(cp_xlsx, xlsx)
+    
+  }
+  
+})
+
+test_that("Text with to_clipboard and from_clipboard for Windows/OSX" , {
+  
+  if (Sys.info()["sysname"] %in% c("Windows", "Darwin")) {
+    
+    # Read file and write it to clipboard
+    txt <- "This is \n a test"
+    to_clipboard(txt)
+    
+    # Read clipboard and compare
+    cp_txt <- from_clipboard()
+    
+    # Compare
+    expect_identical(cp_txt, txt)
+    
+  }
+  
+})
+
+test_that("Read and write_data with list", {
   
   # Read example data
   sheet1 <- read_data("xlsx.xlsx")
@@ -85,7 +121,7 @@ test_that("Read/write works with lists of data", {
   
 })
 
-test_that("Read/write .csv works and returns expected result", {
+test_that("Read and write_data for .csv files", {
   
   # Read
   xlsx <- read_data("xlsx.xlsx")
@@ -107,7 +143,7 @@ test_that("Read/write .csv works and returns expected result", {
   
 })
 
-test_that("Write .txt works and returns expected result", {
+test_that("Read and write_data for .txt files", {
   
   # Write
   fileName <- file.path(tempdir(), "txt.txt")
@@ -127,7 +163,7 @@ test_that("Write .txt works and returns expected result", {
   
 })
 
-test_that("Read/write .Rdata works and returns expected result", {
+test_that("Read and write_data for .Rdata files", {
   
   # Write
   fileName <- file.path(tempdir(), "rdata.Rdata")
@@ -152,7 +188,7 @@ test_that("Read/write .Rdata works and returns expected result", {
   
 })
 
-test_that("Read .sav works and returns expected result", {
+test_that("Read and write_data for .sav files", {
   
   sav <- read_data("sav.sav")
   xlsx <- read_data("xlsx.xlsx")
@@ -167,7 +203,7 @@ test_that("Read .sav works and returns expected result", {
   
 })
 
-test_that("Read/write error handeling", {
+test_that("i/o error handeling", {
   
   expect_error(read_data("invalid.xlsx"))
   expect_error(read_data("invalid.inv"))

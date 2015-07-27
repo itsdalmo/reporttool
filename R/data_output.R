@@ -26,20 +26,27 @@ to_clipboard <- function(df, encoding = "") {
     stop("Writing to clipboard is supported only in Windows or OSX")
   }
   
-  if (inherits(df, "data.frame")) {
-    cols <- TRUE
+  if (is.character(df)) {
+    writeLines(df, file)
   } else {
-    cols <- FALSE
+    
+    if (inherits(df, "data.frame")) {
+      cols <- TRUE
+    } else {
+      cols <- FALSE
+    }
+    
+    utils::write.table(x = df,
+                       file = file,
+                       sep = "\t",
+                       na = "",
+                       dec = ",",
+                       row.names = FALSE,
+                       col.names = cols,
+                       fileEncoding = encoding)
+    
   }
   
-  utils::write.table(x = df,
-                     file = file,
-                     sep = "\t",
-                     na = "",
-                     dec = ",",
-                     row.names = FALSE,
-                     col.names = cols,
-                     fileEncoding = encoding)
 }
 
 #' Write data to sheet (in an openxlsx workbook)
