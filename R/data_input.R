@@ -20,14 +20,19 @@ from_clipboard <- function(sep = "\t", header = TRUE, dec = ".", encoding = "") 
   if ((Sys.info()["sysname"] == "Windows")) {
     file <- "clipboard-128"
   } else if (Sys.info()["sysname"] == "Darwin") {
-    file <- pipe("pbpaste", "w")
+    file <- pipe("pbpaste", "rb")
     on.exit(close(file), add = TRUE)
   } else {
     stop("Writing to clipboard is supported only in Windows or OSX")
   }
   
   # Read lines
-  lines <- readLines(file)
+  lines <- suppressWarnings(readLines(file))
+  
+  # Workaround for OS X
+  if (length(lines) != 1L) {
+    lines <- paste(lines, collapse = "\n")
+  }
   
   # Check if any of the lines contain the sep
   if (any(grepl(paste0("[", sep, "]"), lines))) {
