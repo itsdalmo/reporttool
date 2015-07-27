@@ -109,7 +109,7 @@ to_sheet <- function(df, wb, title = "Table", sheet = "analysis", row = 1L,
     # When styling the title must be written first (and convert df names to titles)
     if (isTRUE(format_style)) {
       openxlsx::writeData(wb, sheet, title, startRow = row)
-      names(df) <- paste0(toupper(substr(names(df), 1, 1)), substring(names(df), 2))
+      names(df) <- capitalize(names(df))
       table_row <- row + 1
     } else {
       table_row <- row
@@ -158,7 +158,7 @@ write_data <- function(x, file = NULL, encoding = "UTF-8") {
   } else {
     file <- validate_path(file)
     ext <- tools::file_ext(file)
-    name <- sub(paste0(".*/(.*).", ext), "\\1", file)
+    name <- stringi::stri_replace(file, "$1", regex = paste0(".*/(.*).", ext))
   }
   
   # Convert matrix to data.frame

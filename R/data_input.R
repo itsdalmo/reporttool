@@ -35,7 +35,7 @@ from_clipboard <- function(sep = "\t", header = TRUE, dec = ".", encoding = "") 
   }
   
   # Check if any of the lines contain the sep
-  if (any(grepl(paste0("[", sep, "]"), lines))) {
+  if (any(stringi::stri_detect(lines, regex = paste0("[", sep, "]")))) {
     
     # Open a connection
     con <- textConnection(lines)
@@ -115,7 +115,7 @@ read_spss <- function(file, codebook) {
     names(mm) <- cfg$req_structure$mm
     
     # Populate mm
-    mm$manifest <- tolower(gsub("[#$]", ".", names(df)))
+    mm$manifest <- stringi::stri_trans_tolower(stri_replace_all(names(df), ".", regex = "[#$]"))
     mm$question <- lapply(df, attr, which = "label")
     mm$question <- vapply(mm$question, function(x) ifelse(is.null(x), "", as.character(x)), character(1))
     
@@ -133,11 +133,12 @@ read_spss <- function(file, codebook) {
     
     # Extract factor levels
     factor_vars <- lapply(df, levels)
-    scale_vars <- unlist(lapply(factor_vars, function(x) sum(grepl("^[0-9]{1,2}[[:alpha:][:punct:] ]*", x)) == 10L))
-    
+    scale_vars <- unlist(lapply(factor_vars, function(x) {
+      sum(stringi::stri_detect(x, regex = cfg$scale_pat)) == 10L }))
+
     # Clean up the scale variable values (only endpoints)
     factor_vars[scale_vars] <- lapply(factor_vars[scale_vars], function(x) {
-      scales <- gsub("^[0-9]{1,2}\\s*=?\\s*([[:alpha:]]*)", "\\1", x)
+      scales <- stringi::stri_replace(x, "$1", regex = cfg$scale_end)
       scales[scales != ""]
     })
     

@@ -2,14 +2,10 @@
 #' @export
 rt_defaults <- function(x) {
   
-  y <- cfg[grep(x, names(cfg), ignore.case = TRUE)]
+  y <- cfg[stringi::stri_detect(names(cfg), regex = x, list(case_insensitive = TRUE))]
   
   # Drop list if only one entry is returned
-  if (length(y) == 1L) {
-    y[[1]]
-  } else {
-    y
-  }
+  if (length(y) == 1L) y[[1]] else y
 
 }
 
@@ -67,6 +63,9 @@ cfg <- list(
     "chunk_end" = "^#\\sCHUNK\\sEND\\s[-]+$",
     "not_chunk" = "^##+\\s.*"
     ),
+  
+  "scale_pat" = "^[0-9]{1,2}[[:alpha:][:punct:] ]*",
+  "scale_end" = "^[0-9]{1,2}\\s*=?\\s*([[:alpha:]]*)",
   
   "epsi_model" = rbind("image" = c(0,0,0,0,0,0,0),
                        "expect" = c(1,0,0,0,0,0,0),

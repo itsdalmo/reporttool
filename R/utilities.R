@@ -102,10 +102,18 @@ ordered_replace <- function(x, match_by, replacement = NULL) {
 #' @export 
 intranet_link <- function(https) {
   
-  # If you are on windows and the link ends with .se
-  if (grepl("^http[s]*://.*[^/]\\.se/.*", https) && Sys.info()["sysname"] == "Windows") {
-    domain <- sub("^http[s]*://(.[^/]*)/.*", "\\1", https)
-    https <- paste0("\\\\", domain, "@SSL/DavWWWRoot", sub(paste0(".*", domain, "(.*)"), "\\1", https))
+  
+  if (Sys.info()["sysname"] != "Windows") {
+    warning("This function only works on windows and for a network drive\n", call. = FALSE)
+  } else {
+    
+    # If you are on windows and a http(s) link ends with .se
+    if (stringi::stri_detect(https, regex = "^https?://.*[^/]\\.se/.*")) {
+      domain <- stringi::stri_replace(https, "$1", regex = "^https?://(.[^/]*)/.*")
+      folder <- stringi::stri_replace(https, "$1", regex = paste0(".*", domain, "(.*)"))
+      
+      https <- paste0("\\\\", domain, "@SSL/DavWWWRoot", folder)
+    }
   }
   
   https
@@ -124,6 +132,14 @@ lowercase_names <- function(x) {
   
 }
 
+#' @rdname utilities
+#' @export
+capitalize <- function(x) {
+  
+  stringi::stri_trans_totitle(x)
+  
+}
+
 # MISC -------------------------------------------------------------------------
 
 validate_path <- function(path) {
@@ -133,12 +149,12 @@ validate_path <- function(path) {
   
   } else {
     
-    if (!grepl("^(/|[A-Za-z]:|\\\\|~)", path)) {
+    if (!stringi::stri_detect(path, regex = "^(/|[A-Za-z]:|\\\\|~)")) {
       path <- normalizePath(path, "/", mustWork = FALSE)
     }
     
     # Remove trailing slashes for Windows
-    path <- sub("/$", "", path)
+    path <- stringi::stri_replace(path, "", regex = "/$")
     
   }
   

@@ -4,7 +4,7 @@ path <- system.file("tests/testthat/xlsx.xlsx", package="reporttool")
 context("Utility functions")
 test_that("path validation", {
   
-  expect_false(grepl("/$", validate_path(paste0(path, "/"))))
+  expect_false(stringi::stri_detect(validate_path(paste0(path, "/")), regex = "/$"))
   
   expect_error(validate_path(rep(path, 2)))
   expect_error(validate_path(numeric(1)))
@@ -54,5 +54,13 @@ test_that("intranet links", {
   } else {
     expect_identical(x, x)
   }
+  
+})
+
+test_that("rt_defaults return expected results", {
+  
+  expect_identical(rt_defaults("ggc"), cfg$ggcolors)
+  expect_identical(rt_defaults("latent_n"), cfg$latent_names)
+  expect_identical(rt_defaults("latent"), cfg[c("latent_names", "latent_association")])
   
 })
