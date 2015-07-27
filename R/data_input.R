@@ -104,10 +104,6 @@ read_data <- function(file, sheet = NULL, codebook = FALSE, encoding = "UTF-8") 
 
 read_spss <- function(file, codebook) {
   
-  if (!has_extension(file, "sav")) {
-    stop("The specified path does not direct to a 'sav' file:\n", file, call. = FALSE)
-  }
-  
   df <- haven::read_sav(file)
   
   # Extract label before converting from labelled
@@ -167,10 +163,6 @@ read_spss <- function(file, codebook) {
 
 read_rdata <- function(file) {
   
-  if (!has_extension(file, "rdata")) {
-    stop("The specified path does not direct to a 'rdata' file:\n", file, call. = FALSE)
-  }
-  
   # Create an empty environment to load the rdata
   lst <- new.env(parent = emptyenv())
   load(file, envir = lst)
@@ -188,10 +180,6 @@ read_rdata <- function(file) {
 }
 
 read_txt <- function(file, encoding, header) {
-  
-  if (!has_extension(file, "txt")) {
-    stop("The specified path does not direct to a 'txt' file:\n", file, call. = FALSE)
-  }
   
   args <- list(file = file, 
                header = header,
@@ -214,10 +202,6 @@ read_txt <- function(file, encoding, header) {
 }
 
 read_csv <- function(file, encoding) {
-  
-  if (!has_extension(file, "csv")) {
-    stop("The specified path does not direct to a 'csv' file:\n", file, call. = FALSE)
-  }
   
   args <- list(file = file,
                fileEncoding = encoding,
@@ -247,12 +231,8 @@ read_csv <- function(file, encoding) {
 
 read_xlsx <- function(file, sheet) {
   
-  if(!has_extension(file, "xlsx")) {
-    stop("The specified path does not direct to a 'xlsx' file:\n", file, call. = FALSE)
-  }
-  
   # Get the sheetnames to be read
-  wb <- get_sheet_names(file)
+  wb <- openxlsx::getSheetNames(file)
   
   if (!is.null(sheet)) {
     sheet <- wb[tolower(wb) %in% tolower(sheet)]

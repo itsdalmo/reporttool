@@ -19,7 +19,7 @@ Imports:
   plspm,
   rmarkdown,
   scales,
-  stringr,
+  stringi (>= 0.5-5),
   tools,
   utils
 Suggests: 

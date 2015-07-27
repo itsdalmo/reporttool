@@ -4,12 +4,14 @@
 \alias{get_questionnaire}
 \title{Get a questionnaire with exchanged placeholders}
 \usage{
-get_questionnaire(file, study = "District Heating", entity = NULL)
+get_questionnaire(file, study = "Banking", segment = "B2C", entity = NULL)
 }
 \arguments{
 \item{file}{Path to the master questionnaire}
 
 \item{study}{The study to extract and replace values for.}
+
+\item{segment}{Business to consumer/business.}
 
 \item{entity}{Optional: Replace {XX} in the questionnaire with whatever you
 specify.}

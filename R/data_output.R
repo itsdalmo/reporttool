@@ -3,7 +3,7 @@
 #' Wrapper for writing to windows/OSX clipboards with the most-used defaults for a
 #' scandinavian locale.
 #'
-#' @param df The data to write.
+#' @param x The data or text to write.
 #' @param encoding The encoding to use when writing.
 #' @author Kristian D. Olsen
 #' @note This function only works on Windows or OSX, and the data-size cannot 
@@ -12,11 +12,11 @@
 #' @examples 
 #' x %>% to_clipboard()
 
-to_clipboard <- function(df, encoding = "") {
+to_clipboard <- function(x, encoding = "") {
   
   if ((Sys.info()["sysname"] == "Windows")) {
     file <- "clipboard-128"
-    if (object.size(df) > 120000) {
+    if (object.size(x) > 120000) {
       stop("The data is too large to write to windows clipboard", call. = FALSE)
     }
   } else if (Sys.info()["sysname"] == "Darwin") {
@@ -26,17 +26,17 @@ to_clipboard <- function(df, encoding = "") {
     stop("Writing to clipboard is supported only in Windows or OSX")
   }
   
-  if (is.character(df)) {
-    writeLines(df, file)
+  if (is.character(x)) {
+    writeLines(x, file)
   } else {
     
-    if (inherits(df, "data.frame")) {
+    if (inherits(x, "data.frame")) {
       cols <- TRUE
     } else {
       cols <- FALSE
     }
     
-    utils::write.table(x = df,
+    utils::write.table(x = x,
                        file = file,
                        sep = "\t",
                        na = "",

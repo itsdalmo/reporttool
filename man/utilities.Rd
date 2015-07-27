@@ -3,7 +3,6 @@
 \name{rt_defaults}
 \alias{Utilities}
 \alias{clean_score}
-\alias{get_sheet_names}
 \alias{intranet_link}
 \alias{lowercase_names}
 \alias{ordered_replace}
@@ -22,8 +21,6 @@ rescale_score(var)
 
 ordered_replace(x, match_by, replacement = NULL)
 
-get_sheet_names(file)
-
 intranet_link(https)
 
 lowercase_names(x)
@@ -40,11 +37,6 @@ A few wrappers to make a common tasks less verbose.
 
    \item{\code{intranet_link}}{Converts any http(s) link with a .se domain
    to a link for a network drive (sharepoint) on windows.}
-
-   \item{\code{get_sheet_names}}{Takes the path to a .xlsx file and returns
-   the sheetnames in the file if any sheets exist. Quicker than using
-   openxlsx::loadWorkbook() and names() when you do not need to preserve
-   styling/formatting.}
 
    \item{\code{ordered_replace}}{Replace \code{x} with \code{replacement} where \code{x}
    matches \code{match_by}. Matches and replacements retain the original order of

@@ -2,7 +2,7 @@
 path <- system.file("tests/testthat/xlsx.xlsx", package="reporttool")
 
 context("Utility functions")
-test_that("path validation is working", {
+test_that("path validation", {
   
   expect_false(grepl("/$", validate_path(paste0(path, "/"))))
   
@@ -11,14 +11,14 @@ test_that("path validation is working", {
   
 })
 
-test_that("clean scores works", {
+test_that("clean scores", {
   
   expect_true(clean_score("1 aa") == "1")
   expect_identical(clean_score(c("1 aa", "bb 1", "10 cc")), c("1", "bb 1", "10"))
   
 })
 
-test_that("cleaning and rescaling scores works", {
+test_that("cleaning and rescaling scores", {
   
   expect_true(clean_score("1 aa") == "1")
   expect_identical(clean_score(c("1 aa", "bb 1", "10 cc")), c("1", "bb 1", "10"))
@@ -26,13 +26,13 @@ test_that("cleaning and rescaling scores works", {
   
 })
 
-test_that("extracting sheetnames from xlsx works", {
+test_that("extracting sheetnames from xlsx", {
   
-  expect_identical(get_sheet_names("xlsx.xlsx"), "xlsx")
+  expect_identical(openxlsx::getSheetNames("xlsx.xlsx"), "xlsx")
   
 })
 
-test_that("ordered replace works", {
+test_that("ordered replace", {
 
   x <- c("a", "b", "c", "d")
   y <- c("data", "measurement model", "entities")
@@ -44,7 +44,7 @@ test_that("ordered replace works", {
   
 })
 
-test_that("intranet links work", {
+test_that("intranet links", {
   
   x <- "https://test.se/Sharepoint/Folder"
   x_w <- "\\\\test.se@SSL/DavWWWRoot/Sharepoint/Folder"

@@ -11,11 +11,6 @@
 #'    \item{\code{intranet_link}}{Converts any http(s) link with a .se domain
 #'    to a link for a network drive (sharepoint) on windows.}  
 #' 
-#'    \item{\code{get_sheet_names}}{Takes the path to a .xlsx file and returns
-#'    the sheetnames in the file if any sheets exist. Quicker than using
-#'    openxlsx::loadWorkbook() and names() when you do not need to preserve
-#'    styling/formatting.}  
-#' 
 #'    \item{\code{ordered_replace}}{Replace \code{x} with \code{replacement} where \code{x}
 #'    matches \code{match_by}. Matches and replacements retain the original order of
 #'    \code{x}.} 
@@ -63,7 +58,7 @@ set_missing <- function(df, na.strings = cfg$missing_values) {
 #' @rdname utilities
 #' @export
 clean_score <- function(var) {
-  gsub("([0-9]+).*$", "\\1", var)
+  stringi::stri_replace(var, replacement = "$1", regex = "([0-1]+).*$")
 }
 
 #' @rdname utilities
@@ -103,36 +98,6 @@ ordered_replace <- function(x, match_by, replacement = NULL) {
   
 }
 
-#  Copied from sourcecode
-#' @rdname utilities
-#' @export 
-get_sheet_names <- function(file) {
-  
-  xmlDir <- file.path(tempdir(), "_excelXMLRead")
-  xmlFiles <- utils::unzip(file, exdir = xmlDir)
-  
-  on.exit(unlink(xmlDir, recursive = TRUE), add = TRUE)
-  
-  worksheets <- xmlFiles[grepl("/worksheets/sheet[0-9]", xmlFiles, perl = TRUE)]
-  workbook <- xmlFiles[grepl("workbook.xml$", xmlFiles, perl = TRUE)]
-  
-  if(length(worksheets) == 0) {
-    stop("Workbook has no worksheets")
-  }
-
-  ## get workbook names
-  workbook <- unlist(readLines(workbook, warn = FALSE, encoding = "UTF-8"))
-  sheets <- unlist(regmatches(workbook, gregexpr("<sheet .*/sheets>", workbook, perl = TRUE)))
-  
-  ## make sure sheetId is 1 based
-  sheetrId <- as.integer(unlist(regmatches(sheets, gregexpr('(?<=r:id="rId)[0-9]+', sheets, perl = TRUE)))) 
-  sheetrId <- sheetrId - min(sheetrId) + 1L
-  
-  sheets <- unlist(regmatches(sheets, gregexpr('(?<=name=")[^"]+', sheets, perl = TRUE)))
-  
-  return(sheets)
-}
-
 #' @rdname utilities
 #' @export 
 intranet_link <- function(https) {
@@ -161,26 +126,25 @@ lowercase_names <- function(x) {
 
 # MISC -------------------------------------------------------------------------
 
-isFALSE <- function(x) identical(x, FALSE)
-
 validate_path <- function(path) {
   
   if (!all(is.character(path), length(path) == 1L)) {
     stop("Path is not in valid format (character(1)):\n", path, call. = FALSE)
-  }
   
-  if (!grepl("^(/|[A-Za-z]:|\\\\|~)", path)) {
-    path <- normalizePath(path, "/", mustWork = FALSE)
+  } else {
+    
+    if (!grepl("^(/|[A-Za-z]:|\\\\|~)", path)) {
+      path <- normalizePath(path, "/", mustWork = FALSE)
+    }
+    
+    # Remove trailing slashes for Windows
+    path <- sub("/$", "", path)
+    
   }
-  
-  # Remove trailing slashes for Windows-users
-  path <- sub("/$", "", path)
   
   path
   
 }
 
-has_extension <- function(path, ext) {
-  identical(tolower(tools::file_ext(path)), ext)
-}
+isFALSE <- function(x) identical(x, FALSE)
 

@@ -4,10 +4,10 @@
 \alias{to_clipboard}
 \title{Write to Windows/OSX clipboard}
 \usage{
-to_clipboard(df, encoding = "")
+to_clipboard(x, encoding = "")
 }
 \arguments{
-\item{df}{The data to write.}
+\item{x}{The data or text to write.}
 
 \item{encoding}{The encoding to use when writing.}
 }
