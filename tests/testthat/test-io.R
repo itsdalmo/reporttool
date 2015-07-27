@@ -13,10 +13,37 @@ test_that("Read/write single-sheet-xlsx works (clean missing and lowercase names
   fileName <- file.path(tempdir(), "xlsx.xlsx")
   write_data(xlsx, fileName)
   
-  # Read data again (convert to character, openxlsx problem)
+  # Read data again
   w_xlsx <- read_data(fileName)
   
   expect_identical(w_xlsx, xlsx)
+  
+  unlink(fileName, recursive = TRUE, force = TRUE)
+  
+})
+
+test_that("Writing tables to xlsx with to_sheet works:" , {
+  
+  # Read
+  xlsx <- read_data("xlsx.xlsx")
+  
+  # Create workbook
+  fileName <- file.path(tempdir(), "xlsx.xlsx")
+  wb <- openxlsx::createWorkbook()
+  
+  # Add table and save
+  to_sheet(xlsx, wb, title = "Table", sheet = "analysis")
+  openxlsx::saveWorkbook(wb, fileName)
+  
+  # Read data again
+  w_xlsx <- read_data(fileName)
+  
+  # Mutate to match
+  names(w_xlsx) <- tolower(w_xlsx[1, ])
+  w_xlsx <- w_xlsx[2:4, ]
+  row.names(w_xlsx) <- 1:3
+  
+  expect_equal(w_xlsx, xlsx)
   
   unlink(fileName, recursive = TRUE, force = TRUE)
   
@@ -111,6 +138,12 @@ test_that("Read/write .Rdata works and returns expected result", {
   rdata <- read_data("rdata.Rdata")
   w_rdata <- read_data(fileName)
   
+  # TODO: String encoding problems
+  if ((Sys.info()["sysname"] == "Windows")) {
+    Encoding(rdata$score) <- "UTF-8"
+    Encoding(rdata$string) <- "UTF-8"
+  }
+
   expect_identical(w_rdata, csv2)
   expect_identical(w_rdata, rdata)
   expect_identical(names(w_rdata), tolower(names(w_rdata)))
