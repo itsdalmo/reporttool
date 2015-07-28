@@ -22,7 +22,10 @@ Imports:
   stringi (>= 0.5-5),
   tools,
   utils
-Suggests: 
+Suggests:
+  dplyr,
   gridExtra,
-  testthat
+  lubridate,
+  testthat,
+  tidyr
 
