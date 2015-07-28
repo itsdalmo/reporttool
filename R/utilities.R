@@ -132,14 +132,6 @@ lowercase_names <- function(x) {
   
 }
 
-#' @rdname utilities
-#' @export
-capitalize <- function(x) {
-  
-  stringi::stri_trans_totitle(x)
-  
-}
-
 # MISC -------------------------------------------------------------------------
 
 validate_path <- function(path) {

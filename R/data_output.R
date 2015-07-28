@@ -109,7 +109,7 @@ to_sheet <- function(df, wb, title = "Table", sheet = "analysis", row = 1L,
     # When styling the title must be written first (and convert df names to titles)
     if (isTRUE(format_style)) {
       openxlsx::writeData(wb, sheet, title, startRow = row)
-      names(df) <- capitalize(names(df))
+      names(df) <- stringi::stri_trans_totitle(names(df))
       table_row <- row + 1
     } else {
       table_row <- row
