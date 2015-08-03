@@ -5,6 +5,7 @@
 #' @section List of utilities:
 #' 
 #' \describe{
+#' 
 #'    \item{\code{rt_defaults}}{Get default settings from the reporttool package.
 #'    \code{x} is a search-string which is not case sensitive.}
 #' 
