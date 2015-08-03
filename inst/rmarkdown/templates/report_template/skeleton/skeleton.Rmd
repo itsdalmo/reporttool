@@ -83,14 +83,13 @@ open_answer <- "open_answer" %in% str_to_lower(mm$latent)
 
 ```{r, error=FALSE, results='hide'}
 # Convert date columns and get collection dates --------------------------------
-df %<>% mutate_each(funs(dt = convertToDateTime(as.numeric(.))), start_date, end_date) %>%
-        mutate_each(funs(dt = ymd_hms(.)), start_date, end_date)
+df %<>% mutate_each(funs(as.POSIXct(., format = "%m/%d/%Y %H:%M:%S")), startdate, enddate)
 
 survey <- df %>% 
           filter(mainentity == entity) %>%
-          summarise(start = format(min(start_date, na.rm=TRUE), "%e. %b. %Y"),
-                    end = format(max(start_date, na.rm=TRUE), "%e. %b. %Y"),
-                    time = min(start_date, na.rm=TRUE)) %>%
+          summarise(start = format(min(startdate, na.rm=TRUE), "%e. %b. %Y"),
+                    end = format(max(startdate, na.rm=TRUE), "%e. %b. %Y"),
+                    time = min(startdate, na.rm=TRUE)) %>%
           mutate(month = format(time, "%m"), year = format(time, "%Y")) %>% 
           mutate(period = str_c(ifelse(month <= 6, 
                                 cf$replacement[cf$original == "spring"], 
@@ -98,6 +97,10 @@ survey <- df %>%
                                 year), sep = " ")
 
 # Response information ---------------------------------------------------------
+if (!"percent_missing" %in% names(df) && "andel_missing" %in% names(df)) {
+  df$percent_missing <- df$andel_missing
+}
+
 respondents <- df %>%
                filter(mainentity == entity) %>%
                mutate(total = n()) %>%
@@ -131,17 +134,15 @@ lat_info <- mm %>%
 # Forord
 ## Gjennomføring
 
-- Målgruppen for denne undersøkelsen er foreldre med barn i `r entity`.
+- Målgruppen for denne undersøkelsen er kunder av `r entity`.
 - Svarene er avgitt på web i perioden `r survey$start` til `r survey$end`, og er gjort via Research.net[^1].
 - Respondentene (de som er invitert til å delta) kan potensielt motta 3 e-poster - hvorav den første er en standard utsendelse, samt 2 påminnelser til de som ikke svarte på den første utsendelsen og evt. den første påminnelsen.
 - Av de `r respondents$total` inviterte har totalt `r respondents$valid` svart (`r str_c(respondents$valid_percent, "%")`). 
 `r if (subentities) str_c("- ", "Svarprosent per ", str_to_lower(cf$replacement[cf$original == "subentity"]), ": ", str_c(valid_sub$res, collapse = ", "))`
-- Det er hentet inn svar på `r lat_info$model` spørsmål som bygger opp under hovedanalysen. I tillegg til dette så har det vært stilt inntil `r lat_info$total-lat_info$model` spørsmål som bidrar med ytterligere innsikt i forhold til kundeopplevelsen (totalt `r lat_info$total`). 
-- Tilsvarende studier gjennomføres ved en rekke andre norske barnehager.
+- Det er hentet inn svar på `r lat_info$model` spørsmål som bygger opp under hovedanalysen, samt enkelte bakgrunnsspørsmål som bidrar med ytterligere innsikt i forhold til kundeopplevelsen. 
 - Alle resultatene som presenteres i denne rapporten er overlevert for bruk ved `r entity`.
-- Du står selv fritt til å dele resultatene med andre.
-- I motsetning til de nasjonale studiene så vil ikke resultatene fra den enkelte barnehage bli publisert i det offentlige rom av EPSI. 
-- EPSIs nasjonale studie av offentlige tjenester (inkl. private og kommunale barnehager) er en separat studie, og resultatene som formidles via EPSIs hjemmesider[^2] kan fritt siteres. Enkelte resultater fra den nasjonale studien (snitt nasjonal) er inkludert i denne rapporten.
+- Resultatene fra denne undersøkelsen vil ikke publiseres i det offentlige rom av EPSI. Dere står selv fritt til å dele resultatene med andre.
+- Se EPSIS hjemmesider[^2] for våre publiserte undersøkelser.
 
 [^1]: [http://surveymonkey.com](http://surveymonkey.com)
 [^2]: [http://epsi-norway.org](http://epsi-norway.org)
@@ -150,37 +151,37 @@ lat_info <- mm %>%
 ## Skala og svar
 
 
-- Indeksen for kundetilfredshet presenteres som en verdi mellom 0 og 100, og er det sentrale målet i disse målingene. Dette er en indeksverdi, ikke en prosentverdi. Jo høyere verdi desto bedre anser kundene at banken oppfyller deres krav og forventninger. 
+- Indeksen for kundetilfredshet presenteres som en verdi mellom 0 og 100, og er det sentrale målet i disse målingene. Dette er en indeksverdi, ikke en prosentverdi. Jo høyere verdi desto bedre anser kundene at leverandøren oppfyller deres krav og forventninger. 
 - Spørsmålene svares på en skala fra 1 til 10, hvor 1 betyr "helt uenig" eller "veldig misfornøyd" og hvor 10 betyr "helt enig" eller "veldig fornøyd".
 - Resultatene gjøres i etterkant om til en 100-punkts skala.
 
 - Som en generell regel kan man si at:
     - Målinger under 60 er lavt/veldig lavt (vanskeligheter med å motivere kundene til å bli).
     - Målinger fra 60 - 75 er gjennomsnittlig  
-    - Målinger over 75 anses som høyt/veldig høyt (peker på en sterk relasjon mellom bankkontoret og kundene).  
+    - Målinger over 75 anses som høyt/veldig høyt (peker på en sterk relasjon mellom kundene og leverandøren).  
 
 - Som en tommelfingerregel så er forskjeller på mer enn 3 poeng signifikante. Dette innebærer at man med en viss grad av sikkerhet kan si at forskjellen mellom to indeksverdier er for stor til å være tilfeldig. 
 - Se www.epsi-norway.org for mer informasjon om metode og modell, eller om EPSI for øvrig.
 
 ## Aspekter i EPSI modellen
 
-- **`r cf$replacement[str_to_lower(cf$original) == "image"]`** (`r mm$manifest[str_to_lower(mm$latent) %in% "image"]`)  er målt for å gi en forståelse av hvordan respondentene oppfatter at `r entity` vurderes av andre som har kjennskap til barnehagen. 
+- **`r cf$replacement[str_to_lower(cf$original) == "image"]`** (`r mm$manifest[str_to_lower(mm$latent) %in% "image"]`)  er målt for å gi en forståelse av respondentenes opplevelse av omdømmet til `r entity`.
 
 - **`r cf$replacement[str_to_lower(cf$original) == "expect"]`** (`r mm$manifest[str_to_lower(mm$latent) %in% "expect"]`) er et mål på hva respondentene forventer å få ut av kundeforholdet.
 
 - **`r cf$replacement[str_to_lower(cf$original) == "prodq"]`** (`r mm$manifest[str_to_lower(mm$latent) %in% "prodq"]`) fanger respondentens opplevelse av tjeneste- og produkttilbudet.
 
-- **`r cf$replacement[str_to_lower(cf$original) == "servq"]`** (`r mm$manifest[str_to_lower(mm$latent) %in% "servq"]`) har fokus på forholdet mellom respondentene og de ansatte når det gjelder opplevelsen av service og det mer mellommenneskelige.
+- **`r cf$replacement[str_to_lower(cf$original) == "servq"]`** (`r mm$manifest[str_to_lower(mm$latent) %in% "servq"]`) har fokus på forholdet mellom respondentene og de ansatte hos leverandøren når det gjelder opplevelsen av service og det mer mellommenneskelige.
 
 - **`r cf$replacement[str_to_lower(cf$original) == "value"]`** (`r mm$manifest[str_to_lower(mm$latent) %in% "value"]`) er utformet for å fange opp forholdet mellom hva som er oppnådd (levert) og prisen / kostnaden for å få dette, sett fra respondentenes ståsted. 
 
-- **`r cf$replacement[str_to_lower(cf$original) == "epsi"]`** (KTI) er det sentrale målet i modellen, og reflekterer hvorvidt kundene opplever at deres krav og forventninger blir oppfylt. Resultatet for barnehagen beregnes på bakgrunn av `r length(mm$manifest[str_to_lower(mm$latent) %in% "epsi"])` spørsmål (`r mm$manifest[str_to_lower(mm$latent) %in% "epsi"]`).
+- **`r cf$replacement[str_to_lower(cf$original) == "epsi"]`** (KTI) er det sentrale målet i modellen, og reflekterer hvorvidt kundene opplever at deres krav og forventninger blir oppfylt. Resultatet for selskapet beregnes på bakgrunn av `r length(mm$manifest[str_to_lower(mm$latent) %in% "epsi"])` spørsmål (`r mm$manifest[str_to_lower(mm$latent) %in% "epsi"]`).
 
-- **`r cf$replacement[str_to_lower(cf$original) == "loyal"]`** (`r mm$manifest[str_to_lower(mm$latent) %in% "loyal"]`) måler eksempelvis hvorvidt respondenten ville valgt samme barnehage dersom vedkommende måtte velge på nytt. Forskning viser at lojalitet i stor grad er påvirket av kundetilfredsheten.
+- **`r cf$replacement[str_to_lower(cf$original) == "loyal"]`** (`r mm$manifest[str_to_lower(mm$latent) %in% "loyal"]`) måler eksempelvis hvorvidt respondenten ville valgt samme leverandør dersom vedkommende måtte velge på nytt. Forskning viser at lojalitet i stor grad er påvirket av kundetilfredsheten.
 
-- Generelt så er det viktig med en balanse mellom forventninger og opplevd kvalitet (selve leveransen). Med andre ord, dersom gapet mellom hva kundene forventer og hvordan de opplever kvaliteten (negativt gap) blir for stor så vil det ha negativ betydning på tilfredsheten med barnehagen.
+- Generelt så er det viktig med en balanse mellom forventninger og opplevd kvalitet (selve leveransen). Med andre ord, dersom gapet mellom hva kundene forventer og hvordan de opplever kvaliteten (negativt gap) blir for stor så vil det ha negativ betydning på tilfredsheten med selskapet.
 
-- **NB**: I spørsmålsteksten er EB benyttet som en plassholder. Da respondentene svarte på undersøkelsen ble dette feltet byttet ut med navnet på barnehagen (altså `r entity`).
+- **NB**: I spørsmålsteksten er {XX} benyttet som en plassholder. Da respondentene svarte på undersøkelsen ble dette feltet byttet ut med navnet på selskapet (altså `r entity`).
 
 
 # Kundeprofil for `r entity`
@@ -848,7 +849,7 @@ p + geom_bar(stat="identity", width=0.5, position=position_dodge(width=0.6)) +
 
 ```{r, eval=complaint}
 # Frametitle -------------------------------------------------------------------
-cat("##", mm$question[mm$latent %in% c("open_complaint", "open_wouldcomplain")][1], "\n", sep=" ")
+frametitle <- cat("##", mm$question[mm$latent %in% c("open_complaint", "open_wouldcomplain")][1], "\n", sep=" ")
 
 # Variable ---------------------------------------------------------------------
 mvar <- mm$manifest[mm$latent %in% c("open_complaint", "open_wouldcomplain")]
@@ -856,9 +857,9 @@ mvar <- mm$manifest[mm$latent %in% c("open_complaint", "open_wouldcomplain")]
 pd <- df %>%
       select(mainentity, one_of(str_to_lower(mvar))) %>%
       gather(var, answers, -mainentity) %>%
-      filter(mainentity == entity & !is.na(answer)) %>%
+      filter(mainentity == entity & !is.na(answers)) %>%
       mutate(answers = str_replace(answers, "^[ [:punct:]]*", "")) %>%
-      mutate(answers = str_c("-", answers)) %>%
+      mutate(answers = str_c("- ", answers)) %>%
       mutate(nchars = str_length(answers), nlines = ceiling(nchars/135), tlines = cumsum(nlines)) %>%
       mutate(page = ifelse(tlines <= 23, 1, ifelse(tlines <= 46 & tlines > 23, 2, 3)))
 
@@ -873,12 +874,12 @@ if (nrow(pd) == 0) {
   cat(frametitle, "Se vedlagt regneark i Excel format.", sep="\n")
   pd %>% mutate(answers = str_replace(answers, "^- ", "")) %>%
          select("Svar" = answers) %>%
-         to_sheet(wb, title = frametitle, sheet = "Klaget")
+         to_sheet(wb, title = frametitle, sheet = "Klager")
   
   # Print the results ----------------------------------------------------------
   } else {
 
-  for (i in unique(pd$page)) { cat(frametitle, pd$complaint[pd$page == i], "\n", sep="\n") }
+  for (i in unique(pd$page)) { cat(frametitle, pd$answers[pd$page == i], "\n", sep="\n") }
   
   }
 
@@ -898,9 +899,9 @@ mvar <- mm$manifest[mm$latent %in% "open_answer"]
 pd <- df %>%
       select(mainentity, one_of(str_to_lower(mvar))) %>%
       gather(var, answers, -mainentity) %>%
-      filter(mainentity == entity & !is.na(answer)) %>%
+      filter(mainentity == entity & !is.na(answers)) %>%
       mutate(answers = str_replace(answers, "^[ [:punct:]]*", "")) %>%
-      mutate(answers = str_c("-", answers)) %>%
+      mutate(answers = str_c("- ", answers)) %>%
       mutate(nchars = str_length(answers), nlines = ceiling(nchars/135), tlines = cumsum(nlines)) %>%
       mutate(page = ifelse(tlines <= 23, 1, ifelse(tlines <= 46 & tlines > 23, 2, 3)))
 
@@ -920,7 +921,7 @@ if (nrow(pd) == 0) {
   # Print the results ----------------------------------------------------------
   } else {
 
-  for (i in unique(pd$page)) { cat(frametitle, pd$complaint[pd$page == i], "\n", sep="\n") }
+  for (i in unique(pd$page)) { cat(frametitle, pd$answers[pd$page == i], "\n", sep="\n") }
   
   }
 
@@ -938,9 +939,9 @@ mvar <- mm$manifest[mm$latent %in% "oa_positive"]
 pd <- df %>%
       select(mainentity, one_of(str_to_lower(mvar))) %>%
       gather(var, answers, -mainentity) %>%
-      filter(mainentity == entity & !is.na(answer)) %>%
+      filter(mainentity == entity & !is.na(answers)) %>%
       mutate(answers = str_replace(answers, "^[ [:punct:]]*", "")) %>%
-      mutate(answers = str_c("-", answers)) %>%
+      mutate(answers = str_c("- ", answers)) %>%
       mutate(nchars = str_length(answers), nlines = ceiling(nchars/135), tlines = cumsum(nlines)) %>%
       mutate(page = ifelse(tlines <= 23, 1, ifelse(tlines <= 46 & tlines > 23, 2, 3)))
 
@@ -960,7 +961,7 @@ if (nrow(pd) == 0) {
   # Print the results ----------------------------------------------------------
   } else {
 
-  for (i in unique(pd$page)) { cat(frametitle, pd$complaint[pd$page == i], "\n", sep="\n") }
+  for (i in unique(pd$page)) { cat(frametitle, pd$answers[pd$page == i], "\n", sep="\n") }
   
   }
 
@@ -978,9 +979,9 @@ mvar <- mm$manifest[mm$latent %in% "oa_negative"]
 pd <- df %>%
       select(mainentity, one_of(str_to_lower(mvar))) %>%
       gather(var, answers, -mainentity) %>%
-      filter(mainentity == entity & !is.na(answer)) %>%
+      filter(mainentity == entity & !is.na(answers)) %>%
       mutate(answers = str_replace(answers, "^[ [:punct:]]*", "")) %>%
-      mutate(answers = str_c("-", answers)) %>%
+      mutate(answers = str_c("- ", answers)) %>%
       mutate(nchars = str_length(answers), nlines = ceiling(nchars/135), tlines = cumsum(nlines)) %>%
       mutate(page = ifelse(tlines <= 23, 1, ifelse(tlines <= 46 & tlines > 23, 2, 3)))
 
@@ -1000,7 +1001,7 @@ if (nrow(pd) == 0) {
   # Print the results ----------------------------------------------------------
   } else {
 
-  for (i in unique(pd$page)) { cat(frametitle, pd$complaint[pd$page == i], "\n", sep="\n") }
+  for (i in unique(pd$page)) { cat(frametitle, pd$answers[pd$page == i], "\n", sep="\n") }
   
   }
 
