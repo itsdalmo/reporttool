@@ -22,7 +22,6 @@ suppressMessages(require(openxlsx))
 suppressMessages(require(dplyr))
 suppressMessages(require(tidyr))
 suppressMessages(require(magrittr))
-suppressMessages(require(lubridate))
 
 # Plotting
 suppressMessages(require(ggplot2))
