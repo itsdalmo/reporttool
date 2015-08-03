@@ -25,7 +25,6 @@ Imports:
 Suggests:
   dplyr,
   gridExtra,
-  lubridate,
   testthat,
   tidyr
 
