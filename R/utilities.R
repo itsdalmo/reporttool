@@ -50,7 +50,7 @@ set_missing <- function(df, na.strings = cfg$missing_values) {
   
   if (all(!is.null(df), nrow(df) > 0L)) {
     df <- lapply(df, function(x) ifelse(x %in% na.strings, NA_character_, x))
-    df <- as.data.frame(df, stringsAsFactors=FALSE)
+    df <- as.data.frame(df, stringsAsFactors = FALSE)
   }
   
   return(df)
@@ -130,6 +130,22 @@ lowercase_names <- function(x) {
   }
   
   x
+  
+}
+
+#' @rdname utilities
+#' @export
+scaffold_df <- function(names) {
+  
+  n <- length(names)
+  
+  # Create a list with the columns
+  df <- vector("list", n)
+  names(df) <- names
+  class(df) <- "data.frame"
+  
+  # Return
+  df
   
 }
 

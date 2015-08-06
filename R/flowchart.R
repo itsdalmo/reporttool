@@ -23,15 +23,15 @@ flowchart.survey <- function(survey) {
 flowchart.default <- function(scores, weights, latents = rt_defaults("latent_names")) {
   
   # Defaults
-  width <- 0.080; height <- 0.050
+  width <- 0.80; height <- 0.50
   palette <- rt_defaults("ggcolors")
   coords <- flowchart_coords
   
   # Create plot
-  p <- ggplot(xmin = 0, xmax = 1, ymin = 0, ymax = 1)
+  p <- ggplot(xmin = 0, xmax = 10, ymin = 0, ymax = 10)
   
   # Set limits and add theme
-  p <- p + xlim(0, 1) + ylim(0, 1) + plot_theme() + theme(panel.grid = element_blank(),
+  p <- p + xlim(0, 10) + ylim(0, 10) + plot_theme() + theme(panel.grid = element_blank(),
                                                           axis.text = element_blank())
   
   # Draw lines
@@ -58,8 +58,8 @@ flowchart.default <- function(scores, weights, latents = rt_defaults("latent_nam
   
   
   # Plot rectangles and text
-  p <- p + geom_rect(aes_q(xmin = coords$boxes$x - width, xmax = coords$boxes$x + width, 
-                         ymin = coords$boxes$y - height, ymax = coords$boxes$y + height), fill = palette[2])
+  p <- p + geom_rect(aes_q(xmin = coords$boxes$x - width, xmax = coords$boxes$x + width,
+                           ymin = coords$boxes$y - height, ymax = coords$boxes$y + height), fill = palette[2])
   
   # Label rectangles
   p <- p + geom_text(aes_q(label = latents, x = coords$boxes$x, y = coords$boxes$y), 
@@ -80,76 +80,76 @@ flowchart_coords <- list(
   
   "boxes" = list(
     
-    "x" = c(0.150, 0.150, 0.150, 0.150, 0.400, 0.650, 0.900),
-    "y" = c(0.900, 0.660, 0.410, 0.160, 0.610, 0.610, 0.610)),
+    "x" = c(1.50, 1.50, 1.50, 1.50, 4.00, 6.50, 9.00),
+    "y" = c(9.00, 6.60, 4.10, 1.60, 6.10, 6.10, 6.10)),
   
   "lines" = list(
     
-    "x" = list(c(0.070, 0.018), c(0.070, 0.000), c(0.018, 0.018), c(0.000, 0.000)),
-    "y" = list(c(0.900, 0.900), c(0.660, 0.660), c(0.900, 0.150), c(0.660, 0.1750))),
+    "x" = list(c(0.70, 0.18), c(0.70, 0.00), c(0.18, 0.18), c(0.00, 0.00)),
+    "y" = list(c(9.00, 9.00), c(6.60, 6.60), c(9.00, 1.50), c(6.60, 1.75))),
   
   "weights" = list(
     
-    "x" = c("image_expect"   = 0.175,
-            "image_prodq"    = 0.050,
-            "image_servq"    = 0.050,
-            "expect_prodq"   = 0.175,
-            "expect_servq"   = 0.050,
-            "prodq_servq"    = 0.175,
-            "prodq_value"    = 0.360,
-            "servq_value"    = 0.265,
-            "image_epsi"     = 0.490,
-            "prodq_epsi"     = 0.490,
-            "servq_epsi"     = 0.490,
-            "value_epsi"     = 0.525,
-            "epsi_loyal"     = 0.775
+    "x" = c("image_expect"   = 1.75,
+            "image_prodq"    = 0.50,
+            "image_servq"    = 0.50,
+            "expect_prodq"   = 1.75,
+            "expect_servq"   = 0.50,
+            "prodq_servq"    = 1.75,
+            "prodq_value"    = 3.60,
+            "servq_value"    = 2.65,
+            "image_epsi"     = 4.90,
+            "prodq_epsi"     = 4.90,
+            "servq_epsi"     = 4.90,
+            "value_epsi"     = 5.25,
+            "epsi_loyal"     = 7.75
     ),
     
-    "y" = c("image_expect"   = 0.780,
-            "image_prodq"    = 0.435,
-            "image_servq"    = 0.130,
-            "expect_prodq"   = 0.535,
-            "expect_servq"   = 0.191,
-            "prodq_servq"    = 0.285,
-            "prodq_value"    = 0.400,
-            "servq_value"    = 0.540,
-            "image_epsi"     = 0.780,
-            "prodq_epsi"     = 0.520,
-            "servq_epsi"     = 0.375,
-            "value_epsi"     = 0.630,
-            "epsi_loyal"     = 0.630
+    "y" = c("image_expect"   = 7.80,
+            "image_prodq"    = 4.35,
+            "image_servq"    = 1.30,
+            "expect_prodq"   = 5.35,
+            "expect_servq"   = 1.91,
+            "prodq_servq"    = 2.85,
+            "prodq_value"    = 4.00,
+            "servq_value"    = 5.40,
+            "image_epsi"     = 7.80,
+            "prodq_epsi"     = 5.20,
+            "servq_epsi"     = 3.75,
+            "value_epsi"     = 6.30,
+            "epsi_loyal"     = 6.30
     )), 
   
   "arrows" = list(
     
-    "x" = list("image_expect"   = c(0.150, 0.150),
-               "image_prodq"    = c(0.018, 0.070),
-               "image_servq"    = c(0.018, 0.070),
-               "expect_prodq"   = c(0.150, 0.150),
-               "expect_servq"   = c(0.000, 0.070),
-               "prodq_servq"    = c(0.150, 0.150),
-               "prodq_value"    = c(0.230, 0.320),
-               "servq_value"    = c(0.230, 0.399),
-               "image_epsi"     = c(0.230, 0.649),
-               "prodq_epsi"     = c(0.230, 0.570),
-               "servq_epsi"     = c(0.230, 0.649),
-               "value_epsi"     = c(0.480, 0.570),
-               "epsi_loyal"     = c(0.730, 0.820)
+    "x" = list("image_expect"   = c(1.50, 1.50),
+               "image_prodq"    = c(0.18, 0.70),
+               "image_servq"    = c(0.18, 0.70),
+               "expect_prodq"   = c(1.50, 1.50),
+               "expect_servq"   = c(0.00, 0.70),
+               "prodq_servq"    = c(1.50, 1.50),
+               "prodq_value"    = c(2.30, 3.20),
+               "servq_value"    = c(2.30, 3.99),
+               "image_epsi"     = c(2.30, 6.49),
+               "prodq_epsi"     = c(2.30, 5.70),
+               "servq_epsi"     = c(2.30, 6.49),
+               "value_epsi"     = c(4.80, 5.70),
+               "epsi_loyal"     = c(7.30, 8.20)
     ),
     
-    "y" = list("image_expect"   = c(0.850, 0.710),
-               "image_prodq"    = c(0.410, 0.410),
-               "image_servq"    = c(0.150, 0.150),
-               "expect_prodq"   = c(0.610, 0.460),
-               "expect_servq"   = c(0.175, 0.175),
-               "prodq_servq"    = c(0.360, 0.210),
-               "prodq_value"    = c(0.410, 0.610),
-               "servq_value"    = c(0.160, 0.559),
-               "image_epsi"     = c(0.900, 0.661),
-               "prodq_epsi"     = c(0.410, 0.610),
-               "servq_epsi"     = c(0.160, 0.559),
-               "value_epsi"     = c(0.610, 0.610),
-               "epsi_loyal"     = c(0.610, 0.610)
+    "y" = list("image_expect"   = c(8.50, 7.10),
+               "image_prodq"    = c(4.10, 4.10),
+               "image_servq"    = c(1.50, 1.50),
+               "expect_prodq"   = c(6.10, 4.60),
+               "expect_servq"   = c(1.75, 1.75),
+               "prodq_servq"    = c(3.60, 2.10),
+               "prodq_value"    = c(4.10, 6.10),
+               "servq_value"    = c(1.60, 5.59),
+               "image_epsi"     = c(9.00, 6.61),
+               "prodq_epsi"     = c(4.10, 6.10),
+               "servq_epsi"     = c(1.60, 5.59),
+               "value_epsi"     = c(6.10, 6.10),
+               "epsi_loyal"     = c(6.10, 6.10)
     )) 
   
 )

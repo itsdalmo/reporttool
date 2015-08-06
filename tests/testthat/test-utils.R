@@ -2,6 +2,16 @@
 path <- system.file("tests/testthat/xlsx.xlsx", package="reporttool")
 
 context("Utility functions")
+test_that("scaffolding df's", {
+  
+  nm <- cfg$req_structure$mm
+  df <- scaffold_df(nm)
+  
+  expect_true(is.data.frame(df))
+  expect_identical(names(df), nm)
+  
+})
+
 test_that("path validation", {
   
   expect_false(stringi::stri_detect(validate_path(paste0(path, "/")), regex = "/$"))
