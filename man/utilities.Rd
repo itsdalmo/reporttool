@@ -11,7 +11,7 @@
 \alias{set_missing}
 \title{Utilities}
 \usage{
-rt_defaults(x)
+rt_defaults(string)
 
 set_missing(df, na.strings = cfg$missing_values)
 
@@ -32,6 +32,7 @@ A few wrappers to make a common tasks less verbose.
 
 
 \describe{
+
    \item{\code{rt_defaults}}{Get default settings from the reporttool package.
    \code{x} is a search-string which is not case sensitive.}
 

@@ -1,8 +1,8 @@
 #' @rdname utilities
 #' @export
-rt_defaults <- function(x) {
+rt_defaults <- function(string) {
   
-  y <- cfg[stringi::stri_detect(names(cfg), regex = x, list(case_insensitive = TRUE))]
+  y <- cfg[stringi::stri_detect(names(cfg), regex = string, list(case_insensitive = TRUE))]
   
   # Drop list if only one entry is returned
   if (length(y) == 1L) y[[1]] else y
