@@ -97,9 +97,9 @@ flowchart_coords <- list(
             "expect_prodq"   = 1.75,
             "expect_servq"   = 0.50,
             "prodq_servq"    = 1.75,
-            "prodq_value"    = 3.60,
+            "prodq_value"    = 2.65,
             "prodq_epsi"     = 4.90,
-            "servq_value"    = 2.65,
+            "servq_value"    = 3.60,
             "servq_epsi"     = 4.90,
             "value_epsi"     = 5.25,
             "epsi_loyal"     = 7.75
@@ -112,9 +112,9 @@ flowchart_coords <- list(
             "expect_prodq"   = 5.35,
             "expect_servq"   = 1.91,
             "prodq_servq"    = 2.85,
-            "prodq_value"    = 4.00,
+            "prodq_value"    = 5.40,
             "prodq_epsi"     = 5.20,
-            "servq_value"    = 5.40,
+            "servq_value"    = 4.00,
             "servq_epsi"     = 3.75,
             "value_epsi"     = 6.30,
             "epsi_loyal"     = 6.30
