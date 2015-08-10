@@ -228,7 +228,7 @@ topline <- function(df, mainentity = "q1", entity_other = "q1_open", scores = c(
 
 read_sharepoint <- function(file) {
   
-  if (!has_extension(file, "")) {
+  if (!tools::file_ext(file) == "") {
     stop("The specified path is not a directory:\n", file, call. = FALSE)
   }
   
