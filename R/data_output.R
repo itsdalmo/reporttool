@@ -79,6 +79,8 @@ to_clipboard <- function(x, encoding = "") {
 to_sheet <- function(df, wb, title = "Table", sheet = "analysis", row = 1L, 
                      format_style = TRUE, format_values = TRUE, append = TRUE) {
   
+  table_row <- row
+  
   if (!inherits(wb, "Workbook")) {
     stop("wb argument must be a (loaded) openxlsx workbook")
   }
@@ -111,8 +113,6 @@ to_sheet <- function(df, wb, title = "Table", sheet = "analysis", row = 1L,
       openxlsx::writeData(wb, sheet, title, startRow = row)
       names(df) <- stringi::stri_trans_totitle(names(df))
       table_row <- row + 1
-    } else {
-      table_row <- row
     }
 
     # Write the data.frame
