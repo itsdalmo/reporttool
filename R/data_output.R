@@ -79,8 +79,6 @@ to_clipboard <- function(x, encoding = "") {
 to_sheet <- function(df, wb, title = "Table", sheet = "analysis", row = 1L, 
                      format_style = TRUE, format_values = TRUE, append = TRUE) {
   
-  table_row <- row
-  
   if (!inherits(wb, "Workbook")) {
     stop("wb argument must be a (loaded) openxlsx workbook")
   }
@@ -102,6 +100,9 @@ to_sheet <- function(df, wb, title = "Table", sheet = "analysis", row = 1L,
   } else {
     openxlsx::addWorksheet(wb, sheetName = sheet)
   }
+  
+  # Set table_row to be the last found row
+  table_row <- row
   
   # Add data to the workbook
   if (is.null(names(df)) || identical(names(df), character(0))) {
