@@ -79,8 +79,6 @@ to_clipboard <- function(x, encoding = "") {
 to_sheet <- function(df, wb, title = "Table", sheet = "analysis", row = 1L, 
                      format_style = TRUE, format_values = TRUE, append = TRUE) {
   
-  table_row <- row
-  
   if (!inherits(wb, "Workbook")) {
     stop("wb argument must be a (loaded) openxlsx workbook")
   }
@@ -102,6 +100,9 @@ to_sheet <- function(df, wb, title = "Table", sheet = "analysis", row = 1L,
   } else {
     openxlsx::addWorksheet(wb, sheetName = sheet)
   }
+  
+  # Set table_row to be the last found row
+  table_row <- row
   
   # Add data to the workbook
   if (is.null(names(df)) || identical(names(df), character(0))) {
@@ -126,8 +127,12 @@ to_sheet <- function(df, wb, title = "Table", sheet = "analysis", row = 1L,
     
   }
   
+  # Check the dimensions of what was written
+  n_row <- dim(df)
+  n_row <- if(is.null(n_row)) 0 else n_row[1]
+  
   # Invisibly return the rows that have been written to
-  invisible(setNames(c(table_row, table_row + nrow(df)), c("first", "last")))
+  invisible(setNames(c(table_row, table_row + n_row), c("first", "last")))
   
 }
 
