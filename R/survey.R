@@ -127,36 +127,48 @@ is.survey_mm <- function(x) inherits(x, "survey_mm")
 #' @export
 print.survey_mm <- function(mm, width = getOption("width")) {
   
-  cat("Measurement model:\n")
+  cat("Measurement model\n")
   
+  # Return early if it is empty
+  if (is.null(mm)) {
+    cat("NULL\n"); return()
+  } 
+  
+  # Print the number of observations
+  n <- nrow(mm); cat("Observations: ", n, "\n", sep = "")
+  
+  # Return early if it contains no columnnames (obs = 0)
+  if (!ncol(mm)) {
+    cat("No columns\n"); return()
+  }
+
   # Lowercase for easier referencing
   names(mm) <- tolower(names(mm))
   
-  # Clean manifest to fit viewport
-  mm$manifest <- vapply(mm$manifest, function(x) {
-    x <- ifelse(nchar(x) > 10, paste0(substr(x, 1, 8), ".."), x)
-    x <- paste0(x, paste0(rep(" ", 10-nchar(x)), collapse = "")) },
-    character(1))
+  w_name <- max(stringi::stri_length(mm$manifest), na.rm = TRUE)
+  w_reserved <- 8 + w_name + 3 # $ and two spaces as separation
+  w_available <- width - w_reserved - 5 # in case of large font
   
   # Type
   mm$type <- vapply(mm$type, function(x) {
-    switch(x, character = " (char)", 
-           factor = " (fctr)", 
-           numeric = " (nmbr)", 
-           scale = "(scale)",
-           integer = "  (int)") }, character(1))
+    switch(x, character = "(char)", factor = "(fctr)", numeric = "(num)", 
+              scale = "(scale)", integer = "(int)", "(????)") }, character(1))
   
-  mm$type <- ifelse(!is.na(mm$latent), paste0(mm$type, "*"), paste0(mm$type, " "))
+  mm$type <- ifelse(!is.na(mm$latent), paste0(mm$type, "*"), mm$type)
   
-  # Get max string length for questions
-  max_length <- width - 8 - 11 - 5 #$, manifest, \t, (type), latent
+  # Clean manifest/type
+  mm$manifest <- vapply(mm$manifest, stringi::stri_pad_right, width = w_name, character(1))
+  mm$type <- vapply(mm$type, stringi::stri_pad_right, width = 8, character(1))
   
-  # Collate
-  info <- paste(paste0("$", mm$manifest), mm$type, sep = " ")
-  info <- paste(info, substr(mm$question, 1, max_length), collapse = "\n")
+  # Shorten question-text to the remaining width
+  mm$question <- vapply(mm$question, stringi::stri_sub, to = w_available-2, character(1))
   
-  cat(info)
-  cat("\nNote: Latents are marked with *\n")
+  # Print
+  for (i in 1:nrow(mm)) {
+    cat("$", mm$manifest[i], mm$type[i], " ", mm$question[i], sep = "", collapse = "\n")
+  }
+  
+  cat("Note: Latents are marked with *\n")
   
 }
 
