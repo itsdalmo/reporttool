@@ -1,232 +1,186 @@
 #' Create a survey object
 #'
-#' This function takes a list as input, replaces names (data = df etc), and checks
-#' whether the necessary info is in place to generate a report. If this is the case,
-#' the class 'survey' is appended to the object.
+#' First step in creating a \code{survey} that can be used with \code{generate_report}.
+#' The function accepts either a \code{list} or a \code{data.frame} as input, and
+#' will only retain information following the structure and naming convention.
+#' 
+#' @section Structure/naming convention for \code{list}:
+#' 
+#' \describe{
+#' 
+#'    \item{\code{df}}{The dataset from the current study, either in it's processed or raw
+#'    format. (Alias: \code{data}).}
+#' 
+#'    \item{\code{cd}}{Optional: A dataset to compare or contrast the current study to.
+#'    Typically used when comparing a smaller (web) study to the national study.
+#'    (Alias: \code{contrast data}).}  
+#' 
+#'    \item{\code{hd}}{Optional: Historical data used to compare the present study against.
+#'    (Alias: \code{historical data}).} 
 #'
-#' @param x The list to convert to a survey
+#'    \item{\code{ents}}{Data regarding the entities (typically Q1), and their
+#'    respecitve marketshares etc. (Alias: \code{entities}).}
+#'
+#'    \item{\code{mm}}{The measurement model (questionnaire) and additional information
+#'    describing the variables in the data. (Alias: \code{measurement model}).}
+#'
+#'    \item{\code{cfg}}{Config for the study and \code{generate_report}, including
+#'    translations/printed names for latent variables. (Alias: \code{config}).}
+#' }  
+#'
+#' A structure and naming convention is also required for the measurement model,
+#' entities and config. See \code{\link{add_model}}, \code{\link{add_entities}} and 
+#' \code{\link{add_config}} for information.
+#'
+#' @param x A list or a data.frame
 #' @author Kristian D. Olsen
-#' @note survey objects have a print method.
+#' @note When using \code{\link{write_data}} with a \code{survey} object, all names will
+#' be converted to their longer versions (alias). E.g. "df" becomes "data" and so forth.
+#' Conversely, when converting a \code{list} to \code{survey} with \code{survey} or
+#' \code{as.survey}, long names are converted to their short version. This is
+#' done for brevity when coding.
 #' @export
 #' @examples 
-#' survey <- as.survey(lst)
+#' x <- survey(data.frame("test" = 1, stringsAsFactors = FALSE))
 
-as.survey <- function(x) UseMethod("as.survey")
-
-as.survey.default <- function(x) {
-  stop("as.survey expects a 'list' \n", call. = FALSE)
+survey <- function(x) {
+  
+  # New scaffolding
+  srv <- new_survey()
+  
+  # If input is a list, merge scaffolding with correctly named input
+  if (inherits(x, "list")) {
+    
+    replace_nms <- setNames(default$structure$sheet, default$structure$survey)
+    
+    # Replace long names to match scaffolding and look for matches
+    names(x) <- ordered_replace(names(x), replace_nms)
+    found <- intersect(names(srv), names(x))
+    
+    # Data cannot be merged or appended (scaffolding contains no names)
+    data <- c("df", "hd", "cd")
+    
+    if (any(data %in% names(x))) {
+      data <- intersect(found, data); found <- setdiff(found, data)
+      srv[data] <- Map(merge_with_scaffold, srv[data], x[data])
+    }
+    
+    # Only keep the parts that can be appended to the scaffolding
+    if (length(found)) {
+      srv[found] <- Map(merge_with_scaffold, srv[found], x[found])
+    }
+    
+    # Assume that a single data.frame is the actual data  
+  } else if (inherits(x, "data.frame")) {
+    srv$df <- merge_with_scaffold(srv$df, x)
+    
+    # Throw error if input is not a list or a data.frame
+  } else {
+    stop("A list or data.frame was expected\n", class. = FALSE)
+  }
+  
+  # Set the class of underlying objects
+  for (i in names(srv)) {
+    if (i %in% c("mm", "ents")) {
+      class(srv[[i]]) <- c(stringi::stri_c("survey_", i), "data.frame")
+    } else if (inherits(srv[[i]], "data.frame")) {
+      class(srv[[i]]) <- c("tbl_df", "tbl", "data.frame")
+    }
+  }
+  
+  # Return
+  structure(srv, class = c("survey", "list"))
+  
 }
 
-as.survey.list <- function(x) {
-  
-  # Replace list names with shorthand versions
-  item_names <- with(cfg$sheet_names, setNames(long, short))
-  names(x) <- ordered_replace(names(x), item_names)
-  
-  # Lowercase names and make sure the necessary data is present
-  if (!all(c("df", "mm", "ents") %in% names(x))) {
-    stop("The required data was not supplied, or incorrectly named\n", call. = FALSE)
-  }
-  
-  # Convert measurement model and entities to their appropriate classes
-  x$mm <- as.survey_mm(x$mm)
-  x$ents <- as.survey_ents(x$ents)
-  
-  # Make sure latents exist in the data
-  latents <- cfg$latent_names
-  manifest <- paste0(tolower(x$mm$manifest[tolower(x$mm$latent) %in% latents]), "em")
-  
-  if (!all(latents %in% names(x$df))) {
-    stop("Latents were not found in the data. Make sure you have run prepare_data first\n", call. = FALSE)
-  }
-  
-  # Model scales
-  if (!all(manifest %in% names(x$df))) {
-    stop("Manifest variables (em) were not found in the data\n", call. = FALSE)
-  }
-  
-  # And weights
-  if (!"w" %in% names(x$df)) {
-    stop("Weights (w) were not found in the data\n", call. = FALSE)
-  }
-  
-  structure(x, class = append("survey", class(x)))
-  
-}
+# Methods ----------------------------------------------------------------------
 
-as.survey.survey <- function(x) x
-
-#' @rdname as.survey
+#' @rdname survey
 #' @export
 is.survey <- function(x) inherits(x, "survey")
 
-#' @rdname as.survey
+#' @rdname survey
+#' @export
+as.survey <- function(x) UseMethod("as.survey")
+
+#' @rdname survey
+#' @export
+as.survey.default <- function(x) survey(x)
+
+#' @rdname survey
+#' @export
+as.survey.survey <- function(x) x
+
+#' @rdname survey
 #' @method print survey
 #' @export
-print.survey <- function(lst, width = getOption("width")) {
+print.survey <- function(x, width = getOption("width")) {
   
-  cat("Object:", quote(lst), "\n")
+  cat("Survey\n")
   
   # Class and dimensions of the objects
-  info <- lapply(lst, function(x) {
-    classes <- paste("(", class(x)[1], ")", sep = "")
-    dimensions <- paste("[", paste(dim(x), collapse = "x"), "]", sep = "")
-    paste(classes, dimensions, sep = "")
+  info <- lapply(x, function(x) {
+    classes <- stringi::stri_c("(", class(x)[1], ")", sep = "")
+    dimensions <- stringi::stri_c("[", stringi::stri_c(dim(x), collapse = "x"), "]", sep = "")
+    stringi::stri_c(classes, dimensions, sep = "")
   })
   
-  cat(paste(paste("$", names(lst), sep = ""), info, sep = "\t", collapse = "\n"))
+  cat(stringi::stri_c(stringi::stri_c("$", names(x), sep = ""), info, sep = "\t", collapse = "\n"))
   
 }
 
-#' Create a survey_mm object
-#'
-#' Convert a data.frame to a survey_mm object if the required data is present.
-#'
-#' @param x A data.frame
-#' @author Kristian D. Olsen
-#' @note survey_mm objects have a print method.
-#' @export
-#' @examples 
-#' survey$ents <- as.survey_ents(survey$ents)
+# Utilities --------------------------------------------------------------------
 
-as.survey_mm <- function(x) UseMethod("as.survey_mm")
-
-as.survey_mm.default <- function(x) {
-  stop("as.survey_mm expects a 'data.frame' \n", call. = FALSE)
-}
-
-as.survey_mm.data.frame <- function(x) {
+new_survey <- function() {
   
-  # Check that the measurement model contains the correct columns
-  if (all(!cfg$req_structure$mm %in% names(x))) {
-    stop("The required columns were not found, or incorrectly named\n", call. = FALSE)
-  }
+  # Default scaffolding
+  nms <- default$structure$survey
+  srv <- vector("list", length(nms))
   
-  # Make sure the minimum specifications are found in the data
-  if (!all(cfg$latent_names %in% tolower(x$latent))) {
-    stop("Latent variables are not specified in the measurement model\n", call. = FALSE)
-  }
+  srv <- lapply(nms, function(nm) { new_scaffold(default$structure[[nm]]) })
   
-  # mainentity must be specified
-  if (!"mainentity" %in% tolower(x$latent)) {
-    stop("The mainentity is not specified in the measurement model\n", call. = FALSE)
-  }
+  # Set default names
+  names(srv) <- nms
   
-  structure(x, class = append("survey_mm", class(x)))
+  # Return
+  structure(srv, class = c("survey", "list"))
   
 }
 
-as.survey_mm.survey_mm <- function(x) x
-
-#' @rdname as.survey_mm
-#' @export
-is.survey_mm <- function(x) inherits(x, "survey_mm")
-
-#' @rdname as.survey_mm
-#' @method print survey_mm
-#' @export
-print.survey_mm <- function(mm, width = getOption("width")) {
+new_scaffold <- function(nms, size = 0L) {
   
-  cat("Measurement model\n")
+  if (is.null(nms)) return(data.frame())
   
-  # Return early if it is empty
-  if (is.null(mm)) {
-    cat("NULL\n"); return()
-  } 
+  # Allot a vector for the data.frame
+  df <- replicate(length(nms), vector("character", size), simplify = FALSE)
+  df <- setNames(df, nms)
   
-  # Print the number of observations
-  n <- nrow(mm); cat("Observations: ", n, "\n", sep = "")
-  
-  # Return early if it contains no columnnames (obs = 0)
-  if (!ncol(mm)) {
-    cat("No columns\n"); return()
-  }
-
-  # Lowercase for easier referencing
-  names(mm) <- tolower(names(mm))
-  
-  w_name <- max(stringi::stri_length(mm$manifest), na.rm = TRUE)
-  w_reserved <- 8 + w_name + 3 # $ and two spaces as separation
-  w_available <- width - w_reserved - 5 # in case of large font
-  
-  # Type
-  mm$type <- vapply(mm$type, function(x) {
-    switch(x, character = "(char)", factor = "(fctr)", numeric = "(num)", 
-              scale = "(scale)", integer = "(int)", "(????)") }, character(1))
-  
-  mm$type <- ifelse(!is.na(mm$latent), paste0(mm$type, "*"), mm$type)
-  
-  # Clean manifest/type
-  mm$manifest <- vapply(mm$manifest, stringi::stri_pad_right, width = w_name, character(1))
-  mm$type <- vapply(mm$type, stringi::stri_pad_right, width = 8, character(1))
-  
-  # Shorten question-text to the remaining width
-  mm$question <- vapply(mm$question, stringi::stri_sub, to = w_available-2, character(1))
-  
-  # Print
-  for (i in 1:nrow(mm)) {
-    cat("$", mm$manifest[i], mm$type[i], " ", mm$question[i], sep = "", collapse = "\n")
-  }
-  
-  cat("Note: Latents are marked with *\n")
+  # Return the minimum structure
+  as.data.frame(df, stringsAsFactors = FALSE)
   
 }
 
-#' Create a survey_ents object
-#'
-#' Convert a data.frame to a survey_ents object if the required data is present.
-#'
-#' @param x A data.frame
-#' @author Kristian D. Olsen
-#' @note survey_ents objects have a print method.
-#' @export
-#' @examples 
-#' survey$ents <- as.survey_ents(survey$ents)
-
-as.survey_ents <- function(x) UseMethod("as.survey_ents")
-
-as.survey_ents.default <- function(x) {
-  stop("as.survey_ents expects a 'data.frame' \n", call. = FALSE)
-}
-
-as.survey_ents.data.frame <- function(x) {
+merge_with_scaffold <- function(scaffold, x) {
   
-  # Lowercase names and make sure the necessary data is present
-  if (all(!cfg$req_structure$ents %in% names(x))) {
-    stop("The required columns were not found, or incorrectly named\n", call. = FALSE)
+  # Return early if scaffolding does not have names (it is data)
+  if (!length(names(scaffold)) || is.null(scaffold)) {
+    
+    is_data <- all(!is.null(x) && is.data.frame(x) && nrow(x))
+    if (is_data) return(x) else return(scaffold)
+    
   }
   
-  # Check if entities have been populated
-  if (nrow(x) == 0L) {
-    stop("No data found in ents/entities, use prepare_data before converting to survey", call. = FALSE)
-  }
+  # If not, convert x to a list
+  x <- as.list(x)
+  names(x) <- stringi::stri_trans_tolower(names(x))
   
-  structure(x, class = append("survey_ents", class(x)))
+  # Append to existing columns
+  result <- lapply(names(scaffold), function(nm, scaffold, x) {
+    if (any(names(x) == nm)) x[[nm]] else rep.int(NA, length(x[[1]])) 
+    }, scaffold, x)
   
-}
-
-as.survey_ents.survey_ents <- function(x) x
-
-#' @rdname as.survey_ents
-#' @export
-is.survey_ents <- function(x) inherits(x, "survey_ents")
-
-#' @rdname as.survey_ents
-#' @method print survey_ents
-#' @export
-print.survey_ents <- function(ents, width = getOption("width")) {
-  
-  # Lowercase for easier referencing
-  names(ents) <- tolower(names(ents))
-  
-  # Extract only entity, observations and marketshare
-  info <- ents[c("entity", "n", "marketshare")]
-  substr(names(info), 1, 1) <- toupper(substr(names(info), 1, 1))
-  
-  # Add the total and format marketshare as a percentage
-  info[nrow(info)+1,] <- c("Total", sum(info$N), sum(as.numeric(info$Marketshare)))
-  info$Marketshare <- paste(as.numeric(info$Marketshare)*100, "%")
-  
-  print.data.frame(info, right = TRUE, row.names = FALSE)
+  # Set correct names for result and return as data.frame
+  names(result) <- names(scaffold)
+  as.data.frame(result, stringsAsFactors = FALSE)
   
 }

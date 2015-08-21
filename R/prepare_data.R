@@ -257,38 +257,38 @@ latents_mean <- function(df, model) {
 
 # ADD MEASUREMENT MODEL --------------------------------------------------------
 
-add_mm <- function(df) {
-  
-  # Create an empty data.frame
-  mm <- matrix(rep(NA, ncol(df)*length(cfg$req_structure$mm)), nrow = ncol(df))
-  mm <- as.data.frame(mm, stringsAsFactors = FALSE)
-  names(mm) <- cfg$req_structure$mm
-  
-  # Extract information from the data
-  mm$manifest <- names(df)
-  mm$question <- gsub("\\.", " ", mm$manifest)
-  mm$type <- vapply(df, class, character(1))
-  
-  # Set type and try to determine whether it is a scale
-  character_vars <- mm$manifest[mm$type %in% "character"]
-  scale_vars <- unlist(lapply(df[character_vars], function(x) {
-    n <- length(x); sum(grepl("^[0-9]{1,2}[^0-9][[:alpha:][:punct:] ]*", x)) >= n-1 }))
-  
-  # Clean up the scale variable values (only endpoints)
-  values <- lapply(df[scale_vars], function(x) {
-    scales <- gsub("^[0-9]{1,2}\\s*=?\\s*([[:alpha:]]*)", "\\1", unique(x))
-    scales[scales != ""]
-  })
-  
-  # Return if any scale variables were found
-  if (length(values)) {
-    mm$values[scale_vars] <- unlist(lapply(values, paste, collapse = "\n"))
-  }
-  
-  # Return
-  mm
-  
-}
+# add_mm <- function(df) {
+#   
+#   # Create an empty data.frame
+#   mm <- matrix(rep(NA, ncol(df)*length(cfg$req_structure$mm)), nrow = ncol(df))
+#   mm <- as.data.frame(mm, stringsAsFactors = FALSE)
+#   names(mm) <- cfg$req_structure$mm
+#   
+#   # Extract information from the data
+#   mm$manifest <- names(df)
+#   mm$question <- gsub("\\.", " ", mm$manifest)
+#   mm$type <- vapply(df, class, character(1))
+#   
+#   # Set type and try to determine whether it is a scale
+#   character_vars <- mm$manifest[mm$type %in% "character"]
+#   scale_vars <- unlist(lapply(df[character_vars], function(x) {
+#     n <- length(x); sum(grepl("^[0-9]{1,2}[^0-9][[:alpha:][:punct:] ]*", x)) >= n-1 }))
+#   
+#   # Clean up the scale variable values (only endpoints)
+#   values <- lapply(df[scale_vars], function(x) {
+#     scales <- gsub("^[0-9]{1,2}\\s*=?\\s*([[:alpha:]]*)", "\\1", unique(x))
+#     scales[scales != ""]
+#   })
+#   
+#   # Return if any scale variables were found
+#   if (length(values)) {
+#     mm$values[scale_vars] <- unlist(lapply(values, paste, collapse = "\n"))
+#   }
+#   
+#   # Return
+#   mm
+#   
+# }
 
 validate_mm <- function(df, mm_org) {
   
@@ -326,18 +326,18 @@ validate_mm <- function(df, mm_org) {
 
 # ADD ENTITIES -----------------------------------------------------------------
 
-add_entities <- function(mainentity) {
-  
-  ents <- na.omit(table(mainentity))
-  ents <- as.data.frame(ents, stringsAsFactors = FALSE)
-  
-  names(ents) <- c("entity", "n")
-  ents$marketshare <- ents$n/sum(ents$n)
-  ents$other <- rep("No", nrow(ents))
-  
-  ents
-  
-}
+# add_entities <- function(mainentity) {
+#   
+#   ents <- na.omit(table(mainentity))
+#   ents <- as.data.frame(ents, stringsAsFactors = FALSE)
+#   
+#   names(ents) <- c("entity", "n")
+#   ents$marketshare <- ents$n/sum(ents$n)
+#   ents$other <- rep("No", nrow(ents))
+#   
+#   ents
+#   
+# }
 
 validate_entities <- function(mainentity, ents_org) {
   
@@ -374,17 +374,17 @@ validate_entities <- function(mainentity, ents_org) {
 }
 
 # ADD WEIGHTS ------------------------------------------------------------------
-
-add_weights <- function(mainentity, ents) {
-  
-  obs <- as.data.frame(table(mainentity), stringsAsFactors = FALSE)
-  obs$ms <- ents$marketshare[match(obs$mainentity, ents$entity)]
-  
-  # Calculate weight and return it
-  obs$w <- obs$Freq/(obs$ms * sum(obs$Freq))
-  obs$w[match(mainentity, obs$mainentity)]
-  
-}
+# 
+# add_weights <- function(mainentity, ents) {
+#   
+#   obs <- as.data.frame(table(mainentity), stringsAsFactors = FALSE)
+#   obs$ms <- ents$marketshare[match(obs$mainentity, ents$entity)]
+#   
+#   # Calculate weight and return it
+#   obs$w <- obs$Freq/(obs$ms * sum(obs$Freq))
+#   obs$w[match(mainentity, obs$mainentity)]
+#   
+# }
 
 # ADD MODEL NAMES --------------------------------------------------------------
 
@@ -405,34 +405,34 @@ add_modelnames <- function(nms, manifest) {
   
 }
 
-# ADD LATENTS ------------------------------------------------------------------
-
-add_latents <- function(mm) {
-  
-  mm$manifest <- tolower(mm$manifest)
-  
-  # Add latents if variables have standard names
-  for (i in names(cfg$latent_association)) {
-    
-    vars <- cfg$latent_association[[i]]
-    
-    # Match greedily if latent only has one var associated
-    if (length(vars) == 1L) {
-      match <- paste0("^", vars, "[[:alpha:]]*$")
-    } else {
-      match <- paste0("^", vars, "$", collapse = "|")
-    }
-    
-    mm$latent[grepl(match, mm$manifest) & !grepl("em$", mm$manifest)] <- i
-    
-  }
-  
-  # Suggest q1 as mainentity if it exists
-  if ("q1" %in% tolower(mm$manifest)) {
-    mm$latent[tolower(mm$manifest) %in% "q1"] <- "mainentity"
-  }
-  
-  mm$latent
-  
-}
+# # ADD LATENTS ------------------------------------------------------------------
+# 
+# add_latents <- function(mm) {
+#   
+#   mm$manifest <- tolower(mm$manifest)
+#   
+#   # Add latents if variables have standard names
+#   for (i in names(cfg$latent_association)) {
+#     
+#     vars <- cfg$latent_association[[i]]
+#     
+#     # Match greedily if latent only has one var associated
+#     if (length(vars) == 1L) {
+#       match <- paste0("^", vars, "[[:alpha:]]*$")
+#     } else {
+#       match <- paste0("^", vars, "$", collapse = "|")
+#     }
+#     
+#     mm$latent[grepl(match, mm$manifest) & !grepl("em$", mm$manifest)] <- i
+#     
+#   }
+#   
+#   # Suggest q1 as mainentity if it exists
+#   if ("q1" %in% tolower(mm$manifest)) {
+#     mm$latent[tolower(mm$manifest) %in% "q1"] <- "mainentity"
+#   }
+#   
+#   mm$latent
+#   
+# }
 

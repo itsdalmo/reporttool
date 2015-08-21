@@ -31,11 +31,11 @@ from_clipboard <- function(sep = "\t", header = TRUE, dec = ".", encoding = "") 
   
   # Workaround for OS X
   if (length(lines) != 1L) {
-    lines <- paste(lines, collapse = "\n")
+    lines <- stringi::stri_c(lines, collapse = "\n")
   }
   
   # Check if any of the lines contain the sep
-  if (any(stringi::stri_detect(lines, regex = paste0("[", sep, "]")))) {
+  if (any(stringi::stri_detect(lines, regex = stringi::stri_c("[", sep, "]")))) {
     
     # Open a connection
     con <- textConnection(lines)
@@ -44,7 +44,7 @@ from_clipboard <- function(sep = "\t", header = TRUE, dec = ".", encoding = "") 
     # Read as table
     lines <- read.table(con, 
                         header = header,
-                        na.strings = cfg$missing_values,
+                        na.strings = default$na_strings,
                         sep = sep,
                         dec = dec,
                         fill = TRUE,
@@ -83,7 +83,7 @@ from_clipboard <- function(sep = "\t", header = TRUE, dec = ".", encoding = "") 
 
 read_data <- function(file, sheet = NULL, codebook = FALSE, encoding = "UTF-8") {
   
-  file <- validate_path(file)
+  file <- clean_path(file)
   
   if (!file.exists(file)) {
     stop("Path does not exist:\n", file, call. = FALSE)
@@ -110,9 +110,7 @@ read_spss <- function(file, codebook) {
   if (codebook) {
     
     # Create an empty data.frame
-    mm <- matrix(rep(NA, ncol(df)*length(cfg$req_structure$mm)), nrow = ncol(df))
-    mm <- as.data.frame(mm, stringsAsFactors = FALSE)
-    names(mm) <- cfg$req_structure$mm
+    mm <- new_scaffold(default$structure$mm, ncol(df))
     
     # Populate mm
     mm$manifest <- stringi::stri_replace_all(names(df), ".", regex = "[#$]")
@@ -136,11 +134,11 @@ read_spss <- function(file, codebook) {
     # Extract factor levels
     factor_vars <- lapply(df, levels)
     scale_vars <- unlist(lapply(factor_vars, function(x) {
-      sum(stringi::stri_detect(x, regex = cfg$scale_pat)) == 10L }))
+      sum(stringi::stri_detect(x, regex = default$patterns$detect_scale)) == 10L }))
 
     # Clean up the scale variable values (only endpoints)
     factor_vars[scale_vars] <- lapply(factor_vars[scale_vars], function(x) {
-      scales <- stringi::stri_replace(x, "$1", regex = cfg$scale_end)
+      scales <- stringi::stri_replace(x, "$1", regex = default$patterns$extract_scale)
       scales[scales != ""]
     })
     
@@ -187,7 +185,7 @@ read_txt <- function(file, encoding, header) {
   args <- list(file = file, 
                header = header,
                fileEncoding = encoding, 
-               na.strings = cfg$missing_values,
+               na.strings = default$na_strings,
                sep = "\t",
                quote = "\"",
                dec = ".",
@@ -208,7 +206,7 @@ read_csv <- function(file, encoding) {
   
   args <- list(file = file,
                fileEncoding = encoding,
-               na.strings = cfg$missing_values,
+               na.strings = default$na_strings,
                header = TRUE, 
                sep = ";", 
                quote = "\"", 

@@ -56,7 +56,7 @@ copy_beamer_theme <- function(dir=NULL) {
   # Specify directory
   if (is.null(dir)) dir <- getwd()
   
-  files <- with(cfg$beamer_thm, file.path(dir, files))
+  files <- with(default$theme$beamer, file.path(dir, files))
   files <- system.file(files, package="reporttool")
   
   lapply(files, function(x, dir) { 
@@ -73,7 +73,7 @@ generate_beamer <- function(entity, dir, envir) {
   # Create the directory for the reports (if it does not exist) and
   # check if the required .sty files are present.
   md_dir <- file.path(dir, "Markdown")
-  md_sty <- file.path(dir, cfg$beamer_thm$files)
+  md_sty <- file.path(dir, default$theme$beamer$files)
   
   if (!file.exists(md_dir) || !all(file.exists(md_sty))) {
     dir.create(md_dir, showWarnings = FALSE)
@@ -81,7 +81,7 @@ generate_beamer <- function(entity, dir, envir) {
   }
   
   # Render the document
-  rmarkdown::render(file.path(dir, "Markdown", paste0(entity, ".Rmd")),
+  rmarkdown::render(file.path(dir, "Markdown", stringi::stri_c(entity, ".Rmd")),
                     output_format = "all",
                     intermediates_dir = file.path(dir, "Markdown"),
                     output_dir = file.path(dir, "Reports"),

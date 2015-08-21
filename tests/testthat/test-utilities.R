@@ -2,19 +2,9 @@
 path <- system.file("tests/testthat/xlsx.xlsx", package="reporttool")
 
 context("Utility functions")
-test_that("scaffolding df's", {
+test_that("path cleaning", {
   
-  nm <- cfg$req_structure$mm
-  df <- scaffold_df(nm)
-  
-  expect_true(is.data.frame(df))
-  expect_identical(names(df), nm)
-  
-})
-
-test_that("path validation", {
-  
-  expect_false(stringi::stri_detect(validate_path(paste0(path, "/")), regex = "/$"))
+  expect_false(stringi::stri_detect(clean_path(paste0(path, "/")), regex = "/$"))
   
   expect_error(validate_path(rep(path, 2)))
   expect_error(validate_path(numeric(1)))
@@ -49,7 +39,7 @@ test_that("ordered replace", {
   
   expect_identical(ordered_replace(x, setNames(c("c", "a"), c("bar", "foo"))),
                    c("foo", "b", "bar", "d"))
-  expect_identical(ordered_replace(y, with(cfg$sheet_names, setNames(long, short))),
+  expect_identical(ordered_replace(y, with(default$structure, setNames(sheet, survey))),
                    c("df", "mm", "ents"))
   
 })
@@ -69,8 +59,8 @@ test_that("intranet links", {
 
 test_that("rt_defaults return expected results", {
   
-  expect_identical(rt_defaults("ggc"), cfg$ggcolors)
-  expect_identical(rt_defaults("latent_n"), cfg$latent_names)
-  expect_identical(rt_defaults("latent"), cfg[c("latent_names", "latent_association")])
+  expect_identical(get_default("pal"), default$palette)
+  expect_identical(get_default("laten"), default$latents)
+  expect_identical(get_default("latent"), default$latents)
   
 })

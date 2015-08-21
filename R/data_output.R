@@ -161,7 +161,7 @@ write_data <- function(x, file = NULL, encoding = "UTF-8") {
     warning("No file specified, writing to: ", file, call. = FALSE)
     
   } else {
-    file <- validate_path(file)
+    file <- clean_path(file)
     ext <- tools::file_ext(file)
     name <- stringi::stri_replace(file, "$1", regex = paste0(".*/(.*).", ext))
   }
