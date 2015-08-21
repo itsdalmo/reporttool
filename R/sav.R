@@ -5,19 +5,15 @@ from_sav <- function(df, mm = TRUE) {
   
   # Populate mm
   mm$manifest <- stri_replace_all(names(df), ".", regex = "[#$]")
-  mm$manifest <- stri_trans_tolower(names(df))
+  mm$manifest <- names(df)
   
   # Get question text from labels
   mm$question <- lapply(df, attr, which = "label")
   mm$question <- vapply(mm$question, function(x) ifelse(is.null(x), "", as.character(x)), character(1))
   
   # Convert 'labelled' to factors
-  df <- lapply(df, function(x) { if (inherits(x, "labelled")) haven::as_factor(x, drop_na = FALSE) else x })
-  df <- as.data.frame(df, stringsAsFactors = FALSE)
-  
-  # Convert labelled to factors
-  df <- lapply(df, function(x) { if (inherits(x, "labelled")) haven::as_factor(x, drop_na = FALSE) else x })
-  df <- as.data.frame(df, stringsAsFactors = FALSE)
+  df[] <- lapply(df, function(x) { if (inherits(x, "labelled")) haven::as_factor(x, drop_na = FALSE) else x })
+  #df <- as.data.frame(df, stringsAsFactors = FALSE)
   
   # Insert variable type
   mm$type <- vapply(df, class, character(1))
@@ -38,6 +34,9 @@ from_sav <- function(df, mm = TRUE) {
   mm$values[!is_null] <- vapply(vars[!is_null], stri_c, collapse = "\n", character(1))
   mm$type[is_scale] <- "scale"
   
+  # Remove label attribute from data
+  df[] <- lapply(df, function(x) { attr(x, "label") <- NULL; x })
+  
   # Return
   list("df" = df, "mm" = mm)
   
@@ -51,9 +50,21 @@ to_sav <- function(survey) {
   # Make sure all factor/scale variables are factors
   survey <- factor_data(survey, vars)
   
-  # Convert all variables to 'labelled'
-  survey$df <- Map(`attr<-`, survey$df, survey$mm$question)
-  survey$df <- lapply(survey$df, function(x) class(x) <- "labelled")
+  # Convert all factors to 'labelled'
+  survey$df[] <- lapply(names(df), function(nm, df, mm) {
+    
+    x <- df[[nm]]
+    v <- levels(x)
+    
+    if (is.factor(x)) {
+      x <- as.numeric(x); x <- haven::labelled(x, setNames(as.numeric(1:length(v)), v), is_na = NULL)
+    }
+    
+    # Set attributes/class and return
+    attr(x, "label") <- mm$question[mm$manifest %in% nm]
+    x
+    
+  }, survey$df, survey$mm)
   
   # Return
   survey
