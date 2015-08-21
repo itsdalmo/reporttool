@@ -26,16 +26,16 @@ add_weights.survey <- function(survey, ...) {
   
   # Measurement model must be added first
   if (!inherits(survey$mm, "survey_mm") || !nrow(survey$mm)) {
-    stop("The measurement model must be added first. See help(add_mm)\n", call. = FALSE)
+    stop("The measurement model must be added first. See help(add_mm).", call. = FALSE)
   }
   
   # Entities must be added first
   if (!inherits(survey$ents, "survey_ents") || !nrow(survey$ents)) {
-    stop("Entities must be added first. See help(add_entities)\n", call. = FALSE)
+    stop("Entities must be added first. See help(add_entities).", call. = FALSE)
   }
   
   # Get the mainentity variable from data
-  mainentity <- survey$mm$manifest[stringi::stri_trans_tolower(survey$mm$latent) == "mainentity"]
+  mainentity <- survey$mm$manifest[stri_trans_tolower(survey$mm$latent) == "mainentity"]
   mainentity <- mainentity[!is.na(mainentity)]
   
   # Add weights (w) to data.frame
@@ -52,7 +52,7 @@ add_weights.character <- function(mainentity, entities) {
   
   # Entities must be added first
   if (!inherits(entities, "survey_ents") || !nrow(entities)) {
-    stop("Entities must be a survey_ents object. See help(add_entities)\n", call. = FALSE)
+    stop("Entities must be a survey_ents object. See help(add_entities).", call. = FALSE)
   }
   
   # Return a vector of weights
@@ -66,7 +66,7 @@ add_weights.factor <- function(mainentity, entities) {
   
   # Entities must be added first
   if (!inherits(entities, "survey_ents") || !nrow(entities)) {
-    stop("Entities must be a survey_ents object. See help(add_entities)\n", call. = FALSE)
+    stop("Entities must be a survey_ents object. See help(add_entities).", call. = FALSE)
   }
   
   # Return a vector of weights

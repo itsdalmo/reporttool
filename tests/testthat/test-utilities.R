@@ -4,7 +4,7 @@ path <- system.file("tests/testthat/xlsx.xlsx", package="reporttool")
 context("Utility functions")
 test_that("path cleaning", {
   
-  expect_false(stringi::stri_detect(clean_path(paste0(path, "/")), regex = "/$"))
+  expect_false(stri_detect(clean_path(paste0(path, "/")), regex = "/$"))
   
   expect_error(validate_path(rep(path, 2)))
   expect_error(validate_path(numeric(1)))

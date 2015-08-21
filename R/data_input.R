@@ -31,11 +31,11 @@ from_clipboard <- function(sep = "\t", header = TRUE, dec = ".", encoding = "") 
   
   # Workaround for OS X
   if (length(lines) != 1L) {
-    lines <- stringi::stri_c(lines, collapse = "\n")
+    lines <- stri_c(lines, collapse = "\n")
   }
   
   # Check if any of the lines contain the sep
-  if (any(stringi::stri_detect(lines, regex = stringi::stri_c("[", sep, "]")))) {
+  if (any(stri_detect(lines, regex = stri_c("[", sep, "]")))) {
     
     # Open a connection
     con <- textConnection(lines)
@@ -113,8 +113,8 @@ read_spss <- function(file, codebook) {
     mm <- new_scaffold(default$structure$mm, ncol(df))
     
     # Populate mm
-    mm$manifest <- stringi::stri_replace_all(names(df), ".", regex = "[#$]")
-    mm$manifest <- stringi::stri_trans_tolower(names(df))
+    mm$manifest <- stri_replace_all(names(df), ".", regex = "[#$]")
+    mm$manifest <- stri_trans_tolower(names(df))
     
     mm$question <- lapply(df, attr, which = "label")
     mm$question <- vapply(mm$question, function(x) ifelse(is.null(x), "", as.character(x)), character(1))
@@ -134,17 +134,17 @@ read_spss <- function(file, codebook) {
     # Extract factor levels
     factor_vars <- lapply(df, levels)
     scale_vars <- unlist(lapply(factor_vars, function(x) {
-      sum(stringi::stri_detect(x, regex = default$patterns$detect_scale)) == 10L }))
+      sum(stri_detect(x, regex = default$patterns$detect_scale)) == 10L }))
 
     # Clean up the scale variable values (only endpoints)
     factor_vars[scale_vars] <- lapply(factor_vars[scale_vars], function(x) {
-      scales <- stringi::stri_replace(x, "$1", regex = default$patterns$extract_scale)
+      scales <- stri_replace(x, "$1", regex = default$patterns$extract_scale)
       scales[scales != ""]
     })
     
     # Set type to scale where true and add all values
     mm$type[scale_vars] <- "scale"
-    mm$values <- unlist(lapply(factor_vars, paste, collapse = "\n"))
+    mm$values <- unlist(lapply(factor_vars, stri_c, collapse = "\n"))
     
   }
   

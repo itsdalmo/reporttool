@@ -112,7 +112,7 @@ to_sheet <- function(df, wb, title = "Table", sheet = "analysis", row = 1L,
     # When styling the title must be written first (and convert df names to titles)
     if (isTRUE(format_style)) {
       openxlsx::writeData(wb, sheet, title, startRow = row)
-      names(df) <- stringi::stri_trans_totitle(names(df))
+      names(df) <- stri_trans_totitle(names(df))
       table_row <- row + 1
     }
 
@@ -157,13 +157,13 @@ write_data <- function(x, file = NULL, encoding = "UTF-8") {
   if (is.null(file)) {
     name <- "output"
     ext <- "xlsx"
-    file <- file.path(getwd(), paste(name, ext, sep = "."))
+    file <- file.path(getwd(), stri_c(name, ext, sep = "."))
     warning("No file specified, writing to: ", file, call. = FALSE)
     
   } else {
     file <- clean_path(file)
     ext <- tools::file_ext(file)
-    name <- stringi::stri_replace(file, "$1", regex = paste0(".*/(.*).", ext))
+    name <- stri_replace(file, "$1", regex = stri_c(".*/(.*).", ext))
   }
   
   # Convert matrix to data.frame
@@ -180,7 +180,7 @@ write_data <- function(x, file = NULL, encoding = "UTF-8") {
   
   # Handle NULL in list names
   if (is.null(names(x))) {
-    names(x) <- paste0("DF", 1:length(x))
+    names(x) <- stri_c("DF", 1:length(x))
   }
   
   # Stop if list can be written to a single file, but no valid filename is given.
@@ -220,7 +220,7 @@ write_txt <- function(lst, file, encoding, sep) {
   
   lapply(names(lst), function(nm, lst, file, encoding) {
     utils::write.table(x = lst[[nm]],
-                       file = paste0(file.path(file, nm), ".txt"),
+                       file = stri_c(file.path(file, nm), ".txt"),
                        sep = sep,
                        na = "",
                        dec = ".",
@@ -239,7 +239,7 @@ write_csv <- function(lst, file, encoding) {
 
   lapply(names(lst), function(nm, lst, file, encoding) {
     utils::write.table(x = lst[[nm]], 
-                      file = paste0(file.path(file, nm), ".csv"), 
+                      file = stri_c(file.path(file, nm), ".csv"), 
                       sep = ";", 
                       na = "",
                       dec = ",",

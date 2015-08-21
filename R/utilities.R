@@ -72,7 +72,7 @@ ordered_replace <- function(x, match_by, replacement = NULL) {
   if (is.null(replacement)) {
     
     if (is.null(attr(match_by, "names"))) {
-      stop("'match_by' must be a named vector or replacement must be specified\n", call. = FALSE)
+      stop("'match_by' must be a named vector or replacement must be specified.", call. = FALSE)
     } else {
       y <- match_by
     }
@@ -82,7 +82,7 @@ ordered_replace <- function(x, match_by, replacement = NULL) {
     if (length(match_by) == length(replacement)) {
       y <- setNames(match_by, replacement)
     } else {
-      stop("'match' and 'replace' must have same length\n", call. = FALSE)
+      stop("'match' and 'replace' must have same length.", call. = FALSE)
     }
   }
     
@@ -101,7 +101,7 @@ intranet_link <- function(https) {
   
   
   if (Sys.info()["sysname"] != "Windows") {
-    warning("This function only works on windows and for a network drive\n", call. = FALSE)
+    warning("This function only works with a network drive on windows.", call. = FALSE)
   } else {
     
     # If you are on windows and a http(s) link ends with .se

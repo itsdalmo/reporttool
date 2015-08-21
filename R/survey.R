@@ -82,7 +82,7 @@ survey <- function(x) {
   # Set the class of underlying objects
   for (i in names(srv)) {
     if (i %in% c("mm", "ents")) {
-      class(srv[[i]]) <- c(stringi::stri_c("survey_", i), "data.frame")
+      class(srv[[i]]) <- c(stri_c("survey_", i), "data.frame")
     } else if (inherits(srv[[i]], "data.frame")) {
       class(srv[[i]]) <- c("tbl_df", "tbl", "data.frame")
     }
@@ -120,12 +120,12 @@ print.survey <- function(x, width = getOption("width")) {
   
   # Class and dimensions of the objects
   info <- lapply(x, function(x) {
-    classes <- stringi::stri_c("(", class(x)[1], ")", sep = "")
-    dimensions <- stringi::stri_c("[", stringi::stri_c(dim(x), collapse = "x"), "]", sep = "")
-    stringi::stri_c(classes, dimensions, sep = "")
+    classes <- stri_c("(", class(x)[1], ")", sep = "")
+    dimensions <- stri_c("[", stri_c(dim(x), collapse = "x"), "]", sep = "")
+    stri_c(classes, dimensions, sep = "")
   })
   
-  cat(stringi::stri_c(stringi::stri_c("$", names(x), sep = ""), info, sep = "\t", collapse = "\n"))
+  cat(stri_c(stri_c("$", names(x), sep = ""), info, sep = "\t", collapse = "\n"))
   
 }
 
@@ -172,7 +172,7 @@ merge_with_scaffold <- function(scaffold, x) {
   
   # If not, convert x to a list
   x <- as.list(x)
-  names(x) <- stringi::stri_trans_tolower(names(x))
+  names(x) <- stri_trans_tolower(names(x))
   
   # Append to existing columns
   result <- lapply(names(scaffold), function(nm, scaffold, x) {

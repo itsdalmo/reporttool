@@ -1,15 +1,15 @@
 sav_as_list <- function(df) {
   
   if (!inherits(df, "sav")) {
-    stop("df is not of type 'sav'.\n", call. = FALSE)
+    stop("df is not of type 'sav'.", call. = FALSE)
   }
   
   # Create an empty measurement model
   mm <- new_scaffold(default$structure$mm, ncol(df))
   
   # Populate mm
-  mm$manifest <- stringi::stri_replace_all(names(df), ".", regex = "[#$]")
-  mm$manifest <- stringi::stri_trans_tolower(names(df))
+  mm$manifest <- stri_replace_all(names(df), ".", regex = "[#$]")
+  mm$manifest <- stri_trans_tolower(names(df))
   
   # Get question text from labels
   mm$question <- lapply(df, attr, which = "label")
@@ -29,18 +29,18 @@ sav_as_list <- function(df) {
   # Extract factor levels
   vars <- lapply(df, levels)
   is_scale <- unlist(lapply(vars, function(x) {
-    sum(stringi::stri_detect(x, regex = default$patterns$detect_scale)) == 10L }))
+    sum(stri_detect(x, regex = default$patterns$detect_scale)) == 10L }))
   
   # Clean up the scale variable values (only endpoints)
   vars[is_scale] <- lapply(vars[is_scale], function(x) {
-    scales <- stringi::stri_replace(x, "$1", regex = default$patterns$extract_scale)
+    scales <- stri_replace(x, "$1", regex = default$patterns$extract_scale)
     scales <- scales[scales != ""]
     if (is.null(scales)) "" else scales
   })
   
   # Set type to scale and add values
   mm$type[is_scale] <- "scale"
-  mm$values <- unlist(lapply(vars, stringi::stri_c, collapse = "\n"))
+  mm$values <- unlist(lapply(vars, stringr::str_c, collapse = "\n"))
   
   
   # Return

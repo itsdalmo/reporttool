@@ -2,7 +2,9 @@
 #' @export
 get_default <- function(string) {
   
-  y <- default[stringi::stri_detect(names(default), regex = string, list(case_insensitive = TRUE))]
+  if (!is.string(string)) stop("Input was not a string (character(1)).")
+  
+  y <- default[stri_detect(names(default), regex = string, ignore_case = TRUE)]
   
   # Drop list if only one entry is returned
   if (length(y) == 1L) y[[1]] else y

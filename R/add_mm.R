@@ -45,14 +45,14 @@ add_mm <- function(survey, mm = NULL, ...) {
   
   # Check the input
   if (!inherits(survey, "survey")) {
-    stop("Argument 'survey' is not an object with the class 'survey'. See help(survey)\n", call. = FALSE)
+    stop("Argument 'survey' is not an object with the class 'survey'. See help(survey).", call. = FALSE)
   }
   
   # Generate new, or check that the provided mm is a data.frame
   if (is.null(mm)) {
     mm <- new_mm(survey$df)
   } else if (!inherits(mm, "data.frame")) {
-      stop("Measurement model (if specified) should be a data.frame\n", call. = FALSE)
+      stop("Measurement model (if specified) should be a data.frame.", call. = FALSE)
   }
   
   # TODO: Add checks for length/varnames in add_mm? stop if not?
@@ -62,7 +62,7 @@ add_mm <- function(survey, mm = NULL, ...) {
   
   # Warn and replace if entities contains existing data
   if (nrow(survey$mm)) {
-    warning("Existing measurement model will be replaced\n", call. = FALSE)
+    warning("Measurement model has been replaced.", call. = FALSE)
     survey$mm <- new_scaffold(default$structure$mm)
   }
   
@@ -98,9 +98,9 @@ print.survey_mm <- function(mm, width = getOption("width")) {
   }
   
   # Lowercase for easier referencing
-  names(mm) <- stringi::stri_trans_tolower(names(mm))
+  names(mm) <- stri_trans_tolower(names(mm))
   
-  w_name <- max(stringi::stri_length(mm$manifest), na.rm = TRUE) + 1
+  w_name <- max(stri_length(mm$manifest), na.rm = TRUE) + 1
   w_reserved <- 8 + w_name + 3 # $ and three spaces as separation
   w_available <- width - w_reserved - 5 # in case of large font
   
@@ -110,14 +110,14 @@ print.survey_mm <- function(mm, width = getOption("width")) {
     switch(x, character = "(char)", factor = "(fctr)", numeric = "(num)", 
            scale = "(scale)", integer = "(int)", "(????)") }, character(1))
   
-  mm$type <- ifelse(!is.na(mm$latent), paste0(mm$type, "*"), mm$type)
+  mm$type <- ifelse(!is.na(mm$latent), stri_c(mm$type, "*"), mm$type)
   
   # Clean manifest/type
-  mm$manifest <- vapply(mm$manifest, stringi::stri_pad_right, width = w_name, character(1))
-  mm$type <- vapply(mm$type, stringi::stri_pad_right, width = 8, character(1))
+  mm$manifest <- vapply(mm$manifest, stri_pad_right, width = w_name, character(1))
+  mm$type <- vapply(mm$type, stri_pad_right, width = 8, character(1))
   
   # Shorten question-text to the remaining width
-  mm$question <- vapply(mm$question, stringi::stri_sub, to = w_available-2, character(1))
+  mm$question <- vapply(mm$question, stri_sub, to = w_available-2, character(1))
   
   # Print
   for (i in 1:nrow(mm)) {
@@ -135,7 +135,7 @@ new_mm <- function(df) {
   
   # Use variable names as manifest and question text.
   manifest <- names(df)
-  question <- stringi::stri_replace(manifest, regex = "\\.", " ")
+  question <- stri_replace(manifest, regex = "\\.", " ")
   
   # Get the variable types (error-prone, but better than nothing)
   type <- vapply(df, class, character(1))
@@ -148,21 +148,21 @@ new_mm <- function(df) {
   is_scale <- vapply(df[is_character], function(x) {
     x <- na.omit(unique(x))
     n <- length(x)
-    l <- stringi::stri_detect(x, regex = "^[0-9]{1,2}[^0-9][[:alpha:][:punct:] ]+")
+    l <- stri_detect(x, regex = "^[0-9]{1,2}[^0-9][[:alpha:][:punct:] ]+")
     all(sum(l) >= 1, length(x) <= 11)
   }, logical(1))
   
   # Clean up the scale variable values (only keep endpoints)
   scale_values <- lapply(df[is_scale], function(x) {
     x <- na.omit(unique(x))
-    s <- stringi::stri_replace(x, "$1", regex = "^[0-9]{1,2}\\s*=?\\s*([[:alpha:]]*)")
+    s <- stri_replace(x, "$1", regex = "^[0-9]{1,2}\\s*=?\\s*([[:alpha:]]*)")
     s[s != ""]
   })
   
   # Return if any scale variables were found
   if (length(is_scale)) {
     values <- vector("character", length(manifest))
-    values[is_scale] <- vapply(scale_values, paste, collapse = "\n", character(1))
+    values[is_scale] <- vapply(scale_values, stri_c, collapse = "\n", character(1))
     type[is_scale] <- "scale"
   }
   

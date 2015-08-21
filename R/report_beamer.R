@@ -81,7 +81,7 @@ generate_beamer <- function(entity, dir, envir) {
   }
   
   # Render the document
-  rmarkdown::render(file.path(dir, "Markdown", stringi::stri_c(entity, ".Rmd")),
+  rmarkdown::render(file.path(dir, "Markdown", stri_c(entity, ".Rmd")),
                     output_format = "all",
                     intermediates_dir = file.path(dir, "Markdown"),
                     output_dir = file.path(dir, "Reports"),

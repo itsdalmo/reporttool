@@ -40,25 +40,25 @@ add_entities <- function(survey, entities = NULL) {
   
   # Check the input
   if (!inherits(survey, "survey")) {
-    stop("Argument 'survey' is not an object with the class 'survey'. See help(survey)\n", call. = FALSE)
+    stop("Argument 'survey' is not an object with the class 'survey'. See help(survey).", call. = FALSE)
   }
   
   # Measurement model must be added first
   if (!inherits(survey$mm, "survey_mm") || !nrow(survey$mm)) {
-    stop("The measurement model must be added first. See help(add_mm)\n", call. = FALSE)
+    stop("The measurement model must be added first. See help(add_mm).", call. = FALSE)
   }
   
   # Mainentity must be specified in latents
-  if (!any(stringi::stri_detect(survey$mm$latent, regex = "mainentity"))) {
-    stop("'mainentity' is not specified in latents for the measurement model. See help(set_association)\n", call. = FALSE)
+  if (!any(stri_detect(survey$mm$latent, regex = "mainentity"))) {
+    stop("'mainentity' is not specified in latents for the measurement model. See help(set_association).", call. = FALSE)
   } else {
-    mainentity <- survey$mm$manifest[stringi::stri_trans_tolower(survey$mm$latent) == "mainentity"]
+    mainentity <- survey$mm$manifest[stri_trans_tolower(survey$mm$latent) == "mainentity"]
     mainentity <- mainentity[!is.na(mainentity)]
   }
   
   # If more than one mainentity is specified, stop and revise
   if (length(mainentity) > 1L) {
-    stop("More than one 'mainentity' found. Please revise measurement model.\n", call. = FALSE)
+    stop("More than one 'mainentity' found. Please revise measurement model.", call. = FALSE)
   }
   
   # Generate the needed data from the mainentity vector
@@ -68,7 +68,7 @@ add_entities <- function(survey, entities = NULL) {
   
   # Warn and replace if entities contains existing data
   if (nrow(survey$ents)) {
-    warning("Existing data for entities will be replaced\n", call. = FALSE)
+    warning("Entities have been replaced.", call. = FALSE)
     survey$ents <- new_scaffold(default$structure$ents)
   }
   
@@ -113,17 +113,17 @@ print.survey_ents <- function(ents, width = getOption("width")) {
   ents[nrow(ents)+1,] <- c("Total*", sum(as.numeric(ents$n)), sum(as.numeric(ents$marketshare)))
   
   # Format the strings
-  w_name <- max(stringi::stri_length(ents$entity), na.rm = TRUE) + 4
-  w_n <- max(stringi::stri_length(ents$n), na.rm = TRUE) + 4
+  w_name <- max(stri_length(ents$entity), na.rm = TRUE) + 4
+  w_n <- max(stri_length(ents$n), na.rm = TRUE) + 4
   
-  ents$entity <- vapply(ents$entity, stringi::stri_pad_right, width = w_name, character(1))
-  ents$n <- vapply(ents$n, stringi::stri_pad_right, width = w_n, character(1))
+  ents$entity <- vapply(ents$entity, stri_pad_right, width = w_name, character(1))
+  ents$n <- vapply(ents$n, stri_pad_right, width = w_n, character(1))
   
   ents$marketshare <- sprintf("%.2f%%", as.numeric(ents$marketshare)*100)
   
   # Print headers for the table
-  cat(stringi::stri_pad_right("Entity", width = w_name), 
-      stringi::stri_pad_right("Obs", width = w_n), 
+  cat(stri_pad_right("Entity", width = w_name), 
+      stri_pad_right("Obs", width = w_n), 
       "Marketshare/Weight\n", sep = "")
   
   # Print results per entity

@@ -23,12 +23,12 @@ set_association <- function(survey, ..., common = FALSE) {
   
   # Check class
   if (!inherits(survey, "survey")) {
-    stop("Argument 'survey' is not an object with the class 'survey'. See help(survey)\n", call. = FALSE)
+    stop("Argument 'survey' is not an object with the class 'survey'. See help(survey).", call. = FALSE)
   }
   
   # Measurement model must be added first
   if (!inherits(survey$mm, "survey_mm") || !nrow(survey$mm)) {
-    stop("The measurement model must be added first. See help(add_mm)\n", call. = FALSE)
+    stop("The measurement model must be added first. See help(add_mm).", call. = FALSE)
   }
   
   # Gather dots
@@ -42,14 +42,14 @@ set_association <- function(survey, ..., common = FALSE) {
   # Check that all arguments are character vectors
   is_character <- vapply(args, is.character, logical(1))
   if (!all(is_character)) {
-    stop("All input must be named character vectors.\n", call. = FALSE)
+    stop("All input must be named character vectors.", call. = FALSE)
   }
   
   # Throw an error if arguments do not match the manifest
   missing <- setdiff(unlist(args), survey$mm$manifest)
   if (length(missing)) {
-    missing <- stringi::stri_c(missing, collapse = ", ")
-    stop(sprintf("Variables not found in the measurement model:\n%s\n", missing), call. = FALSE)
+    missing <- stri_c(missing, collapse = ", ")
+    stop(sprintf("Variables not found in the measurement model:\n%s", missing), call. = FALSE)
   }
   
   # Update with a loop for clarity
@@ -75,22 +75,22 @@ common_latents <- function(mm) {
     
     # Match greedily if latent only has one var associated
     if (length(vars) == 1L) {
-      match <- suppressWarnings(stringi::stri_c("^", vars, "[[:alpha:]]*$"))
+      match <- suppressWarnings(stri_c("^", vars, "[[:alpha:]]*$"))
     } else {
-      match <- suppressWarnings(stringi::stri_c("^", vars, "$", collapse = "|"))
+      match <- suppressWarnings(stri_c("^", vars, "$", collapse = "|"))
     }
     
     # Look for matches
-    var_match <- stringi::stri_detect(mm$manifest, regex = match)
-    end_match <- !stringi::stri_detect(mm$manifest, regex = "em$")
+    var_match <- stri_detect(mm$manifest, regex = match)
+    end_match <- !stri_detect(mm$manifest, regex = "em$")
     
     # Set latent association
     mm$latent[var_match & end_match] <- i
   }
   
   # Suggest q1 as mainentity if it exists
-  if (any(stringi::stri_trans_tolower(mm$manifest) == "q1")) {
-    mm$latent[stringi::stri_trans_tolower(mm$manifest) == "q1"] <- "mainentity"
+  if (any(stri_trans_tolower(mm$manifest) == "q1")) {
+    mm$latent[stri_trans_tolower(mm$manifest) == "q1"] <- "mainentity"
   }
   
   # Return
