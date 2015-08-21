@@ -48,36 +48,33 @@ survey <- function(x) {
   # New scaffolding
   srv <- new_survey()
   
-  # If input is a list, merge scaffolding with correctly named input
-  if (inherits(x, "list")) {
-    
-    replace_nms <- setNames(default$structure$sheet, default$structure$survey)
-    
-    # Replace long names to match scaffolding and look for matches
-    names(x) <- ordered_replace(names(x), replace_nms)
-    found <- intersect(names(srv), names(x))
-    
-    # Data cannot be merged or appended (scaffolding contains no names)
-    data <- c("df", "hd", "cd")
-    
-    if (any(data %in% names(x))) {
-      data <- intersect(found, data); found <- setdiff(found, data)
-      srv[data] <- Map(merge_with_scaffold, srv[data], x[data])
-    }
-    
-    # Only keep the parts that can be appended to the scaffolding
-    if (length(found)) {
-      srv[found] <- Map(merge_with_scaffold, srv[found], x[found])
-    }
-    
-    # Assume that a single data.frame is the actual data  
-  } else if (inherits(x, "data.frame")) {
-    srv$df <- merge_with_scaffold(srv$df, x)
-    
-    # Throw error if input is not a list or a data.frame
-  } else {
-    stop("A list or data.frame was expected\n", class. = FALSE)
+  # Check input
+  if (inherits(x, "data.frame")) {
+    x <- if(is.sav(x)) from_sav(x, mm = TRUE) else list("df" = x)
+  } else if (!inherits(x, "list")) {
+    stop("A list or data.frame was expected.", class. = FALSE)
   }
+  
+  # If input is a list, merge scaffolding with correctly named input
+  replace_nms <- setNames(default$structure$sheet, default$structure$survey)
+    
+  # Replace long names to match scaffolding and look for matches
+  names(x) <- ordered_replace(names(x), replace_nms)
+  found <- intersect(names(srv), names(x))
+  
+  # Data cannot be merged or appended (scaffolding contains no names)
+  data <- c("df", "hd", "cd")
+    
+  if (any(data %in% names(x))) {
+    data <- intersect(found, data); found <- setdiff(found, data)
+    srv[data] <- Map(merge_with_scaffold, srv[data], x[data])
+  }
+    
+  # Only keep the parts that can be appended to the scaffolding
+  if (length(found)) {
+    srv[found] <- Map(merge_with_scaffold, srv[found], x[found])
+  }
+    
   
   # Set the class of underlying objects
   for (i in names(srv)) {
