@@ -45,6 +45,19 @@ from_sav <- function(df, mm = TRUE) {
 
 to_sav <- function(survey) {
   
+  # Convert to factors/scales
+  vars <- survey$mm$manifest[survey$mm$type %in% c("scale", "factor")]
+  
+  # Make sure all factor/scale variables are factors
+  survey <- factor_data(survey, vars)
+  
+  # Convert all variables to 'labelled'
+  survey$df <- Map(`attr<-`, survey$df, survey$mm$question)
+  survey$df <- lapply(survey$df, function(x) class(x) <- "labelled")
+  
+  # Return
+  survey
+  
 }
 
 
