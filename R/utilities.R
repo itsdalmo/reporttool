@@ -55,7 +55,7 @@ set_missing <- function(df, na_strings = get_default("na_strings")) {
 #' @rdname utilities
 #' @export
 clean_score <- function(var) {
-  stringi::stri_replace(var, replacement = "$1", regex = "([0-1]+).*$")
+  stri_replace(var, replacement = "$1", regex = "([0-1]+).*$")
 }
 
 #' @rdname utilities
@@ -105,11 +105,11 @@ intranet_link <- function(https) {
   } else {
     
     # If you are on windows and a http(s) link ends with .se
-    if (stringi::stri_detect(https, regex = "^https?://.*[^/]\\.se/.*")) {
-      domain <- stringi::stri_replace(https, "$1", regex = "^https?://(.[^/]*)/.*")
-      folder <- stringi::stri_replace(https, "$1", regex = paste0(".*", domain, "(.*)"))
+    if (stri_detect(https, regex = "^https?://.*[^/]\\.se/.*")) {
+      domain <- stri_replace(https, "$1", regex = "^https?://(.[^/]*)/.*")
+      folder <- stri_replace(https, "$1", regex = paste0(".*", domain, "(.*)"))
       
-      https <- stringi::stri_c("\\\\", domain, "@SSL/DavWWWRoot", folder)
+      https <- stri_c("\\\\", domain, "@SSL/DavWWWRoot", folder)
     }
   }
   
@@ -121,7 +121,7 @@ intranet_link <- function(https) {
 #' @export
 lowercase_names <- function(x, nm = names(x)) {
   
-  if(!is.null(nm)) names(x) <- stringi::stri_trans_tolower(nm); x
+  if(!is.null(nm)) names(x) <- stri_trans_tolower(nm); x
   
 }
 
@@ -135,14 +135,15 @@ clean_path <- function(path) {
   } 
   
   # Normalize
-  if (!stringi::stri_detect(path, regex = "^(/|[A-Za-z]:|\\\\|~)")) {
+  if (!stri_detect(path, regex = "^(/|[A-Za-z]:|\\\\|~)")) {
     path <- normalizePath(path, "/", mustWork = FALSE)
   }
     
   # Remove trailing slashes and return
-  stringi::stri_replace(path, "", regex = "/$")
+  stri_replace(path, "", regex = "/$")
   
 }
 
 isFALSE <- function(x) identical(x, FALSE)
 is.string <- function(x) is.character(x) && length(x) == 1
+is.sav <- function(x) any(vapply(x, inherits, what = "labelled", logical(1)))
