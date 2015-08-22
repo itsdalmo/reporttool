@@ -55,12 +55,15 @@ set_missing <- function(df, na_strings = get_default("na_strings")) {
 #' @rdname utilities
 #' @export
 clean_score <- function(var) {
-  stri_replace(var, replacement = "$1", regex = "([0-1]+).*$")
+  if (is.factor(var)) var <- as.character(var)
+  var <- stri_replace(var, replacement = "$1", regex = "([0-1]+).*$")
+  suppressWarnings(as.numeric(var))
 }
 
 #' @rdname utilities
 #' @export
 rescale_score <- function(var) {
+  if (is.factor(var) || is.character(var)) var <- as.numeric(var)
   suppressWarnings(ifelse(var %in% 1:10, (as.numeric(var)-1)*(100/9), NA))
 }
 
