@@ -50,7 +50,7 @@ survey <- function(x) {
   
   # Check input
   if (inherits(x, "data.frame")) {
-    x <- if(is.sav(x)) from_sav(x, mm = TRUE) else list("df" = x)
+    x <- if(is.sav(x)) flatten_spss(x) else list("df" = x)
   } else if (!inherits(x, "list")) {
     stop("A list or data.frame was expected.", class. = FALSE)
   }

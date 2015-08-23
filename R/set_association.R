@@ -49,7 +49,7 @@ set_association <- function(survey, ..., common = FALSE) {
   missing <- setdiff(unlist(args), survey$mm$manifest)
   if (length(missing)) {
     missing <- stri_c(missing, collapse = ", ")
-    stop(sprintf("Variables not found in the measurement model:\n%s", missing), call. = FALSE)
+    stop(stri_c("Variables not found in the measurement model:\n", missing), call. = FALSE)
   }
   
   # Update with a loop for clarity
@@ -81,8 +81,8 @@ common_latents <- function(mm) {
     }
     
     # Look for matches
-    var_match <- stri_detect(mm$manifest, regex = match)
-    end_match <- !stri_detect(mm$manifest, regex = "em$")
+    var_match <- stri_detect(mm$manifest, regex = match, case_insensitive = TRUE)
+    end_match <- !stri_detect(mm$manifest, regex = "em$", case_insensitive = TRUE)
     
     # Set latent association
     mm$latent[var_match & end_match] <- i

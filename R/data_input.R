@@ -104,61 +104,7 @@ read_data <- function(file, sheet = NULL, codebook = FALSE, encoding = "UTF-8") 
 
 read_spss <- function(file, codebook) {
   
-  df <- haven::read_sav(file)
-  
-  # Extract label before converting from labelled
-  if (codebook) {
-    
-    # Create an empty data.frame
-    mm <- new_scaffold(default$structure$mm, ncol(df))
-    
-    # Populate mm
-    mm$manifest <- stri_replace_all(names(df), ".", regex = "[#$]")
-    mm$manifest <- stri_trans_tolower(names(df))
-    
-    mm$question <- lapply(df, attr, which = "label")
-    mm$question <- vapply(mm$question, function(x) ifelse(is.null(x), "", as.character(x)), character(1))
-    
-  }
-  
-  # Convert labelled to factors
-  df <- lapply(df, function(x) { if (inherits(x, "labelled")) haven::as_factor(x, drop_na = FALSE) else x })
-  df <- as.data.frame(df, stringsAsFactors = FALSE)
-  
-  # Use factor levels to populate values in mm
-  if (codebook) {
-    
-    # Insert variable type
-    mm$type <- vapply(df, class, character(1))
-    
-    # Extract factor levels
-    factor_vars <- lapply(df, levels)
-    scale_vars <- unlist(lapply(factor_vars, function(x) {
-      sum(stri_detect(x, regex = default$patterns$detect_scale)) == 10L }))
-
-    # Clean up the scale variable values (only endpoints)
-    factor_vars[scale_vars] <- lapply(factor_vars[scale_vars], function(x) {
-      scales <- stri_replace(x, "$1", regex = default$patterns$extract_scale)
-      scales[scales != ""]
-    })
-    
-    # Set type to scale where true and add all values
-    mm$type[scale_vars] <- "scale"
-    mm$values <- unlist(lapply(factor_vars, stri_c, collapse = "\n"))
-    
-  }
-  
-  # Convert all columns to character, set missing and lowercase names
-  df <- vapply(df, as.character, character(nrow(df)))
-  df <- set_missing(df)
-  names(df) <- tolower(names(df))
-  
-  # Return
-  if (isTRUE(codebook)) {
-    return(list("df" = df, "mm" = mm))
-  } else {
-    return(df)
-  }
+  haven::read_sav(file)
   
 }
 
@@ -236,7 +182,7 @@ read_xlsx <- function(file, sheet) {
   wb <- openxlsx::getSheetNames(file)
   
   if (!is.null(sheet)) {
-    sheet <- wb[tolower(wb) %in% tolower(sheet)]
+    sheet <- wb[stri_trans_tolower(wb) %in% stri_trans_tolower(sheet)]
   } else {
     sheet <- wb
   }

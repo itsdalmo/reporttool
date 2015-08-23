@@ -203,20 +203,12 @@ write_data <- function(x, file = NULL, encoding = "UTF-8") {
 
 write_rdata <- function(lst, file) {
   
-  if (!inherits(lst, "list")) {
-    stop("The data must be of class 'list'", call. = FALSE)
-  }
-  
   save(list = names(lst), file = file, envir = list2env(lst, parent = emptyenv()))
   
 }
 
 
 write_txt <- function(lst, file, encoding, sep) {
-  
-  if (!inherits(lst, "list")) {
-    stop("The data must be of class 'list'", call. = FALSE)
-  }
   
   lapply(names(lst), function(nm, lst, file, encoding) {
     utils::write.table(x = lst[[nm]],
@@ -232,10 +224,6 @@ write_txt <- function(lst, file, encoding, sep) {
 }
 
 write_csv <- function(lst, file, encoding) {
-  
-  if (!inherits(lst, "list")) {
-    stop("The data must be of class 'list'", call. = FALSE)
-  }
 
   lapply(names(lst), function(nm, lst, file, encoding) {
     utils::write.table(x = lst[[nm]], 
@@ -251,10 +239,6 @@ write_csv <- function(lst, file, encoding) {
 }
 
 write_xlsx <- function(lst, file) {
-  
-  if (!inherits(lst, "list")) {
-    stop("The data must be of class 'list'", call. = FALSE)
-  }
   
   # If the file exists, load and write to it
   if (file.exists(file)) { 
