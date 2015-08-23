@@ -193,13 +193,20 @@ test_that("Read and write_data for .sav files", {
   sav <- read_data("sav.sav")
   xlsx <- read_data("xlsx.xlsx")
   
-  expect_identical(sav, xlsx)
+  expect_identical(names(sav), names(xlsx))
   
-  sav_cb <- read_data("sav.sav", codebook = TRUE)
+  sav_mm <- from_labelled(sav)$mm
   
   # Note that, mm will list type as numeric because conversion
   # to character is done after.
-  expect_identical(sav_cb$mm$manifest, names(sav_cb$df))
+  expect_identical(sav_mm$manifest, names(sav))
+  
+  fileName <- file.path(tempdir(), "sav.sav")
+  write_data(sav, fileName)
+  
+  # Check written data
+  w_sav <- read_data(fileName)
+  expect_identical(sav, w_sav)
   
 })
 

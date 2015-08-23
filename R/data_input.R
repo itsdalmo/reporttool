@@ -81,7 +81,7 @@ from_clipboard <- function(sep = "\t", header = TRUE, dec = ".", encoding = "") 
 #' @examples 
 #' x <- read_data("test.xlsx")
 
-read_data <- function(file, sheet = NULL, codebook = FALSE, encoding = "UTF-8") {
+read_data <- function(file, sheet = NULL, encoding = "UTF-8") {
   
   file <- clean_path(file)
   
@@ -91,7 +91,7 @@ read_data <- function(file, sheet = NULL, codebook = FALSE, encoding = "UTF-8") 
   
   # Pick input-function based on extension
   switch(tolower(tools::file_ext(file)),
-         sav = read_spss(file, codebook),
+         sav = read_spss(file),
          txt = read_txt(file, encoding, header = TRUE),
          csv = read_csv(file, encoding),
          xlsx = read_xlsx(file, sheet),
@@ -102,7 +102,7 @@ read_data <- function(file, sheet = NULL, codebook = FALSE, encoding = "UTF-8") 
 
 # Input wrappers ---------------------------------------------------------------
 
-read_spss <- function(file, codebook) {
+read_spss <- function(file) {
   
   haven::read_sav(file)
   

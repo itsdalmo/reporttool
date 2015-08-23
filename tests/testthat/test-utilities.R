@@ -14,14 +14,14 @@ test_that("path cleaning", {
 test_that("clean scores", {
   
   expect_true(clean_score("1 aa") == "1")
-  expect_identical(clean_score(c("1 aa", "bb 1", "10 cc")), c("1", "bb 1", "10"))
+  expect_identical(clean_score(c("1 aa", "bb 1", "10 cc")), c(1, NA, 10))
   
 })
 
 test_that("cleaning and rescaling scores", {
   
   expect_true(clean_score("1 aa") == "1")
-  expect_identical(clean_score(c("1 aa", "bb 1", "10 cc")), c("1", "bb 1", "10"))
+  expect_identical(clean_score(c("1 aa", "bb 1", "10 cc")), c(1, NA, 10))
   expect_identical(rescale_score(c("1", 10)), c(0, 100))
   
 })

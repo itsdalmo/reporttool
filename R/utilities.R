@@ -63,7 +63,7 @@ clean_score <- function(var) {
 #' @rdname utilities
 #' @export
 rescale_score <- function(var) {
-  if (is.factor(var) || is.character(var)) var <- as.numeric(var)
+  stopifnot(!is.factor(var)); if (is.character(var)) var <- as.numeric(var)
   suppressWarnings(ifelse(var %in% 1:10, (as.numeric(var)-1)*(100/9), NA))
 }
 
@@ -149,4 +149,4 @@ clean_path <- function(path) {
 
 isFALSE <- function(x) identical(x, FALSE)
 is.string <- function(x) is.character(x) && length(x) == 1
-is.sav <- function(x) any(vapply(x, inherits, what = "labelled", logical(1)))
+is.spss <- function(x) any(vapply(x, inherits, what = "labelled", logical(1)))

@@ -190,6 +190,7 @@ write_data <- function(x, file = NULL, encoding = "UTF-8") {
   
   # Use extension to write correct format
   switch(tolower(ext),
+         sav = write_spss(x, dirname(file)),
          rdata = write_rdata(x, file),
          xlsx = write_xlsx(x, file),
          csv = write_csv(x, dirname(file), encoding),
@@ -200,6 +201,17 @@ write_data <- function(x, file = NULL, encoding = "UTF-8") {
 }
 
 # Output wrappers --------------------------------------------------------------
+
+write_spss <- function(lst, file) {
+  
+  is_labelled <- vapply(lst, is.spss, logical(1))
+  if(!all(is_labelled)) warning("No labelled variables found.", call. = FALSE)
+  
+  # Write the data
+  lapply(names(lst), function(nm, lst, file) {
+    haven::write_sav(lst[[nm]], path = stri_c(file.path(file, nm), ".sav")) }, lst, file)
+  
+}
 
 write_rdata <- function(lst, file) {
   

@@ -13,9 +13,9 @@
 #' @note The results are error-prone. Carefully check the results.
 #' @export
 #' @examples 
-#' x %>% factor_data(vars = c("q1", "q17"))
+#' read_data("test.sav") %>% from_labelled()
 
-flatten_spss <- function(df) {
+from_labelled <- function(df) {
   
   # Get a list of labelled variables
   is_labelled <- vapply(df, inherits, what = "labelled", logical(1))
@@ -62,32 +62,21 @@ flatten_spss <- function(df) {
   
 }
 
-# Utilities --------------------------------------------------------------------
+#' Convert to labelled
+#'
+#' Reverses the process from \code{\link{from_labelled}}, and uses a measurement
+#' model to create labelled variables and add \code{label} to the attributes of
+#' each variable in the data. Meant for use with survey objects from \code{\link{survey}}.
+#'
+#' @param survey A survey object, or a list with data (df) and a measurement model (mm).
+#' @author Kristian D. Olsen
+#' @note The results are error-prone. Carefully check the results.
+#' @export
+#' @examples 
+#' read_data("test.sav") %>% from_labelled() %>% to_labelled()
 
-fix_labelled <- function(x) {
-  
-  labels <- attr(x, "labels")
-  values <- unique(x[!is.na(x)])
-  differ <- setdiff(values, labels)
-  
-  # If it has a 'do not know', fix
-  if (length(differ)) {
-    if (!differ %in% c(11, 98)) 
-      warning("Assigned ", differ, " to label:\n", labels[length(labels)], call. = FALSE)
-    
-    # Set last value to 'do not know'
-    labels[length(labels)] <- differ
-    
-    # Assign the fixed labels
-    attr(x, "labels") <- labels
-  }
-  
-  # Return
-  x
-  
-}
 
-to_sav <- function(survey) {
+to_labelled <- function(survey) {
   
   # Convert to factors/scales
   vars <- survey$mm$manifest[survey$mm$type %in% c("scale", "factor")]
@@ -113,5 +102,30 @@ to_sav <- function(survey) {
   
   # Return
   survey
+  
+}
+
+# Utilities --------------------------------------------------------------------
+
+fix_labelled <- function(x) {
+  
+  labels <- attr(x, "labels")
+  values <- unique(x[!is.na(x)])
+  differ <- setdiff(values, labels)
+  
+  # If it has a 'do not know', fix
+  if (length(differ)) {
+    if (!differ %in% c(11, 98)) 
+      warning("Assigned ", differ, " to label:\n", labels[length(labels)], call. = FALSE)
+    
+    # Set last value to 'do not know'
+    labels[length(labels)] <- differ
+    
+    # Assign the fixed labels
+    attr(x, "labels") <- labels
+  }
+  
+  # Return
+  x
   
 }
