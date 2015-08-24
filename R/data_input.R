@@ -73,8 +73,8 @@ from_clipboard <- function(sep = "\t", header = TRUE, dec = ".", encoding = "") 
 #' @author Kristian D. Olsen
 #' @return A data.frame. If more than one sheet is read from a xlsx file 
 #' (or you are reading a Rdata file) a list is returned instead.
-#' @note When reading csv or txt, all columns will be 'character'. For xlsx files
-#' the behaviour is more random.
+#' @note When reading xlsx, csv or txt, all columns will be 'character'. For 
+#' Rdata it is returned as is. SPSS is also not modified, as it contains labelled variables.
 #' @export
 #' @examples 
 #' x <- read_data("test.xlsx")
@@ -102,7 +102,9 @@ read_data <- function(file, sheet = NULL, encoding = "UTF-8") {
 
 read_spss <- function(file) {
   
-  haven::read_sav(file)
+  df <- haven::read_sav(file)
+  names(df) <- stri_trans_tolower(names(df))
+  df
   
 }
 
