@@ -13,22 +13,19 @@ read_data(file, sheet = NULL, encoding = "UTF-8")
 specify which sheets to read.}
 
 \item{encoding}{The encoding to use for txt and csv-files.}
-
-\item{codebook}{Optional: When reading sav-files, the function returns a list
-with the data and the SPSS codebook (formatted like a measurement model).}
 }
 \value{
 A data.frame. If more than one sheet is read from a xlsx file
 (or you are reading a Rdata file) a list is returned instead.
 }
 \description{
-A simple wrapper for reading data. Currently supports Rdata, txt,
+A simple wrapper for reading data. Currently supports Rdata, sav, txt,
 csv, csv2 and xlsx. The function also lowercases all list and column names,
 and cleans common strings for missing values.
 }
 \note{
-When reading csv or txt, all columns will be 'character'. For xlsx files
-the behaviour is more random.
+When reading xlsx, csv or txt, all columns will be 'character'. For
+Rdata it is returned as is. SPSS is also not modified, as it contains labelled variables.
 }
 \examples{
 x <- read_data("test.xlsx")

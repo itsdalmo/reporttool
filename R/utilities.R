@@ -10,10 +10,11 @@
 #'    to a link for a network drive (sharepoint) on windows.}  
 #' 
 #'    \item{\code{clean_score}}{Takes vectors representing likert scales and
-#'    cleans text descriptions. E.g. "10 Very happy" becomes "10".}
+#'    cleans text descriptions. E.g. "10 Very happy" becomes "10", and the value
+#'    is converted to \code{numeric} without warning.}
 #'
 #'    \item{\code{rescale_score}}{Takes vectors representing 10-point likert 
-#'    scales and transforms them to 100-point scales. (x-1)*(100/9)}
+#'    scales and transforms them to 100-point scales (\code{numeric}). (x-1)*(100/9)}
 #'    
 #'    \item{\code{ordered_replace}}{Replace \code{x} with \code{replacement} where \code{x}
 #'    matches \code{match_by}. Matches and replacements retain the original order of
