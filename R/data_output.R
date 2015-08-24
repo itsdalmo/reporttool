@@ -189,7 +189,7 @@ write_data <- function(x, file = NULL, encoding = "UTF-8") {
   }
   
   # Use extension to write correct format
-  switch(tolower(ext),
+  switch(stri_trans_tolower(ext),
          sav = write_spss(x, dirname(file)),
          rdata = write_rdata(x, file),
          xlsx = write_xlsx(x, file),

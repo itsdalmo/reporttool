@@ -52,7 +52,7 @@ from_clipboard <- function(sep = "\t", header = TRUE, dec = ".", encoding = "") 
                         stringsAsFactors = FALSE)
     
     # Lowercase names
-    names(lines) <- tolower(names(lines))
+    names(lines) <- stri_trans_tolower(names(lines))
   }
   
   return(lines)
@@ -61,7 +61,7 @@ from_clipboard <- function(sep = "\t", header = TRUE, dec = ".", encoding = "") 
 
 #' Read common data formats
 #'
-#' A simple wrapper for reading data. Currently supports Rdata, txt,
+#' A simple wrapper for reading data. Currently supports Rdata, sav, txt,
 #' csv, csv2 and xlsx. The function also lowercases all list and column names,
 #' and cleans common strings for missing values.
 #' 
@@ -69,8 +69,6 @@ from_clipboard <- function(sep = "\t", header = TRUE, dec = ".", encoding = "") 
 #' @param file Path to a Rdata, sav (SPSS), txt, csv, csv2 or xlsx file.
 #' @param sheet Optional: If you are trying to read a xlsx file, you can also
 #' specify which sheets to read.
-#' @param codebook Optional: When reading sav-files, the function returns a list
-#' with the data and the SPSS codebook (formatted like a measurement model).
 #' @param encoding The encoding to use for txt and csv-files.
 #' @author Kristian D. Olsen
 #' @return A data.frame. If more than one sheet is read from a xlsx file 
@@ -143,7 +141,7 @@ read_txt <- function(file, encoding, header) {
   df <- do.call(utils::read.table, args)
   
   # Lowercase names
-  names(df) <- tolower(names(df))
+  names(df) <- stri_trans_tolower(names(df))
   
   return(df)
 }
@@ -171,7 +169,7 @@ read_csv <- function(file, encoding) {
   }
   
   # Lowercase names
-  names(df) <- tolower(names(df))
+  names(df) <- stri_trans_tolower(names(df))
   
   return(df)
 }
@@ -201,7 +199,7 @@ read_xlsx <- function(file, sheet) {
     lst <- lapply(lst, lowercase_names)
   } 
   
-  names(lst) <- tolower(names(lst))
+  names(lst) <- stri_trans_tolower(names(lst))
   
   # If only one sheet was read, return a data.frame instead
   if (length(lst) == 1L) {
