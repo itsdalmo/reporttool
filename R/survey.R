@@ -50,7 +50,11 @@ survey <- function(x) {
   
   # Check input
   if (inherits(x, "data.frame")) {
-    x <- if(is.spss(x)) from_labelled(x) else list("df" = x)
+    if(is.spss(x)) { 
+      x <- from_labelled(x); warning("mm added from labelled", call. = FALSE)
+    } else { 
+      x <- list("df" = x) 
+    }
   } else if (!inherits(x, "list")) {
     stop("A list or data.frame was expected.", class. = FALSE)
   }
