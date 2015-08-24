@@ -23,6 +23,7 @@ from_labelled <- function(df) {
   
   # Create an empty measurement model
   mm <- new_scaffold(default$structure$mm, ncol(df))
+  mm$latent <- NA
   
   # Populate mm
   mm$manifest <- names(df)
