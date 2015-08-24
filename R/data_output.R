@@ -205,7 +205,8 @@ write_data <- function(x, file = NULL, encoding = "UTF-8") {
 write_spss <- function(lst, file) {
   
   is_labelled <- vapply(lst, is.spss, logical(1))
-  if(!all(is_labelled)) warning("No labelled variables found.", call. = FALSE)
+  if(!all(is_labelled)) warning("No labelled variables found in: \n", 
+                                stri_c(names(lst[!is_labelled]), collapse = ", "), call. = FALSE)
   
   # Write the data
   lapply(names(lst), function(nm, lst, file) {
