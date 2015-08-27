@@ -103,14 +103,13 @@ print.survey_ents <- function(ents, width = getOption("width")) {
     cat("No columns\n"); return()
   } 
   
-  # Lowercase for easier referencing
-  names(ents) <- tolower(names(ents))
-  
-  # Extract only entity, observations and marketshare
-  ents <- ents[c("entity", "n", "marketshare")]
-  
+  # Extract only entity, observations, valid and marketshare
+  ents <- ents[c("entity", "n", "valid", "marketshare")]
+
   # Add the total and format marketshare as a percentage
-  ents[nrow(ents)+1,] <- c("Total*", sum(as.numeric(ents$n)), sum(as.numeric(ents$marketshare)))
+  ents[nrow(ents)+1,] <- c("Total*", sum(as.numeric(ents$n)), 
+                           sum(as.numeric(ents$valid)), 
+                           sum(as.numeric(ents$marketshare)))
   
   # Format the strings
   w_name <- max(stri_length(ents$entity), na.rm = TRUE) + 4
@@ -120,15 +119,18 @@ print.survey_ents <- function(ents, width = getOption("width")) {
   ents$n <- vapply(ents$n, stri_pad_right, width = w_n, character(1))
   
   ents$marketshare <- sprintf("%.2f%%", as.numeric(ents$marketshare)*100)
+  ents$valid <- sprintf("%.0f%%", (as.numeric(ents$valid)/as.numeric(ents$n))*100)
+  ents$valid <- vapply(ents$valid, stri_pad_right, width = 9, character(1))
   
   # Print headers for the table
   cat(stri_pad_right("Entity", width = w_name), 
-      stri_pad_right("Obs", width = w_n), 
+      stri_pad_right("Obs", width = w_n),
+      stri_pad_right("Valid", width = 9),
       "Marketshare/Weight\n", sep = "")
   
   # Print results per entity
   for (i in 1:nrow(ents)) {
-    cat(ents$entity[i], ents$n[i], ents$marketshare[i], sep = "", collapse = "\n")
+    cat(ents$entity[i], ents$n[i], ents$valid[i], ents$marketshare[i], sep = "", collapse = "\n")
   }
   
 }
@@ -137,9 +139,11 @@ print.survey_ents <- function(ents, width = getOption("width")) {
 
 new_entities <- function(mainentity) {
   
+  mainentity <- as.character(mainentity)
+  
   # Gather the information on entities
   entities <- tapply(mainentity, mainentity, 'length')
-  entities <- data.frame("entity" = names(entities), "n" = unname(entities), stringsAsFactors = FALSE)
+  entities <- data.frame("entity" = names(entities), "n" = unname(entities), "valid" = unname(entities), stringsAsFactors = FALSE)
   entities$other <- "No" # Assumption. Must be manually specified after.
   
   # Add marketshare

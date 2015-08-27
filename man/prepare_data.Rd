@@ -7,31 +7,19 @@
 prepare_data(survey, type = NULL)
 }
 \arguments{
-\item{input}{Either a path to a file, or a list containing the raw data and/or
-measurement model/entities.}
+\item{survey}{A survey object.}
 
-\item{latents}{Specify either 'pls' or 'mean' to calculate latents based on
-the latent specification in the measurement model. Requires that latents are in
-fact specified.}
-
-\item{impute}{Specify whether missing values should be imputed for observations
-that are retained.}
-
-\item{cutoff}{The missing-values cutoff; defaults to .3 (30%). Any observations
-with a missing percent above this threshold are excluded when imputing missing
-values and calculating latents.}
+\item{type}{Either \code{mean} or \code{pls}. Default is \code{NULL}, in which
+case \code{mean} is used.}
 }
 \value{
-A list containing the processed data, measurement model and entities.
+Returns the survey with EM-variables and latent scores added using the
+specified method.
 }
 \description{
-This function expects an input file containing raw data. Ideally the input also
-includes a measurement model and entities w/marketshares, but it attempts to
-create these based on the data (to help achieve the desired structure) if they
-are not found.
-}
-\examples{
-prepared <- prepare_data("test.xlsx", latents = "pls", impute = TRUE, cutoff = .3)
+This function does the imputation/PLS-PM (or simple mean) for the survey data.
+In addition, it calculates missing percentage and tallies the valid observations
+for each entity.
 }
 \author{
 Kristian D. Olsen

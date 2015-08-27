@@ -1,25 +1,16 @@
 #' Prepare survey data
 #'
-#' This function expects an input file containing raw data. Ideally the input also
-#' includes a measurement model and entities w/marketshares, but it attempts to 
-#' create these based on the data (to help achieve the desired structure) if they
-#' are not found.
+#' This function does the imputation/PLS-PM (or simple mean) for the survey data.
+#' In addition, it calculates missing percentage and tallies the valid observations
+#' for each entity. 
 #' 
-#' @param input Either a path to a file, or a list containing the raw data and/or
-#' measurement model/entities.
-#' @param latents Specify either 'pls' or 'mean' to calculate latents based on
-#' the latent specification in the measurement model. Requires that latents are in
-#' fact specified.
-#' @param impute Specify whether missing values should be imputed for observations
-#' that are retained.
-#' @param cutoff The missing-values cutoff; defaults to .3 (30%). Any observations 
-#' with a missing percent above this threshold are excluded when imputing missing
-#' values and calculating latents.
-#' @return A list containing the processed data, measurement model and entities.
+#' @param survey A survey object.
+#' @param type Either \code{mean} or \code{pls}. Default is \code{NULL}, in which
+#' case \code{mean} is used.
+#' @return Returns the survey with EM-variables and latent scores added using the
+#' specified method.
 #' @author Kristian D. Olsen
 #' @export
-#' @examples 
-#' prepared <- prepare_data("test.xlsx", latents = "pls", impute = TRUE, cutoff = .3)
 
 prepare_data <- function(survey, type = NULL) {
   
@@ -37,24 +28,22 @@ prepare_data <- function(survey, type = NULL) {
   }
   
   if (!inherits(survey$cfg, "survey_cfg") || !nrow(survey$cfg)) {
-    stop("The config must be added first. See help(add_mm).", call. = FALSE)
+    stop("The config must be added first. See help(set_config).", call. = FALSE)
+  }
+  
+  # Mainentity must be specified
+  if (!any(stri_detect(survey$mm$latent, regex = "mainentity"))) {
+    stop("'mainentity' is not specified in latents for the measurement model. 
+          See help(set_association).", call. = FALSE)
+  } else {
+    mainentity <- survey$mm$manifest[stri_trans_tolower(survey$mm$latent) == "mainentity"]
+    mainentity <- mainentity[!is.na(mainentity)]
   }
   
   # Check type
   if (is.null(type)) type <- "mean"
   if (!type %in% c("mean", "pls")){
-    stop("Invalid type. Please chose 'mean' or 'pls'.", call. = FALSE)
-  }
-  
-  # Mainentity must be specified in latents for PLS
-  if (type == "pls") {
-    if (!any(stri_detect(survey$mm$latent, regex = "mainentity"))) {
-      stop("'mainentity' is not specified in latents for the measurement model. 
-           See help(set_association).", call. = FALSE)
-    } else {
-      mainentity <- survey$mm$manifest[stri_trans_tolower(survey$mm$latent) == "mainentity"]
-      mainentity <- mainentity[!is.na(mainentity)]
-    }
+    stop("Invalid type. Please choose 'mean' or 'pls'.", call. = FALSE)
   }
 
   # Get the model
@@ -69,12 +58,19 @@ prepare_data <- function(survey, type = NULL) {
   survey$df[model$EM] <- lapply(survey$df[model$manifest], clean_score)
   survey$df[model$EM] <- lapply(survey$df[model$EM], rescale_score)
   
-  # Calculate missing percentage
+  # Calculate missing percentage and get the cutoff
   survey$df["percent_missing"] <- rowSums(is.na(survey$df[model$EM]))/length(model$EM)
+  cutoff <- as.numeric(survey$cfg$value[survey$cfg$config %in% "cutoff"])
+  
+  # Tally valid observations in entities
+  entities <- survey$df[survey$df$percent_missing <= cutoff,][[mainentity]]
+  entities <- new_entities(entities)
+  
+  survey$ents$valid <- entities$valid[match(survey$ents$entity, entities$entity)]
+  survey$ents$valid[is.na(survey$ents$valid)] <- 0
 
   # Impute missing
   if (type == "pls") {
-    cutoff <- survey$cfg$value[survey$cfg$config %in% "cutoff"]
     imputed <- impute_missing(survey$df, model$EM, cutoff)
     
     if (is.string(imputed)) {
@@ -87,11 +83,11 @@ prepare_data <- function(survey, type = NULL) {
   
   # Add latents to the data
   if (type == "mean") {
-    survey <- latents_mean(survey, model, mainentity)
+    survey <- latents_mean(survey, model, cutoff)
   } 
   
   if (type == "pls" && imputed) {
-    survey <- latents_pls(survey, model)
+    survey <- latents_pls(survey, model, mainentity, cutoff)
   }
   
   # Return
@@ -101,52 +97,28 @@ prepare_data <- function(survey, type = NULL) {
 
 # Utilities --------------------------------------------------------------------
 
-impute_missing <- function(df, vars, cutoff) {
-  
-  # Set seed (reproducible)
-  set.seed(1000)
-  
-  # Subset the data.frame
-  df <- df[c(vars, "percent_missing")]
-  
-  # Create identifier for a join after analysis
-  df$imp_id <- 1:nrow(df)
-  
-  # Impute missing values
-  nvars <- ncol(df[vars])
-  bounds <- matrix(c(1:nvars, rep(0, nvars), rep(100, nvars)), ncol=3)
-  imp_data <- df[df$percent_missing <= cutoff, ]
-  
-  # Capture output due to print usage in Amelia-package
-  junk <- capture.output(
-    imp_data <- Amelia::amelia(imp_data, 5, bounds = bounds, boot.type="none", 
-                               idvars = c("percent_missing", "imp_id"))
-    )
-  
-  # Check message for errors (Not normal)
-  if (!stringi::stri_detect(imp_data$message, regex = "Normal")) {
-    return(stri_c("Failed to impute missing values:\n", imp_data$message))
-  } 
-  
-  # Get the imputed data and merge
-  imp_data <- imp_data$imputations$imp5
-  df[df$imp_id %in% imp_data$imp_id, vars] <- imp_data[vars]
+latents_mean <- function(survey, model, cutoff) {
+
+  for (i in levels(model$latent)) {
+    survey$df[survey$df$percent_missing <= cutoff, i] <- rowMeans(
+      survey$df[survey$df$percent_missing <= cutoff, model$EM[model$latent %in% i]], na.rm = TRUE)
+  }
   
   # Return
-  df[vars]
+  survey
   
 }
 
-latents_pls <- function(survey, model, mainentity) {
-
+latents_pls <- function(survey, model, mainentity, cutoff) {
+  
   # Set seed (reproducible) and subset data
   set.seed(1000)
   df <- survey$df[c(mainentity, model$EM, "percent_missing")]
-
+  
   # Create identifier for a join after analysis
   df$imp_id <- 1:nrow(df)
   mod_data <- df[df$percent_missing <= cutoff, ]
-
+  
   # Get latent names
   manifests <- model$EM
   latents <- default$latents
@@ -158,7 +130,7 @@ latents_pls <- function(survey, model, mainentity) {
                   stri_c(stri_trans_tolower(o), "em") }, model))
   
   names(model$outer) <- latents
-
+  
   # Run the analysis for each entity
   entities <- unique(mod_data[[mainentity]])
   list_em_data <- lapply(entities, function(i, ent_var, df, model) {
@@ -199,13 +171,38 @@ latents_pls <- function(survey, model, mainentity) {
   
 }
 
-latents_mean <- function(survey, model) {
+impute_missing <- function(df, vars, cutoff) {
   
-  for (i in levels(model$latent)) {
-    survey$df[i] <- rowMeans(survey$df[names(df %in% model$EM[model$latent %in% i])], na.rm = TRUE)
-  }
+  # Set seed (reproducible)
+  set.seed(1000)
+  
+  # Subset the data.frame
+  df <- df[c(vars, "percent_missing")]
+  
+  # Create identifier for a join after analysis
+  df$imp_id <- 1:nrow(df)
+  
+  # Impute missing values
+  nvars <- ncol(df[vars])
+  bounds <- matrix(c(1:nvars, rep(0, nvars), rep(100, nvars)), ncol=3)
+  imp_data <- df[df$percent_missing <= cutoff, ]
+  
+  # Capture output due to print usage in Amelia-package
+  junk <- capture.output(
+    imp_data <- Amelia::amelia(imp_data, 5, bounds = bounds, boot.type="none", 
+                               idvars = c("percent_missing", "imp_id"))
+    )
+  
+  # Check message for errors (Not normal)
+  if (!stringi::stri_detect(imp_data$message, regex = "Normal")) {
+    return(stri_c("Failed to impute missing values:\n", imp_data$message))
+  } 
+  
+  # Get the imputed data and merge
+  imp_data <- imp_data$imputations$imp5
+  df[df$imp_id %in% imp_data$imp_id, vars] <- imp_data[vars]
   
   # Return
-  survey
+  df[vars]
   
 }

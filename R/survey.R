@@ -33,8 +33,6 @@
 #' \code{\link{add_config}} for information.
 #'
 #' @param x A list or a data.frame
-#' @param study A string identifying the study.
-#' @param segment The segment (B2C, B2B or both).
 #' @author Kristian D. Olsen
 #' @note When using \code{\link{write_data}} with a \code{survey} object, all names will
 #' be converted to their longer versions (alias). E.g. "df" becomes "data" and so forth.
@@ -45,7 +43,7 @@
 #' @examples 
 #' x <- survey(data.frame("test" = 1, stringsAsFactors = FALSE))
 
-survey <- function(x, study = "", segment = "") {
+survey <- function(x) {
   
   # New scaffolding
   srv <- new_survey()
@@ -80,11 +78,10 @@ survey <- function(x, study = "", segment = "") {
   if (length(found)) {
     srv[found] <- Map(merge_with_scaffold, srv[found], x[found])
   }
-    
   
   # Set the class of underlying objects
   for (i in names(srv)) {
-    if (i %in% c("mm", "ents", "cfg")) {
+    if (i %in% c("mm", "ents")) {
       class(srv[[i]]) <- c(stri_c("survey_", i), "data.frame")
     } else if (inherits(srv[[i]], "data.frame")) {
       class(srv[[i]]) <- c("tbl_df", "tbl", "data.frame")

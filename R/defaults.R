@@ -22,10 +22,10 @@ default <- list(
   "structure" = list(
     "survey" = c("df", "cd", "hd", "ents", "mm", "tr", "cfg"),
     "sheet" = c("data", "contrast data", "historic data", "entities", "measurement model", "translations", "config"),
-    "ents" = c("entity", "n","marketshare", "other"),
+    "ents" = c("entity", "n", "valid", "marketshare", "other"),
     "mm" = c("latent", "manifest", "question", "type", "values"),
     "tr" = c("original", "replacement"),
-    "cf" = c("config", "value")),
+    "cfg" = c("config", "value")),
   
   "model" = rbind("image" = c(0,0,0,0,0,0,0),
                   "expect" = c(1,0,0,0,0,0,0),
@@ -49,11 +49,12 @@ default <- list(
                    "contrast_average", "average", "study_average", "spring", "fall"),
     "norwegian" = c("Image/inntrykk", "Forventninger", "Produktkvalitet", "Servicekvalitet",
                     "Verdi for pengene", "Kundetilfredshet", "Lojalitet", "Barnehage", 
-                    "Avdeling", "", "Kode", "Diff", "Spørsmål", "Snitt nasjonal", "Snitt",
+                    "Avdeling", "Kode", "Diff", "Spørsmål", "Snitt nasjonal", "Snitt",
                     "Snitt webstudien", "Vår", "Høst")),
   
   "config" = list(
-    "setting" = c("study", "segment", "method", "cutoff", "pls")
+    "setting" = c("study", "segment", "language", "method", "cutoff", "pls"),
+    "value" = c("Barnehage", "Both", "norwegian", "web", .3, "mean")
   ),
   
   "template" = list(
