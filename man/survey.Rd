@@ -9,7 +9,7 @@
 \alias{survey}
 \title{Create a survey object}
 \usage{
-survey(x)
+survey(x, study = "", segment = "")
 
 is.survey(x)
 
@@ -23,6 +23,10 @@ as.survey(x)
 }
 \arguments{
 \item{x}{A list or a data.frame}
+
+\item{study}{A string identifying the study.}
+
+\item{segment}{The segment (B2C, B2B or both).}
 }
 \description{
 First step in creating a \code{survey} that can be used with \code{generate_report}.

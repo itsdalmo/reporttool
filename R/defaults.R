@@ -52,6 +52,10 @@ default <- list(
                     "Avdeling", "", "Kode", "Diff", "Spørsmål", "Snitt nasjonal", "Snitt",
                     "Snitt webstudien", "Vår", "Høst")),
   
+  "config" = list(
+    "setting" = c("study", "segment", "method", "cutoff", "pls")
+  ),
+  
   "template" = list(
     "beamer" = list(
       "dir" = "rmd/beamer", 

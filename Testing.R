@@ -5,8 +5,8 @@ library(devtools); load_all(); test()
 library(dplyr)
 
 x <- read_data("./tests/testthat/test.sav")
-y <- survey(x) %>% 
+y <- survey(x[1:37]) %>% 
   set_association(complaint = "q17", common = TRUE) %>% 
   add_entities() %>%
-  add_weights()
+  prepare_data()
 
