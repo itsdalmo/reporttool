@@ -39,7 +39,10 @@ factor_data <- function(survey, vars = NULL) {
     stop(stri_c("Columns not found in model and/or data. Check lower and uppercase.\n", 
                 "mm: ", stri_c(missing_mm, sep = " "), "\n", 
                 "df: ", stri_c(missing_df, sep = " ")), call. = FALSE)
-  } 
+  }
+  
+  # Clean whitespace characters
+  survey$df[vars] <- lapply(survey$df[vars], stri_replace_all, replacement = " ", regex = "\\s")
   
   # Complete the scales (if they are not already factor variables)
   is_scale <- survey$mm$type == "scale" & survey$mm$manifest %in% vars
@@ -55,6 +58,13 @@ factor_data <- function(survey, vars = NULL) {
     scale <- lapply(survey$mm$values[is_factor], split_fctr)
     f_var <- survey$mm$manifest[is_factor]
     survey$df[f_var] <- Map(haven::as_factor, survey$df[f_var], scale, ordered = TRUE)
+  }
+  
+  # Convert numerics
+  is_numeric <- survey$mm$type == "numeric"
+  if (any(is_numeric)) {
+    n_var <- survey$mm$manifest[is_numeric]
+    survey$df[n_var] <- lapply(survey$df[n_var], as.numeric)
   }
   
   # Return
