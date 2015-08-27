@@ -23,12 +23,23 @@ y <- survey(x[1:37]) %>%
 # 
 
 y %>% write_data("test.xlsx")
-yy <- read_data("test.xlsx") %>% factor_data()
+yy <- read_data("test.xlsx")
 
-yy <- survey(yy)
+yy <- survey(yy) 
+yy <- factor_data(yy, vars = yy$mm$manifest[yy$mm$type %in% c("scale", "factor")])
 yy %>% write_data("test2.sav")
 
 yyy <- read_data("test2.sav")
 yyyy <- survey(yyy)
 
-data.frame("y" = unlist(lapply(y$df, class)), "y4" = unlist(lapply(yyyy$df, class)))
+#data.frame("y" = unlist(lapply(yy$df, class)), "y4" = unlist(lapply(yyyy$df, class)))
+testthat::expect_identical(yyyy$df, yy$df)
+
+yyyy$df[20, 1:5]; yy$df[20, 1:5]
+yyyy$df[20, 6:10]; yy$df[20, 6:10]
+yyyy$df[20, 11:15]; yy$df[20, 11:15]
+yyyy$df[20, 16:20]; yy$df[20, 16:20]
+yyyy$df[20, 54:60]; yy$df[20, 54:60]
+yyyy$df[20, 45:50]; yy$df[20, 45:50]
+yyyy$df[20, 40:45]; yy$df[20, 40:45]
+yyyy$df[20, 30:35]; yy$df[20, 30:35]
