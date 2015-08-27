@@ -90,6 +90,12 @@ prepare_data <- function(survey, type = NULL) {
     survey <- latents_pls(survey, model, mainentity, cutoff)
   }
   
+  # Update measurement model
+  vars <- setdiff(names(survey$df), survey$mm$manifest)
+  mm <- new_scaffold(default$structure$mm, size = length(vars))
+  mm$manifest <- vars; mm$type <- "numeric"; mm$latent <- NA
+  survey$mm <- rbind(survey$mm, mm)
+  
   # Return
   survey
   
