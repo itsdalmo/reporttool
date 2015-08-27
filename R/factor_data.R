@@ -67,7 +67,7 @@ factor_data <- function(survey, vars = NULL) {
 split_scale <- function(x) {
   
   v <- stri_split(x, regex = "\n")
-  v <- lapply(v, function(x) { n <- 1:length(x); stri_c(c(1, 10, 11)[n], x, sep = " ") })
+  v <- lapply(v, function(x) { n <- length(x); c(stri_c(c(1, 10), x[1:2], sep = " "), if (n > 2) x[3:n] else NULL) })
   v <- lapply(v, function(x) { if (length(x) == 2L) c(x[1], 2:9, x[2]) else c(x[1], 2:9, x[2:3])})
   
   # Retrun

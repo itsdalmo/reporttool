@@ -86,7 +86,7 @@ to_labelled <- function(survey) {
   survey <- factor_data(survey, vars)
   
   # Convert all factors to 'labelled'
-  survey$df[] <- lapply(names(df), function(nm, df, mm) {
+  survey$df[] <- lapply(names(survey$df), function(nm, df, mm) {
     
     x <- df[[nm]]
     v <- levels(x)

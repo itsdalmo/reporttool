@@ -153,18 +153,15 @@ to_sheet <- function(df, wb, title = "Table", sheet = "analysis", row = 1L,
 
 write_data <- function(x, file = NULL, encoding = "UTF-8") {
   
-  # Provide default if file is not specified
+  # Make sure a file is specified
   if (is.null(file)) {
-    name <- "output"
-    ext <- "xlsx"
-    file <- file.path(getwd(), stri_c(name, ext, sep = "."))
-    warning("No file specified, writing to: ", file, call. = FALSE)
-    
-  } else {
-    file <- clean_path(file)
-    ext <- tools::file_ext(file)
-    name <- stri_replace(file, "$1", regex = stri_c(".*/(.*).", ext))
+    stop("No file specified.", call. = FALSE)
   }
+  
+  file <- clean_path(file)
+  ext <- tools::file_ext(file)
+  name <- stri_replace(basename(file), "$1", regex = stri_c("(.*)\\.", ext, "$"))
+  ext <- stri_trans_tolower(ext)
   
   # Convert matrix to data.frame
   if (inherits(x, "matrix")) {
@@ -172,7 +169,13 @@ write_data <- function(x, file = NULL, encoding = "UTF-8") {
   }
   
   # Check object class
-  if (inherits(x, "data.frame")) {
+  if (inherits(x, "survey")) {
+    if (ext == "sav") {
+      x <- setNames(list(to_labelled(x)$df), name)
+    } else if (ext == "xlsx") {
+      names(x) <- ordered_replace(names(x), default$structure$survey, default$structure$sheet) 
+    }
+  } else if (inherits(x, "data.frame")) {
     x <- setNames(list(x), name)
   } else if (!inherits(x, "list")) {
     stop("This function expects a matrix, data.frame or list", call. = FALSE)
@@ -189,7 +192,7 @@ write_data <- function(x, file = NULL, encoding = "UTF-8") {
   }
   
   # Use extension to write correct format
-  switch(stri_trans_tolower(ext),
+  switch(ext,
          sav = write_spss(x, dirname(file)),
          rdata = write_rdata(x, file),
          xlsx = write_xlsx(x, file),
@@ -262,8 +265,14 @@ write_xlsx <- function(lst, file) {
   
   
   lapply(names(lst), function(nm, lst, wb) {
-    to_sheet(lst[[nm]], wb = wb, sheet = nm, row = 1L, format_style = FALSE, 
-             format_values = FALSE, append = FALSE)}, lst, wb)
+    to_sheet(lst[[nm]], 
+             wb = wb, 
+             sheet = nm, 
+             row = 1L, 
+             format_style = FALSE, 
+             format_values = FALSE, 
+             append = FALSE)}, 
+    lst, wb)
   
   openxlsx::saveWorkbook(wb, file, overwrite = TRUE)
   
