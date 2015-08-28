@@ -4,19 +4,13 @@
 \alias{topline}
 \title{Create a topline}
 \usage{
-topline(survey, mainentity = NULL, entity_other = NULL, scores = NULL,
-  sample = NULL)
+topline(survey, entity_other = NULL, sample = NULL)
 }
 \arguments{
 \item{survey}{A survey.}
 
-\item{mainentity}{Name of the mainentity (q1) column in the data}
-
 \item{entity_other}{The text column which contains the open response for 'other' in
 mainentity. Defaults to for instance \code{Q1a}, if mainentity is \code{Q1}.}
-
-\item{scores}{A vector with columnnames for variables you would like a mean from.
-If none is specified, the function looks at the measurement model for the EPSI-variables.}
 
 \item{sample}{The name of the column containing sample information.}
 }
@@ -27,7 +21,7 @@ A list.
 Simple function for \code{survey} objects, that procudes a count and mean per
 entity in an ongoing study, as well as open answers for respondents who have
 answered 'other'. It requires that both the measurement model and entities are
-specified.
+specified, and that the config and translations have been set.
 }
 \examples{
 x <- topline(df)
