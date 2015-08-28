@@ -32,6 +32,15 @@ yy %>% write_data("test2.sav")
 yyy <- read_data("test2.sav")
 yyyy <- survey(yyy)
 
+wb <- openxlsx::createWorkbook()
+
+# yyyy$df %>% select(q1, q3em) %>%
+#             group_by(q1) %>%
+#             summarise(q3 = mean(q3em, na.rm = TRUE)) %>%
+#             to_sheet(wb, title = yyyy$mm$question[yyyy$mm$manifest %in% "q3"])
+# 
+# openxlsx::saveWorkbook(wb, "test3.xlsx", overwrite = TRUE)
+
 #data.frame("y" = unlist(lapply(yy$df, class)), "y4" = unlist(lapply(yyyy$df, class)))
 testthat::expect_identical(yyyy$df, yy$df)
 
@@ -43,3 +52,18 @@ yyyy$df[20, 54:60]; yy$df[20, 54:60]
 yyyy$df[20, 45:50]; yy$df[20, 45:50]
 yyyy$df[20, 40:45]; yy$df[20, 40:45]
 yyyy$df[20, 30:35]; yy$df[20, 30:35]
+
+# ------------------------------------------------------------------------------
+# Topline
+
+lnk <- "C:/Users/krist_000/Desktop/bankb2b.sav"
+df <- read_data(lnk)
+
+x <- survey(df)
+
+y <- x %>% 
+  set_association(common = TRUE) %>%
+  add_entities() %>% 
+  set_config() %>% 
+  set_translation() %>% 
+  topline()

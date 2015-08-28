@@ -152,14 +152,11 @@ get_questionnaire <- function(file, study = "Banking", segment = "B2C", entity =
 #' Simple function for \code{survey} objects, that procudes a count and mean per 
 #' entity in an ongoing study, as well as open answers for respondents who have 
 #' answered 'other'. It requires that both the measurement model and entities are
-#' specified.
+#' specified, and that the config and translations have been set.
 #' 
 #' @param survey A survey.
-#' @param mainentity Name of the mainentity (q1) column in the data
 #' @param entity_other The text column which contains the open response for 'other' in 
 #' mainentity. Defaults to for instance \code{Q1a}, if mainentity is \code{Q1}.
-#' @param scores A vector with columnnames for variables you would like a mean from.
-#' If none is specified, the function looks at the measurement model for the EPSI-variables.
 #' @param sample The name of the column containing sample information.
 #' @author Kristian D. Olsen
 #' @return A list.
@@ -167,7 +164,7 @@ get_questionnaire <- function(file, study = "Banking", segment = "B2C", entity =
 #' @examples 
 #' x <- topline(df)
 
-topline <- function(survey, mainentity = NULL, entity_other = NULL, scores = NULL, sample = NULL) {
+topline <- function(survey, entity_other = NULL, sample = NULL) {
   
   # Check the input
   if (!inherits(survey, "survey")) {
@@ -182,6 +179,15 @@ topline <- function(survey, mainentity = NULL, entity_other = NULL, scores = NUL
   # Entities must be added first
   if (!inherits(survey$ents, "survey_ents") || !nrow(survey$ents)) {
     stop("Entities must be added first. See help(add_entities).", call. = FALSE)
+  }
+  
+  # Config and translations must be set beforehand.
+  if (!inherits(survey$tr, "survey_tr") || !nrow(survey$tr)) {
+    stop("Translations must be set first. See help(set_translation).", call. = FALSE)
+  }
+  
+  if (!inherits(survey$cfg, "survey_cfg") || !nrow(survey$cfg)) {
+    stop("Config must be set first. See help(set_config).", call. = FALSE)
   }
   
   # Find mainentity, entity other and scores from measurement model if they are NULL
@@ -220,6 +226,10 @@ topline <- function(survey, mainentity = NULL, entity_other = NULL, scores = NUL
   
   # Clean NaN's
   ents[scores] <- apply(ents[scores], 2, function(x) ifelse(is.nan(x), NA, x))
+  
+  # Add row means (KTI)
+  satisfaction <- survey$tr$replacement[survey$tr$original %in% "epsi"]
+  ents[satisfaction] <- rowMeans(ents[scores], na.rm = TRUE)
   
   # Add sample counts
   if (!is.null(sample)) {

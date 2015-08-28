@@ -38,7 +38,7 @@ set_translation <- function(survey, ..., language = "norwegian") {
   }
   
   # Assign the replacement
-  survey$tr <- tr
+  survey$tr <- structure(tr, class = c("survey_tr", "data.frame"))
   
   # Check that all arguments are character vectors
   is_string <- vapply(args, is.string, logical(1))
