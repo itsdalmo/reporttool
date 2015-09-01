@@ -297,18 +297,96 @@ read_sharepoint <- function(file, mainentity = "q1") {
 #' This function creates the necessary input files for model estimation, in the
 #' specified directory.
 #' 
-#' @param lst A survey_data object.
+#' @param lst A survey object.
 #' @param dir The directory on sharepoint where you would like to write the input
 #' files.
 #' @author Kristian D. Olsen
-#' @return A list containing the EM-data, entities (observations, marketshare),
-#' and a measurement model (latent association, question text, values etc.)
 #' @export
 #' @examples 
-#' x <- write_sharepoint("https://the.intranet.se/EPSI/example")
+#' write_sharepoint("https://the.intranet.se/EPSI/example")
 
-write_sharepoint <- function(lst, dir) {
+write_sharepoint <- function(survey, file) {
   
-  stop("This is not supported yet.", call. = FALSE)
+  # Check the input
+  if (!inherits(survey, "survey")) {
+    stop("Argument 'survey' is not an object with the class 'survey'. See help(survey).", call. = FALSE)
+  }
+  
+  if (!inherits(survey$mm, "survey_mm") || !nrow(survey$mm)) {
+    stop("The measurement model must be added first. See help(add_mm).", call. = FALSE)
+  }
+  
+  if (!inherits(survey$ents, "survey_ents") || !nrow(survey$ents)) {
+    stop("Entities must be added first. See help(add_entities).", call. = FALSE)
+  }
+  
+  if (!inherits(survey$cfg, "survey_cfg") || !nrow(survey$cfg)) {
+    stop("Config must be set first. See help(set_config).", call. = FALSE)
+  }
+  
+  if (!tools::file_ext(file) == "") {
+    stop("The specified path is not a directory:\n", file, call. = FALSE)
+  }
+  
+  # Make https links compatible with windows file explorer
+  file <- intranet_link(file)
+  
+  # Locate or create required directories
+  req_folders <- c("Data", "Input")
+  dir_folders <- list.files(file)
+  
+  folders_exist <- stri_trans_tolower(req_folders) %in% stri_trans_tolower(dir_folders)
+  if (!all(folders_exist)) {
+    missing <- file.path(file, req_folders[!folders_exist])
+    lapply(missing, dir.create, showWarnings = FALSE)
+    warning("Created the following (required) folders:\n", stri_c(req_folders[!folders_exist], collapse = ", "), call. = FALSE)
+    dir_folders <- list.files(file)
+  }
+  
+  # Update and create file directories
+  is_required <- stri_trans_tolower(dir_folders) %in% stri_trans_tolower(req_folders)
+  file_dirs <- setNames(file.path(file, dir_folders[is_required]), stri_trans_tolower(req_folders))
+
+  # Write data
+  data_file <- survey$cfg$value[survey$cfg$config %in% c("study", "segment", "year")]
+  data_file <- stri_c(stri_trans_totitle(data_file[1]), stri_trans_toupper(data_file[2]), data_file[3], sep = " ")
+  data_file <- file.path(file_dirs["data"], stri_c(data_file, ".sav"))
+  
+  write_data(survey, file = data_file)
+  
+  # Input files
+  args <- list(sep = "\t", na = "", dec = ",", fileEncoding = "latin1", row.names = FALSE, col.names = FALSE, quote = FALSE)
+  
+  # Config
+  config_file <- file.path(file_dirs["input"], "config.txt")
+  config_args <- args; config_args$row.names <- TRUE
+  do.call(write.table, args = append(list(x = survey$ents[c("entity", "n", "marketshare")], file = config_file), config_args))
+  
+  # Q1 names
+  names_file <- file.path(file_dirs["input"], "q1names.txt")
+  do.call(write.table, args = append(list(x = survey$ents$entity, file = names_file), args))
+  
+  # Get the model
+  mm <- survey$mm[survey$mm$latent %in% default$latents, ]
+  
+  # Write question text
+  qtext_file <- file.path(file_dirs["input"], "qtext.txt")
+  questions <- stri_replace(mm$question, replacement = "", regex = "^[ -]*")
+  do.call(write.table, args = append(list(x = questions, file = qtext_file), args))
+  
+  # Write model
+  model_file <- file.path(file_dirs["input"], "measurement model.txt")
+  model_args <- args; model_args$col.names <- TRUE
+  model <- new_scaffold(c("Manifest", default$latents), size = nrow(mm))
+  model$Manifest <- mm$manifest; model[, 2:ncol(model)] <- 0
+  
+  for (i in default$latents) {
+    model[model$Manifest %in% mm$manifest[mm$latent %in% i], i] <- -1 
+  }
+  
+  do.call(write.table, args = append(list(x  = model, file = model_file), model_args))
+  
+  # Make sure nothing is returned
+  invisible()
   
 }

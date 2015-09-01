@@ -4,24 +4,20 @@
 \alias{write_sharepoint}
 \title{Write input files}
 \usage{
-write_sharepoint(lst, dir)
+write_sharepoint(survey, file)
 }
 \arguments{
-\item{lst}{A survey_data object.}
+\item{lst}{A survey object.}
 
 \item{dir}{The directory on sharepoint where you would like to write the input
 files.}
-}
-\value{
-A list containing the EM-data, entities (observations, marketshare),
-and a measurement model (latent association, question text, values etc.)
 }
 \description{
 This function creates the necessary input files for model estimation, in the
 specified directory.
 }
 \examples{
-x <- write_sharepoint("https://the.intranet.se/EPSI/example")
+write_sharepoint("https://the.intranet.se/EPSI/example")
 }
 \author{
 Kristian D. Olsen
