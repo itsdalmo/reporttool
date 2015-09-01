@@ -15,10 +15,31 @@
 #' all_questionnaires <- lapply(studies, get_questionnaire, file = masterquest.xlsx, industry = "Telecom")
 #' lapply(all_questionnaires, write_questionnaire, file = "ICT Questionnaires.xlsx", study = studies)
 
-write_questionnaire <- function(quest, file, study = "District heating") {
+write_questionnaire <- function(quest, file, study = "Banking", segment = "B2C", entity = NULL) {
   
-  # Start with an empty index
+  if (!is.data.frame(quest)) {
+    stop("Questionnaire is not a data.frame.", call. = FALSE)
+  }
+  
+  # Lowercase for referencing
+  study <- stri_trans_tolower(study)
+  segment <- stri_trans_tolower(segment)
+  names(quest) <- stri_trans_tolower(names(quest))
+  
+  # Subset and create index
+  quest <- quest[stri_trans_tolower(quest$study) == study & stri_trans_tolower(quest$segment) == segment, ]
   quest$index <- NA
+  
+  # Expand scale variable levels
+  is_scale <- stri_trans_tolower(quest$type) == "scale"
+  quest$values[is_scale] <-  vapply(quest$values[is_scale], function(x) {
+    x <- split_scale(x); stri_c(x[1], "...", x[10], if (length(x) > 10) x[11] else "", sep = "\n")
+    }, character(1))
+  
+  # Replace {XX} with whatever value is specified
+  if (!is.null(entity)) {
+    quest[] <- lapply(quest, stri_replace_all, replacement = entity, regex = "\\{XX\\}")
+  }
   
   # Loop through the rows and update the index
   for (i in 1:nrow(quest)) {
@@ -34,6 +55,7 @@ write_questionnaire <- function(quest, file, study = "District heating") {
     } else if (is.na(quest$index[i])) {
       quest$index[quest$primer %in% quest$primer[i]] <- index_value
     }
+    
   }
   
   # Split the questionnaire by index
@@ -76,74 +98,6 @@ write_questionnaire <- function(quest, file, study = "District heating") {
   # Save and make sure nothing is printed
   openxlsx::saveWorkbook(wb, file, overwrite = TRUE)
   invisible()
-  
-}
-
-#' Get a questionnaire with exchanged placeholders
-#'
-#' A function for internal use. Reads the master questionnaire and exchanges
-#' placeholders in the text with their respective dictionary entry. 
-#'
-#' @param file Path to the master questionnaire
-#' @param study The study to extract and replace values for.
-#' @param segment Business to consumer/business.
-#' @param entity Optional: Replace {XX} in the questionnaire with whatever you
-#' specify.
-#' @author Kristian D. Olsen
-#' @export
-#' @examples 
-#' x <- get_questionnaire("masterquest.xlsx", "Energy", "Electricity", entity = "[S2]")
-
-get_questionnaire <- function(file, study = "Banking", segment = "B2C", entity = NULL) {
-  
-  # Read in the master questionnaire
-  mq <- read_data(file)
-  
-  # Lowercase names for easier referencing
-  mq <- lapply(mq, lowercase_names)
-  names(mq) <- tolower(names(mq))
-  
-  # Lowercase the arguments
-  study <- tolower(study)
-  segment <- tolower(segment)
-  
-  # Match name of study column in the dictionary
-  study_col <- gsub(" ", ".", study)
-  
-  # Subset the master questionnaire and dictionary
-  dict <- mq$dictionary[, c("year", "placeholder", study_col)]
-  quest <- mq[["questionnaires"]][tolower(mq[["questionnaires"]]$study) == study &
-                                  tolower(mq[["questionnaires"]]$segment) == segment,]
-  
-  # Replace the scale placeholder with the actual scale
-  for (i in 1:nrow(quest)) {
-    if (quest$type[i] == "scale") {
-      
-      scale <- unlist(strsplit(quest$values[i], "\n"))
-      
-      if (length(scale) >= 2) {
-        scale <- paste0("(1 = ", scale[1], ", ", "10 = ", scale[2], ")")
-      } else {
-        stop("scale variables require at least two 'values' (endpoints)\n", df$values[i], call. = FALSE)
-      }
-      
-      quest[i, ] <- gsub("\\{scale\\}", paste("{scale}", scale), quest[i, ])
-      
-    }
-  }
-  
-  # Sequence along the dictionary and replace values
-  for (i in 1:nrow(dict)) {
-    quest[] <- lapply(quest, function(x) gsub(paste0("\\{", dict$placeholder[i], "\\}"), dict[i, study_col], x))
-  }
-  
-  # Replace {XX} with whatever value is specified
-  if (!is.null(entity)) {
-    quest[] <- lapply(quest, function(x) gsub("\\{XX\\}", entity, x))
-  }
-  
-  # Return
-  quest
   
 }
 

@@ -4,7 +4,8 @@
 \alias{write_questionnaire}
 \title{Write questionnaire}
 \usage{
-write_questionnaire(quest, file, study = "District heating")
+write_questionnaire(quest, file, study = "Banking", segment = "B2C",
+  entity = NULL)
 }
 \arguments{
 \item{quest}{A questionnaire as returned by get_questionnaire.}
