@@ -107,10 +107,12 @@ print.survey_ents <- function(ents, width = getOption("width")) {
   ents <- ents[c("entity", "n", "valid", "marketshare")]
 
   # Add the total and format marketshare as a percentage
-  ents[nrow(ents)+1,] <- c("Total*", sum(as.numeric(ents$n)), 
-                           sum(as.numeric(ents$valid)), 
-                           sum(as.numeric(ents$marketshare)))
-  
+  ents <- rbind(ents, data.frame("entity" = "Total*", 
+                                 "n" = sum(as.numeric(ents$n)),
+                                 "valid" = sum(as.numeric(ents$valid)),
+                                 "marketshare" = sum(as.numeric(ents$marketshare)),
+                                 stringsAsFactors = FALSE))
+
   # Format the strings
   w_name <- max(stri_length(ents$entity), na.rm = TRUE) + 4
   w_n <- max(stri_length(ents$n), na.rm = TRUE) + 4

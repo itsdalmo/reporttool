@@ -21,9 +21,8 @@ a specified xlsx-file (with styling). Only writes the latent association,
 manifest name, possible values and the question text itself.
 }
 \examples{
-studies <- c("Mobile", "Broadband", "DTV")
-all_questionnaires <- lapply(studies, get_questionnaire, file = masterquest.xlsx, industry = "Telecom")
-lapply(all_questionnaires, write_questionnaire, file = "ICT Questionnaires.xlsx", study = studies)
+q <- read_data("master questionnaire.xlsx", sheet = "questionnaires")
+write_questionnaire(q, "Banking B2C.xlsx", study = "Banking", segment = "B2C")
 }
 \author{
 Kristian D. Olsen

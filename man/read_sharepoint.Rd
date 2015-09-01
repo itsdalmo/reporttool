@@ -4,18 +4,19 @@
 \alias{read_sharepoint}
 \title{Extract from a study directory on sharepoint}
 \usage{
-read_sharepoint(file)
+read_sharepoint(file, mainentity = "q1")
 }
 \arguments{
 \item{file}{Path to a study directory on the intranet.}
+
+\item{mainentity}{The mainentity variable. Defaults to \code{"q1"}.}
 }
 \value{
-A list containing the EM-data, entities (observations, marketshare),
-and a measurement model (latent association, question text, values etc.)
+A survey object with measurement model and entities specified.
 }
 \description{
 This function extracts whatever data is available in our standard file
-structure and tries to structure it like a input.xlsx file.
+structure and converts it to a survey.
 }
 \examples{
 x <- read_sharepoint("https://the.intranet.se/EPSI/example")

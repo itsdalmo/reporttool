@@ -11,9 +11,8 @@
 #' @author Kristian D. Olsen
 #' @export
 #' @examples 
-#' studies <- c("Mobile", "Broadband", "DTV")
-#' all_questionnaires <- lapply(studies, get_questionnaire, file = masterquest.xlsx, industry = "Telecom")
-#' lapply(all_questionnaires, write_questionnaire, file = "ICT Questionnaires.xlsx", study = studies)
+#' q <- read_data("master questionnaire.xlsx", sheet = "questionnaires")
+#' write_questionnaire(q, "Banking B2C.xlsx", study = "Banking", segment = "B2C")
 
 write_questionnaire <- function(quest, file, study = "Banking", segment = "B2C", entity = NULL) {
   
@@ -218,17 +217,17 @@ topline <- function(survey, entity_other = NULL, sample = NULL) {
 #' Extract from a study directory on sharepoint
 #'
 #' This function extracts whatever data is available in our standard file 
-#' structure and tries to structure it like a input.xlsx file.
+#' structure and converts it to a survey.
 #' 
 #' @param file Path to a study directory on the intranet.
+#' @param mainentity The mainentity variable. Defaults to \code{"q1"}.
 #' @author Kristian D. Olsen
-#' @return A list containing the EM-data, entities (observations, marketshare),
-#' and a measurement model (latent association, question text, values etc.)
+#' @return A survey object with measurement model and entities specified.
 #' @export
 #' @examples 
 #' x <- read_sharepoint("https://the.intranet.se/EPSI/example")
 
-read_sharepoint <- function(file) {
+read_sharepoint <- function(file, mainentity = "q1") {
   
   if (!tools::file_ext(file) == "") {
     stop("The specified path is not a directory:\n", file, call. = FALSE)
@@ -238,62 +237,58 @@ read_sharepoint <- function(file) {
   file <- intranet_link(file)
   
   # Check if the specified directory contains the expected folders
-  exp_folders <- c("data", "input", "output")
-  dir_content <- list.files(file)
+  req_folders <- c("data", "input", "output")
+  dir_folders <- list.files(file)
   
   # Create paths for each of the expected folders
-  file_dirs <- file.path(file, dir_content[tolower(dir_content) %in% exp_folders])
+  file_dirs <- file.path(file, dir_folders[stri_trans_tolower(dir_folders) %in% req_folders])
   
-  if (length(file_dirs) == length(exp_folders)) {
-    file_dirs <- setNames(file_dirs, exp_folders)
+  if (length(file_dirs) == length(req_folders)) {
+    file_dirs <- setNames(file_dirs, req_folders)
   } else {
-    stop("The required (model related) folders were not found in the directory:\n", file, call. = FALSE)
+    mis_dirs <- setdiff(req_folders, stri_trans_tolower(dir_folders))
+    stop("The required (model related) folders were not found in the directory:\n", stri_c(mis_dirs, collapse = ", "), call. = FALSE)
   }
   
   # Read in the dataset if it has been converted to .xlsx
   data_dir <- list.files(file_dirs["data"])
-  data_files <- data_dir[grepl(".*em\\.sav$", tolower(data_dir))]
+  data_files <- data_dir[stri_detect(stri_trans_tolower(data_dir), regex = ".*em\\.sav$")]
   
   if (length(data_files) == 1L) {
-    lst <- read_data(file.path(file_dirs["data"], data_files), codebook = TRUE)
+    srv <- read_data(file.path(file_dirs["data"], data_files))
+    srv <- survey(srv)
   } else {
     stop("There is more than one .sav file ending with \"EM\"\n", call. = FALSE)
   }
   
-  # Add measurement model and entities skeleton based on the data
-  lst[["ents"]] <- add_entities(lst$df$q1)
-  
-  input_exp <- c("config.txt", "measurement model.txt")
+  # Find and read in the input files
   input_dir <- list.files(file_dirs["input"])
-  input_files <- file.path(file_dirs["input"], input_dir[tolower(input_dir) %in% input_exp])
+  input_files <- input_dir[stri_detect(stri_trans_tolower(input_dir), regex = ".*(config|measurement model).*\\.txt$")]
   
-  if (length(input_files) == length(input_exp)) {
-    input_files <- setNames(input_files, c("cf", "mm"))
+  if (length(input_files) == 2L) {
+    input_files <- setNames(file.path(file_dirs["input"], input_files), c("cf", "mm"))
   } else {
-    stop("The required files were not found in the input directory:\n", input_exp, call. = FALSE)
+    stop("The required files were not found in the input directory:\n Measurement model.txt and config.txt.", call. = FALSE)
   }
   
   input <- list("cf" = read_txt(input_files["cf"], encoding = "latin1", header = FALSE),
                 "mm" = read_txt(input_files["mm"], encoding = "latin1", header = TRUE))
   
-  # Convert model to the appropriate format
+  # Convert to a supported format and extract latent association
   input$mm <- unlist(lapply(input$mm[-1], function(x, manifest) {manifest[x == -1, 1]}, input$mm[1]))
   input$mm <- data.frame("latent" = names(input$mm), "manifest" = input$mm, stringsAsFactors = FALSE, row.names = NULL)
-  
-  input$mm$latent <- gsub("([a-z]+)[0-9]+", "\\1", input$mm$latent)
+  input$mm$latent <- stri_replace_all(input$mm$latent, "$1", regex = "([a-z]+)[0-9]+")
   
   # Assign latent association to the measurement model (use match in case order differs)
-  lst$mm$latent[match(tolower(input$mm$manifest), tolower(lst$mm$manifest))] <- input$mm$latent
+  srv$mm$latent[match(stri_trans_tolower(input$mm$manifest), stri_trans_tolower(srv$mm$manifest))] <- input$mm$latent
+  srv <- set_association(srv, mainentity = mainentity)
   
-  # Add marketshares to entities
-  lst$ents$marketshare <- gsub(",", "\\.", input$cf[[4]][match(lst$ents$entity, input$cf[[2]])])
-  
-  # Combine the results and return them (set classes as well)
-  class(lst$ents) <- append("survey_ents", class(lst$ents))
-  class(lst$mm) <- append("survey_mm", class(lst$ents))
-  class(lst) <- append("survey", class(lst))
-  
-  lst
+  # Add entities based on the data and update with marketshares
+  srv <- add_entities(srv)
+  srv$ents$marketshare <- stri_replace(input$cf[[4]][match(srv$ents$entity, input$cf[[2]])], ".", regex = ",")
+
+  # Return
+  srv
   
 }
 
