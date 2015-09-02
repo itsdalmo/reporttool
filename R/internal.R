@@ -143,21 +143,18 @@ topline <- function(survey, entity_other = NULL, sample = NULL) {
     stop("Config must be set first. See help(set_config).", call. = FALSE)
   }
   
-  # Find mainentity, entity other and scores from measurement model if they are NULL
-  if (is.null(mainentity)) {
-    mainentity <- survey$mm$manifest[stri_trans_tolower(survey$mm$latent) == "mainentity"]
-    mainentity <- mainentity[!is.na(mainentity)]
-  }
+  # Find mainentity variable and scores
+  mainentity <- survey$mm$manifest[stri_trans_tolower(survey$mm$latent) == "mainentity"]
+  mainentity <- mainentity[!is.na(mainentity)]
   
+  scores <- survey$mm$manifest[stri_trans_tolower(survey$mm$latent) == "epsi"]
+  scores <- scores[!is.na(scores)]
+  
+  # Check mainentity + 'a' if entity_other is null
   if (is.null(entity_other)) {
     entity_other <- stri_trans_tolower(stri_c(mainentity, "a"))
     entity_other <- survey$mm$manifest[stri_trans_tolower(survey$mm$manifest) == entity_other]
     entity_other <- entity_other[!is.na(entity_other)]
-  }
-  
-  if (is.null(scores)) {
-    scores <- survey$mm$manifest[stri_trans_tolower(survey$mm$latent) == "epsi"]
-    scores <- scores[!is.na(scores)]
   }
   
   # Set names for data (merges)

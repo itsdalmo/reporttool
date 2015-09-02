@@ -53,19 +53,5 @@ yyyy$df[20, 45:50]; yy$df[20, 45:50]
 yyyy$df[20, 40:45]; yy$df[20, 40:45]
 yyyy$df[20, 30:35]; yy$df[20, 30:35]
 
-# ------------------------------------------------------------------------------
-# Topline
 
-lnk <- "C:/Users/krist_000/Desktop/bankb2b.sav"
-df <- read_data(lnk)
 
-x <- survey(df)
-
-y <- x %>% 
-  set_association(common = TRUE) %>%
-  add_entities() %>% 
-  set_config() %>% 
-  set_translation() %>% 
-  topline()
-
-# -----------
