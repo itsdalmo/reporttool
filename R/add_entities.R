@@ -49,7 +49,7 @@ add_entities <- function(survey, entities = NULL) {
   }
   
   # Mainentity must be specified in latents
-  if (!any(stri_detect(survey$mm$latent, regex = "mainentity"))) {
+  if (!any(stri_detect(survey$mm$latent, regex = "mainentity"), na.rm = TRUE)) {
     stop("'mainentity' is not specified in latents for the measurement model. See help(set_association).", call. = FALSE)
   } else {
     mainentity <- survey$mm$manifest[stri_trans_tolower(survey$mm$latent) == "mainentity"]

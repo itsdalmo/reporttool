@@ -6,7 +6,7 @@ library(dplyr)
 
 x <- read_data("./tests/testthat/test.sav")
 y <- survey(x[1:37]) %>% 
-  set_association(complaint = "q17", common = TRUE) %>% 
+  set_association(mainentity = "mainentity", complaint = "q17", common = TRUE) %>% 
   add_entities() %>%
   set_translation(difference = "Differanse", language = "norwegian") %>%
   set_config(cutoff = ".5") %>%
