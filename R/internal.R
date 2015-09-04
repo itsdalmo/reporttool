@@ -139,10 +139,6 @@ topline <- function(survey, entity_other = NULL, sample = NULL) {
     stop("Translations must be set first. See help(set_translation).", call. = FALSE)
   }
   
-  if (!inherits(survey$cfg, "survey_cfg") || !nrow(survey$cfg)) {
-    stop("Config must be set first. See help(set_config).", call. = FALSE)
-  }
-  
   # Find mainentity variable and scores
   mainentity <- survey$mm$manifest[stri_trans_tolower(survey$mm$latent) == "mainentity"]
   mainentity <- mainentity[!is.na(mainentity)]
