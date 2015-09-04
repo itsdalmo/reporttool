@@ -5,8 +5,8 @@
 #' for each entity. 
 #' 
 #' @param survey A survey object.
-#' @param type Either \code{mean} or \code{pls}. Default is \code{NULL}, in which
-#' case \code{mean} is used.
+#' @param type Either \code{mean}, \code{pls} or \code{NULL} (default) in which
+#' case no latents are added.
 #' @return Returns the survey with EM-variables and latent scores added using the
 #' specified method.
 #' @author Kristian D. Olsen
@@ -41,9 +41,10 @@ prepare_data <- function(survey, type = NULL) {
   }
   
   # Check type
-  if (is.null(type)) type <- "mean"
-  if (!type %in% c("mean", "pls")){
-    stop("Invalid type. Please choose 'mean' or 'pls'.", call. = FALSE)
+  if (!is.null(type)) {
+    if (!type %in% c("mean", "pls")) stop("Invalid type. Please choose 'mean' or 'pls'.", call. = FALSE)
+  } else {
+    type <- "none"
   }
 
   # Get the model
@@ -78,6 +79,7 @@ prepare_data <- function(survey, type = NULL) {
       imputed <- FALSE
     } else {
       survey$df[model$EM] <- imputed
+      imputed <- TRUE
     }
   }
   
