@@ -54,4 +54,11 @@ yyyy$df[20, 40:45]; yy$df[20, 40:45]
 yyyy$df[20, 30:35]; yy$df[20, 30:35]
 
 
-
+library(dplyr)
+x <- read_data("c:/Users/krist_000/Desktop/ene39795_150902.sav")
+x %>% survey() %>% 
+  set_translation(language = "norwegian") %>%
+  set_association(common = TRUE) %>% 
+  add_entities() %>% 
+  topline() %>%
+  write_data("c:/Users/krist_000/Desktop/Topline Bank BM 04-09-2015.xlsx")
