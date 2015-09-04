@@ -74,7 +74,7 @@ prepare_data <- function(survey, type = NULL) {
   if (type == "pls") {
     imputed <- impute_missing(survey$df, model$EM, cutoff)
     
-    if (is.string(imputed)) {
+    if (is.character(imputed)) {
       warning(imputed, call. = FALSE)
       imputed <- FALSE
     } else {
