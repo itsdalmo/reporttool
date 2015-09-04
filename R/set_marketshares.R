@@ -36,6 +36,7 @@ set_marketshares <- function(survey, ..., vec = NULL) {
   
   # Do manual renaming from named strings
   args <- list(...)
+  print(args)
   
   # Return early if there are no additional arguments
   if (is.null(args) || !length(args)) return()
@@ -45,11 +46,13 @@ set_marketshares <- function(survey, ..., vec = NULL) {
   if (!all(is_numeric)) {
     stop("All input must be numeric (length 1).", call. = FALSE)
   } else {
-    args <- setNames(names(args), args)
+    args <- setNames(args, names(args))
   }
   
+  print(args)
+  
   # Throw an error if arguments do not match entity names
-  missing_ents <- setdiff(args, survey$ents$entity)
+  missing_ents <- setdiff(names(args), survey$ents$entity)
   if (length(missing_ents)) {
     missing_mm <- stri_c(missing_ents, collapse = ", ")
     stop(stri_c("Entities not found in ents:\n", missing_ents), call. = FALSE)
@@ -57,7 +60,7 @@ set_marketshares <- function(survey, ..., vec = NULL) {
   
   # Update with a for loop for clarity
   for (i in names(args)) {
-    survey$ents$marketshare[survey$ents$entity %in% i] <- args[i]
+    survey$ents$marketshare[survey$ents$entity %in% i] <- args[[i]]
   }
   
   # Return
