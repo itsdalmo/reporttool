@@ -36,7 +36,6 @@ set_marketshares <- function(survey, ..., vec = NULL) {
   
   # Do manual renaming from named strings
   args <- list(...)
-  print(args)
   
   # Return early if there are no additional arguments
   if (is.null(args) || !length(args)) return()
@@ -48,8 +47,6 @@ set_marketshares <- function(survey, ..., vec = NULL) {
   } else {
     args <- setNames(args, names(args))
   }
-  
-  print(args)
   
   # Throw an error if arguments do not match entity names
   missing_ents <- setdiff(names(args), survey$ents$entity)
