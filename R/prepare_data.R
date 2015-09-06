@@ -47,7 +47,7 @@ prepare_data <- function(survey, type = NULL) {
     type <- "none"
   }
   
-  # Update config
+  # Update config with type
   survey$cfg$value[survey$cfg$config %in% "latents"] <- type
 
   # Get the model
@@ -57,6 +57,9 @@ prepare_data <- function(survey, type = NULL) {
   
   # Order the model
   model <- model[order(model$latent), ]
+  
+  # Add an index to the start of the data
+  survey$df <- cbind("coderesp" = 1:nrow(survey$df), survey$df)
   
   # Clean and rescale scores
   survey$df[model$EM] <- lapply(survey$df[model$manifest], clean_score)
@@ -95,11 +98,14 @@ prepare_data <- function(survey, type = NULL) {
     survey <- latents_pls(survey, model, mainentity, cutoff)
   }
   
-  # Update measurement model
+  # Create a updated measurement model
   vars <- setdiff(names(survey$df), survey$mm$manifest)
   mm <- new_scaffold(default$structure$mm, size = length(vars))
   mm$manifest <- vars; mm$question <- vars; mm$type <- "numeric"; mm$latent <- NA
-  survey$mm <- rbind(survey$mm, mm)
+  
+  # Replace the measurement model
+  survey$mm <- rbind(mm[1, ], survey$mm, mm[2:nrow(mm), ])
+  class(survey$mm) <- c("survey_mm", "data.frame")
   
   # Set class and return
   class(survey$df) <- c("survey_df", "tbl_df", "tbl", "data.frame")

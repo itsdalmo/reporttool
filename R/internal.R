@@ -311,6 +311,11 @@ write_sharepoint <- function(survey, file) {
   
   if (!tools::file_ext(file) == "") {
     stop("The specified path is not a directory:\n", file, call. = FALSE)
+  } else {
+    file <- clean_path(file)
+    if (!file.exists(file)) {
+      stop("The specified directory does not exist:\n", file, call. = FALSE)
+    }
   }
   
   # Get the measurement model
@@ -318,17 +323,20 @@ write_sharepoint <- function(survey, file) {
   model$latent <- factor(stri_trans_tolower(model$latent), levels = default$latents, ordered = TRUE)
   model$EM <- stri_c(model$manifest, "em")
   
-  # Order the model
+  # Order the model and get the cutoff
   model <- model[order(model$latent), ]
-  
-  # Make https links compatible with windows file explorer
-  file <- intranet_link(file)
+  cutoff <- as.numeric(survey$cfg$value[survey$cfg$config %in% "cutoff"])
   
   # Locate or create required directories
   req_folders <- c("Data", "Input")
   dir_folders <- list.files(file)
   
-  folders_exist <- stri_trans_tolower(req_folders) %in% stri_trans_tolower(dir_folders)
+  if (length(dir_folders)) {
+    folders_exist <- stri_trans_tolower(req_folders) %in% stri_trans_tolower(dir_folders)
+  } else {
+    folders_exist <- FALSE
+  }
+  
   if (!all(folders_exist)) {
     missing <- file.path(file, req_folders[!folders_exist])
     lapply(missing, dir.create, showWarnings = FALSE)
@@ -348,38 +356,53 @@ write_sharepoint <- function(survey, file) {
   write_data(survey, file = data_file)
   
   # Input files
-  args <- list(sep = "\t", na = "", dec = ",", fileEncoding = "latin1", row.names = FALSE, col.names = FALSE, quote = FALSE)
+  args <- list(sep = "\t", na = "", dec = ",", fileEncoding = "latin1", 
+               row.names = FALSE, col.names = TRUE, quote = FALSE)
   
-  # Config
-  config_file <- file.path(file_dirs["input"], "config.txt")
-  config_args <- args; config_args$row.names <- TRUE
-  do.call(write.table, args = append(list(x = survey$ents[c("entity", "n", "marketshare")], file = config_file), config_args))
+  # Write EM data
+  do.call(write.table, args = append(list(
+    x = survey$df[survey$df$percent_missing <= cutoff, c("coderesp", model$EM)],
+    file = file.path(file_dirs["input"], "modeldata.txt")),
+    args))
+  
+  # Write config
+  args$col.names <- FALSE; args$row.names <- TRUE
+  do.call(write.table, args = append(list(
+    x = survey$ents[, c("entity", "valid", "marketshare")],
+    file = file.path(file_dirs["input"], "config.txt")),
+    args))
   
   # Q1 names
-  names_file <- file.path(file_dirs["input"], "q1names.txt")
-  do.call(write.table, args = append(list(x = survey$ents$entity, file = names_file), args))
-  
-  # Get the model
-  mm <- survey$mm[survey$mm$latent %in% default$latents, ]
+  args$row.names <- FALSE
+  do.call(write.table, args = append(list(
+    x = survey$ents$entity,
+    file = file.path(file_dirs["input"], "q1names.txt")),
+    args))
   
   # Write question text
-  qtext_file <- file.path(file_dirs["input"], "qtext.txt")
-  questions <- stri_replace(mm$question, replacement = "", regex = "^[ -]*")
-  do.call(write.table, args = append(list(x = questions, file = qtext_file), args))
+  do.call(write.table, args = append(list(
+    x = stri_replace(model$question, replacement = "", regex = "^[ -]*"),
+    file = file.path(file_dirs["input"], "qtext.txt")),
+  args))
+
+  # Create measurement model
+  mm <- new_scaffold(c("Manifest", default$latents), size = nrow(model))
+  mm$Manifest <- model$manifest
+  mm[, 2:ncol(mm)] <- 0
   
-  # Write model
-  model_file <- file.path(file_dirs["input"], "measurement model.txt")
-  model_args <- args; model_args$col.names <- TRUE
-  model <- new_scaffold(c("Manifest", default$latents), size = nrow(mm))
-  model$Manifest <- mm$manifest; model[, 2:ncol(model)] <- 0
-  
+  model$latent <- as.character(model$latent)
   for (i in default$latents) {
-    model[model$Manifest %in% mm$manifest[mm$latent %in% i], i] <- -1 
+    mm[mm$Manifest %in% model$manifest[model$latent %in% i], i] <- -1
   }
   
-  do.call(write.table, args = append(list(x  = model, file = model_file), model_args))
-  
-  # Make sure nothing is returned
+  # Write model
+  args$col.names <- TRUE
+  do.call(write.table, args = append(list(
+    x = mm,
+    file = file.path(file_dirs["input"], "measurement model.txt")),
+    args))
+
+  # Make sure nothing is printed
   invisible()
   
 }
