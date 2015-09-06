@@ -53,7 +53,7 @@ default <- list(
                     "Snitt webstudien", "Vår", "Høst")),
   
   "config" = list(
-    "setting" = c("study", "segment", "year", "language", "method", "cutoff", "pls"),
+    "setting" = c("study", "segment", "year", "language", "method", "cutoff", "latents"),
     "value" = c("Barnehage", "Both", "2015", "norwegian", "web", .3, "mean")
   ),
   

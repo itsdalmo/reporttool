@@ -9,8 +9,8 @@ prepare_data(survey, type = NULL)
 \arguments{
 \item{survey}{A survey object.}
 
-\item{type}{Either \code{mean} or \code{pls}. Default is \code{NULL}, in which
-case \code{mean} is used.}
+\item{type}{Either \code{mean}, \code{pls} or \code{NULL} (default) in which
+case no latents are added.}
 }
 \value{
 Returns the survey with EM-variables and latent scores added using the

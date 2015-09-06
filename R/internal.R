@@ -305,21 +305,21 @@ write_sharepoint <- function(survey, file) {
     stop("Argument 'survey' is not an object with the class 'survey'. See help(survey).", call. = FALSE)
   }
   
-  if (!inherits(survey$mm, "survey_mm") || !nrow(survey$mm)) {
-    stop("The measurement model must be added first. See help(add_mm).", call. = FALSE)
-  }
-  
-  if (!inherits(survey$ents, "survey_ents") || !nrow(survey$ents)) {
-    stop("Entities must be added first. See help(add_entities).", call. = FALSE)
-  }
-  
-  if (!inherits(survey$cfg, "survey_cfg") || !nrow(survey$cfg)) {
-    stop("Config must be set first. See help(set_config).", call. = FALSE)
+  if (!inherits(survey$df, "survey_df") || !nrow(survey$df)) {
+    stop("Data must be prepared first. See help(prepare_data).", call. = FALSE)
   }
   
   if (!tools::file_ext(file) == "") {
     stop("The specified path is not a directory:\n", file, call. = FALSE)
   }
+  
+  # Get the measurement model
+  model <- survey$mm[stri_trans_tolower(survey$mm$latent) %in% default$latents, ]
+  model$latent <- factor(stri_trans_tolower(model$latent), levels = default$latents, ordered = TRUE)
+  model$EM <- stri_c(model$manifest, "em")
+  
+  # Order the model
+  model <- model[order(model$latent), ]
   
   # Make https links compatible with windows file explorer
   file <- intranet_link(file)

@@ -5,7 +5,7 @@
 \alias{print.survey_mm}
 \title{Add measurement model to a survey}
 \usage{
-add_mm(survey, mm = NULL, ...)
+add_mm(survey, mm = NULL)
 
 \method{print}{survey_mm}(mm, width = getOption("width"))
 }

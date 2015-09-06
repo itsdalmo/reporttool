@@ -4,13 +4,13 @@
 #' 
 #' @param survey A survey object.
 #' @param ... Marketshares for individual entities. Of the format \code{name = marketshare}.
-#' @param vec Optional character vector with the marketshares to use.
+#' @param ms Optional vector with the marketshares to use.
 #' @author Kristian D. Olsen
 #' @export
 #' @examples 
 #' x %>% set_marketshares("reporttool" = 1)
 
-set_marketshares <- function(survey, ..., vec = NULL) {
+set_marketshares <- function(survey, ..., ms = NULL) {
   
   # Check class
   if (!inherits(survey, "survey")) {
@@ -21,16 +21,16 @@ set_marketshares <- function(survey, ..., vec = NULL) {
     stop("Entities must be added first. See help(add_entities).", call. = FALSE)
   }
   
-  # Assign 'vec' if it is valid
-  if (!is.null(vec)) {
-    if(!is.character(vec)) {
-      stop("vec must be a character vector.", call. = FALSE)
-    } else if (length(vec) != length(survey$ents$entity)) {
-      stop("vec must be the same length as the number of entities in the data.", call. = FALSE)
-    } else if (sum(vec) != 1) {
-      stop("vec must sum to 1.", call. = FALSE)
+  # Assign 'ms' if it is valid
+  if (!is.null(ms)) {
+    if(!is.character(ms)) {
+      stop("ms must be a character vector.", call. = FALSE)
+    } else if (length(ms) != length(survey$ents$entity)) {
+      stop("ms must be the same length as the number of entities in the data.", call. = FALSE)
+    } else if (sum(ms) != 1) {
+      stop("ms must sum to 1.", call. = FALSE)
     } else {
-      survey$ents$marketshare <- vec
+      survey$ents$marketshare <- ms
     }
   }
   

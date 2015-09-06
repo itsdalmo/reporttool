@@ -41,7 +41,7 @@
 #' x <- survey(data.frame("test" = 1, stringsAsFactors = FALSE))
 #' x %>% add_mm()
 
-add_mm <- function(survey, mm = NULL, ...) {
+add_mm <- function(survey, mm = NULL) {
   
   # Check the input
   if (!inherits(survey, "survey")) {
@@ -60,7 +60,7 @@ add_mm <- function(survey, mm = NULL, ...) {
   # TODO: Should instead manifest be forced to equal data, and supply a separate function to
   # change the columnnames in the data?
   
-  # Warn and replace if entities contains existing data
+  # Warn and replace if measurement model contains existing data
   if (nrow(survey$mm)) {
     warning("Measurement model has been replaced.", call. = FALSE)
     survey$mm <- new_scaffold(default$structure$mm)

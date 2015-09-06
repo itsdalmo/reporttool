@@ -5,13 +5,13 @@
 #' 
 #' @param survey A survey object.
 #' @param ... Renaming of individual columns. Of the format \code{old_name = new_name}.
-#' @param vec Optional character vector with the column names to use.
+#' @param nms Optional character vector with the column names to use.
 #' @author Kristian D. Olsen
 #' @export
 #' @examples 
 #' x %>% set_colnames(q1 = "mainentity")
 
-set_colnames <- function(survey, ..., vec = NULL) {
+set_colnames <- function(survey, ..., nms = NULL) {
   
   # Check class
   if (!inherits(survey, "survey")) {
@@ -23,15 +23,15 @@ set_colnames <- function(survey, ..., vec = NULL) {
     stop("Columnnames in the data and in the measurement model do not match.", call. = FALSE)
   }
   
-  # Assign 'vec' if it is valid
-  if (!is.null(vec)) {
-    if(!is.character(vec)) {
-      stop("vec must be a character vector.", call. = FALSE)
-    } else if (length(vec) != ncol(survey$df)) {
-      stop("vec must be the same length as the number of columns in the data.", call. = FALSE)
+  # Assign 'nms' if it is valid
+  if (!is.null(nms)) {
+    if(!is.character(nms)) {
+      stop("nms must be a character vector.", call. = FALSE)
+    } else if (length(nms) != ncol(survey$df)) {
+      stop("nms must be the same length as the number of columns in the data.", call. = FALSE)
     } else {
-      names(survey$df) <- vec
-      survey$mm$manifest <- vec
+      names(survey$df) <- nms
+      survey$mm$manifest <- nms
     }
   }
   

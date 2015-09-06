@@ -46,6 +46,9 @@ prepare_data <- function(survey, type = NULL) {
   } else {
     type <- "none"
   }
+  
+  # Update config
+  survey$cfg$value[survey$cfg$config %in% "latents"] <- type
 
   # Get the model
   model <- survey$mm[stri_trans_tolower(survey$mm$latent) %in% default$latents, ]
@@ -98,7 +101,8 @@ prepare_data <- function(survey, type = NULL) {
   mm$manifest <- vars; mm$question <- vars; mm$type <- "numeric"; mm$latent <- NA
   survey$mm <- rbind(survey$mm, mm)
   
-  # Return
+  # Set class and return
+  class(survey$df) <- c("survey_df", "tbl_df", "tbl", "data.frame")
   survey
   
 }
