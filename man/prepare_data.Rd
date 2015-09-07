@@ -4,13 +4,13 @@
 \alias{prepare_data}
 \title{Prepare survey data}
 \usage{
-prepare_data(survey, type = NULL)
+prepare_data(survey, type = "mean", cutoff = 0.3)
 }
 \arguments{
 \item{survey}{A survey object.}
 
-\item{type}{Either \code{mean}, \code{pls} or \code{NULL} (default) in which
-case no latents are added.}
+\item{type}{The approach to use for latents. Either \code{mean}, \code{pls},
+\code{pls-wizard} (no latents or EM-variables) or \code{none} (no latents).}
 }
 \value{
 Returns the survey with EM-variables and latent scores added using the
