@@ -20,11 +20,11 @@ flowchart.survey <- function(survey) {
 }
 
 #' @export
-flowchart.default <- function(scores, weights, latents = rt_defaults("latent_names")) {
+flowchart.default <- function(scores, weights, latents = get_default("latents")) {
   
   # Defaults
   width <- 0.80; height <- 0.50
-  palette <- rt_defaults("ggcolors")
+  palette <- get_default("palette")
   coords <- flowchart_coords
   
   # Create plot
