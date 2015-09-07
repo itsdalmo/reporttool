@@ -5,14 +5,14 @@
 #' for each entity. 
 #' 
 #' @param survey A survey object.
-#' @param type Either \code{mean}, \code{pls} or \code{NULL} (default) in which
-#' case no latents are added.
+#' @param type The approach to use for latents. Either \code{mean}, \code{pls}, 
+#' \code{pls-wizard} (no latents or EM-variables) or \code{none} (no latents).
 #' @return Returns the survey with EM-variables and latent scores added using the
 #' specified method.
 #' @author Kristian D. Olsen
 #' @export
 
-prepare_data <- function(survey, type = NULL) {
+prepare_data <- function(survey, type = "mean", cutoff = .3) {
   
   # Check the input
   if (!inherits(survey, "survey")) {
@@ -41,14 +41,19 @@ prepare_data <- function(survey, type = NULL) {
   }
   
   # Check type
-  if (!is.null(type)) {
-    if (!type %in% c("mean", "pls")) stop("Invalid type. Please choose 'mean' or 'pls'.", call. = FALSE)
+  if (!type %in% c("none", "mean", "pls", "pls-wizard")) {
+      stop("Invalid type. Please use 'none', 'mean', 'pls' or 'pls-wizard'.", call. = FALSE)
   } else {
-    type <- "none"
+    survey$cfg$value[survey$cfg$config %in% "latents"] <- type
   }
   
-  # Update config with type
-  survey$cfg$value[survey$cfg$config %in% "latents"] <- type
+  # Check cutoff
+  cutoff <- as.numeric(cutoff)
+  if (is.na(cutoff) || cutoff > 1 || cutoff < 0) {
+    stop("Invalid cutoff. Must be a number between 0 and 1.", call. = FALSE)
+  } else {
+    survey$cfg$value[survey$cfg$config %in% "cutoff"] <- cutoff
+  }
 
   # Get the model
   model <- survey$mm[stri_trans_tolower(survey$mm$latent) %in% default$latents, ]
@@ -59,12 +64,16 @@ prepare_data <- function(survey, type = NULL) {
   model <- model[order(model$latent), ]
   
   # Add an index to the start of the data
+  if ("coderesp" %in% names(survey$df)) {
+    survey <- set_colnames(survey, coderesp = "coderesp_old")
+  }
+  
   survey$df <- cbind("coderesp" = 1:nrow(survey$df), survey$df)
   
-  # Clean and rescale scores
+  # Clean and rescale scores{
   survey$df[model$EM] <- lapply(survey$df[model$manifest], clean_score)
   survey$df[model$EM] <- lapply(survey$df[model$EM], rescale_score)
-  
+
   # Calculate missing percentage and get the cutoff
   survey$df["percent_missing"] <- rowSums(is.na(survey$df[model$EM]))/length(model$EM)
   cutoff <- as.numeric(survey$cfg$value[survey$cfg$config %in% "cutoff"])
@@ -96,6 +105,11 @@ prepare_data <- function(survey, type = NULL) {
   
   if (type == "pls" && imputed) {
     survey <- latents_pls(survey, model, mainentity, cutoff)
+  }
+  
+  # If pls-wizard is meant to be used, remove EM-variables
+  if (type == "pls-wizard") {
+    survey$df <- survey$df[!names(survey$df) %in% model$EM]
   }
   
   # Create a updated measurement model
