@@ -2,12 +2,23 @@ context("Survey")
 
 lst <- read_data("test_input.xlsx")
 raw <- read_data("test_raw.xlsx")
+srv <- survey(raw)
 
+test_that("Creating new scaffolds", {
+  
+  nm <- default$structure$mm
+  df <- new_scaffold(nm)
+  
+  expect_true(is.data.frame(df))
+  expect_identical(names(df), nm)
+  expect_identical(names(df), stringi::stri_trans_tolower(names(df)))
+  expect_true(nrow(df) == 0L)
+  
+})
 
 test_that("Creating a survey from raw" , {
   
-  x <- survey(raw)
-  x <- add_mm(x)
+  x <- add_mm(srv)
   x <- set_association(x, common = TRUE)
   x <- add_entities(x)
   
@@ -19,8 +30,7 @@ test_that("Creating a survey from raw" , {
 
 test_that("Creating a survey with input" , {
 
-  x <- survey(raw)
-  x <- add_mm(x, lst[["measurement model"]])
+  x <- add_mm(srv, lst[["measurement model"]])
   x <- set_association(x, common = TRUE)
   
   # Lowercase fix
@@ -34,14 +44,40 @@ test_that("Creating a survey with input" , {
   
 })
 
-test_that("Creating new scaffolds", {
+test_that("Changing columnames for surveys", {
   
-  nm <- default$structure$mm
-  df <- new_scaffold(nm)
+  x <- add_mm(srv)
+  x <- set_association(x, common = TRUE)
+  x <- set_colnames(x, q1 = "mainentity")
   
-  expect_true(is.data.frame(df))
-  expect_identical(names(df), nm)
-  expect_identical(names(df), stringi::stri_trans_tolower(names(df)))
-  expect_true(nrow(df) == 0L)
+  expect_identical(names(x$df)[1], "mainentity")
+  expect_identical(names(x$df), x$mm$manifest)
+    
+})
+
+test_that("Changing marketshares for entities", {
+  
+  x <- add_mm(srv)
+  x <- set_association(x, common = TRUE)
+  x <- add_entities(x)
+  x <- set_marketshares(x, Example = .3)
+  
+  expect_identical(x$ents$marketshare, .3)
+  
+})
+
+test_that("Setting config and translations for survey", {
+  
+  x <- set_config(srv)
+  x <- set_translation(x)
+  
+  expect_identical(default$config$value, x$cfg$value)
+  expect_identical(default$translation$norwegian, x$tr$replacement)
+  
+  x <- set_config(srv, rt_version = "test")
+  x <- set_translation(x, image = "test")
+  
+  expect_identical(x$cfg$value[1], "test")
+  expect_identical(x$tr$replacement[1], "test")
   
 })

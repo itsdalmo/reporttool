@@ -53,8 +53,8 @@ default <- list(
                     "Snitt webstudien", "Vår", "Høst")),
   
   "config" = list(
-    "setting" = c("study", "segment", "year", "language", "method", "cutoff", "latents"),
-    "value" = c("Barnehage", "Both", "2015", "norwegian", "web", .3, "mean")
+    "setting" = c("rt_version", "study", "segment", "year", "language", "method", "cutoff", "latents"),
+    "value" = c("2.0", "Barnehage", "Both", "2015", "norwegian", "web", .3, "mean")
   ),
   
   "template" = list(
