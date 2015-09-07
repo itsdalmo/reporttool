@@ -318,13 +318,12 @@ write_sharepoint <- function(survey, file) {
     }
   }
   
-  # Get the measurement model
-  model <- survey$mm[stri_trans_tolower(survey$mm$latent) %in% default$latents, ]
-  model$latent <- factor(stri_trans_tolower(model$latent), levels = default$latents, ordered = TRUE)
-  model$EM <- stri_c(model$manifest, "em")
+  # Get mainentity
+  mainentity <- survey$mm$manifest[stri_trans_tolower(survey$mm$latent) == "mainentity"]
+  mainentity <- mainentity[!is.na(mainentity)]
   
-  # Order the model and get the cutoff
-  model <- model[order(model$latent), ]
+  # Get the measurement model and the cutoff
+  model <- survey$mm[stri_trans_tolower(survey$mm$latent) %in% default$latents, ]
   cutoff <- as.numeric(survey$cfg$value[survey$cfg$config %in% "cutoff"])
   
   # Locate or create required directories
@@ -359,10 +358,25 @@ write_sharepoint <- function(survey, file) {
   args <- list(sep = "\t", na = "", dec = ",", fileEncoding = "latin1", 
                row.names = FALSE, col.names = TRUE, quote = FALSE)
   
+  # Factor the data and convert mainentity to numeric
+  survey <- factor_data(survey, vars = mainentity)
+  me_levels <- levels(survey$df[[mainentity]])
+  survey$df[mainentity] <- as.numeric(survey$df[[mainentity]])
+  
+  # Properly order entities
+  survey$ents$entity <- factor(survey$ents$entity, levels = me_levels, ordered = TRUE)
+  survey$ents <- survey$ents[order(survey$ents$entity), ]
+  row.names(survey$ents) <- 1:nrow(survey$ents)
+  
   # Write EM data
+  em_data <- survey$df[survey$df$percent_missing <= cutoff, c(model$manifest, mainentity, "coderesp")]
+  em_data <- em_data[order(em_data[[mainentity]]), ]
+  em_data[model$manifest] <- lapply(em_data[model$manifest], clean_score)
+  em_data[model$manifest] <- lapply(em_data[model$manifest], function(x) { x[is.na(x)] <- 98; x })
+  
   do.call(write.table, args = append(list(
-    x = survey$df[survey$df$percent_missing <= cutoff, c("coderesp", model$EM)],
-    file = file.path(file_dirs["input"], "modeldata.txt")),
+    x = em_data,
+    file = file.path(file_dirs["input"], "em_data.txt")),
     args))
   
   # Write config
