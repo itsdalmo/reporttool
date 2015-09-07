@@ -23,14 +23,24 @@ set_marketshares <- function(survey, ..., ms = NULL) {
   
   # Assign 'ms' if it is valid
   if (!is.null(ms)) {
-    if(!is.character(ms)) {
-      stop("ms must be a character vector.", call. = FALSE)
-    } else if (length(ms) != length(survey$ents$entity)) {
-      stop("ms must be the same length as the number of entities in the data.", call. = FALSE)
-    } else if (sum(ms) != 1) {
-      stop("ms must sum to 1.", call. = FALSE)
+    nms <- names(ms)
+    
+    # If it is a named vector
+    if (!is.null(nms) && !any(is.na(nms))) {
+      missing <- setdiff(nms, survey$ents$entity)
+      if (length(missing)) {
+        stop("Entities not found\n:", stri_c(missing, collapse = ", "), call. = FALSE)
+      } else {
+        survey$ents$marketshare[match(nms, survey$ents$entity)] <- ms
+      }
+      
+    # If not, only accept if it is the same length
     } else {
-      survey$ents$marketshare <- ms
+      if (length(ms) == length(survey$ents$entity)) {
+        survey$ents$marketshare <- ms
+      } else {
+        stop("ms must either be a named vector or same length as entities.", call. = FALSE)
+      }
     }
   }
   
@@ -38,7 +48,7 @@ set_marketshares <- function(survey, ..., ms = NULL) {
   args <- list(...)
   
   # Return early if there are no additional arguments
-  if (is.null(args) || !length(args)) return()
+  if (is.null(args) || !length(args)) return(survey)
   
   # Check that all arguments are strings
   is_numeric <- vapply(args, is.numeric, logical(1))
