@@ -5,7 +5,8 @@
 #' 
 #' @param survey A survey object.
 #' @param ... Renaming of individual columns. Of the format \code{old_name = new_name}.
-#' @param nms Optional character vector with the column names to use.
+#' @param nms Optional character vector with the column names to use. Either
+#' a named vector, or one of the same length as the number of columns in the data.
 #' @author Kristian D. Olsen
 #' @export
 #' @examples 
@@ -27,11 +28,28 @@ set_colnames <- function(survey, ..., nms = NULL) {
   if (!is.null(nms)) {
     if(!is.character(nms)) {
       stop("nms must be a character vector.", call. = FALSE)
-    } else if (length(nms) != ncol(survey$df)) {
-      stop("nms must be the same length as the number of columns in the data.", call. = FALSE)
+    }
+    
+    string_names <- names(nms)
+    
+    # If it is a named vector
+    if (!is.null(string_names) && !any(is.na(string_names))) {
+      missing <- setdiff(string_names, survey$ents$entity)
+      if (length(missing)) {
+        stop("Variables not found\n:", stri_c(missing, collapse = ", "), call. = FALSE)
+      } else {
+        names(survey$df)[match(string_names, names(survey$df))] <- nms
+        survey$mm$manifest[match(string_names, survey$mm$manifest)] <- nms
+      }
+      
+    # If not, only accept if it is the same length
     } else {
-      names(survey$df) <- nms
-      survey$mm$manifest <- nms
+      if (length(nms) == length(names(survey$df))) {
+        names(survey$df) <- nms
+        survey$mm$manifest <- nms
+      } else {
+        stop("nms must either be a named vector or same length as the column names.", call. = FALSE)
+      }
     }
   }
   
@@ -39,7 +57,7 @@ set_colnames <- function(survey, ..., nms = NULL) {
   args <- list(...)
 
   # Return early if there are no additional arguments
-  if (is.null(args) || !length(args)) return()
+  if (is.null(args) || !length(args)) return(survey)
   
   # Check that all arguments are strings
   is_string <- vapply(args, is.string, logical(1))

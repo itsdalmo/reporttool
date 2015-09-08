@@ -4,7 +4,8 @@
 #' 
 #' @param survey A survey object.
 #' @param ... Marketshares for individual entities. Of the format \code{name = marketshare}.
-#' @param ms Optional vector with the marketshares to use.
+#' @param ms Optional vector with the marketshares to use. Either
+#' a named vector, or one of the same length as the number of entities in the data.
 #' @author Kristian D. Olsen
 #' @export
 #' @examples 

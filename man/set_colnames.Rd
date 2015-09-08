@@ -11,7 +11,8 @@ set_colnames(survey, ..., nms = NULL)
 
 \item{...}{Renaming of individual columns. Of the format \code{old_name = new_name}.}
 
-\item{nms}{Optional character vector with the column names to use.}
+\item{nms}{Optional character vector with the column names to use. Either
+a named vector, or one of the same length as the number of columns in the data.}
 }
 \description{
 Use this function to rename columns in the data in a survey. It makes sure

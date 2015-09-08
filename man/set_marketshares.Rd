@@ -11,7 +11,8 @@ set_marketshares(survey, ..., ms = NULL)
 
 \item{...}{Marketshares for individual entities. Of the format \code{name = marketshare}.}
 
-\item{ms}{Optional vector with the marketshares to use.}
+\item{ms}{Optional vector with the marketshares to use. Either
+a named vector, or one of the same length as the number of entities in the data.}
 }
 \description{
 Use this function to set marketshares for entities in Q1.
