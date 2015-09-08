@@ -8,12 +8,15 @@ write_questionnaire(quest, file, study = "Banking", segment = "B2C",
   entity = NULL)
 }
 \arguments{
-\item{quest}{A questionnaire as returned by get_questionnaire.}
+\item{quest}{The questionnaire (r object).}
 
 \item{file}{The name of the xlsx file you would like to write to.}
 
-\item{study}{Name of the study. This is used as the sheet-name when writing
-the questionnaire.}
+\item{study}{Name of the study to write.}
+
+\item{segment}{The segment being studied.}
+
+\item{entity}{Optional: Replace {XX} with something else.}
 }
 \description{
 This function writes a questionnaire as extracted by get_questionnaire to

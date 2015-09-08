@@ -4,10 +4,11 @@
 #' a specified xlsx-file (with styling). Only writes the latent association,
 #' manifest name, possible values and the question text itself. 
 #'
-#' @param quest A questionnaire as returned by get_questionnaire.
+#' @param quest The questionnaire (r object).
 #' @param file The name of the xlsx file you would like to write to.
-#' @param study Name of the study. This is used as the sheet-name when writing
-#' the questionnaire.
+#' @param study Name of the study to write.
+#' @param segment The segment being studied. 
+#' @param entity Optional: Replace {XX} with something else.
 #' @author Kristian D. Olsen
 #' @export
 #' @examples 
