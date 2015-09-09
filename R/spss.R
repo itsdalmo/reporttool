@@ -33,7 +33,7 @@ from_labelled <- function(df) {
   mm$question <- vapply(mm$question, function(x) ifelse(is.null(x), "", as.character(x)), character(1))
   
   # Differentiate between scale and factor variables
-  labels <- lapply(df, function(x) names(attr(x, "labels")))
+  labels <- lapply(df, function(x) if (!is.null(attr(x, "labels"))) names(attr(x, "labels")) else attr(x, "levels"))
   is_scale <- vapply(labels, function(x) {
     sum(stri_detect(x, regex = default$pattern$detect_scale)) == 10L }, logical(1))
   
