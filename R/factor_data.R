@@ -80,13 +80,16 @@ split_scale <- function(x) {
   v <- lapply(v, function(x) { n <- length(x); c(stri_c(c(1, 10), x[1:2], sep = " "), if (n > 2) x[3:n] else NULL) })
   v <- lapply(v, function(x) { if (length(x) == 2L) c(x[1], 2:9, x[2]) else c(x[1], 2:9, x[2:3])})
   
-  # Retrun
-  unlist(v)
+  # Return after cleaning whitespaces
+  stri_replace_all(unlist(v), " ", regex = "\\s")
   
 }
 
 split_fctr <- function(x) {
   
-  unlist(stri_split(x, regex = "\n"))
+  x <- unlist(stri_split(x, regex = "\n"))
+  
+  # Return after cleaning whitespaces
+  stri_replace_all(x, " ", regex = "\\s")
   
 }
