@@ -109,30 +109,19 @@ write_questionnaire <- function(quest, file, study = "Banking", segment = "B2C",
 #' specified, and that the config and translations have been set.
 #' 
 #' @param survey A survey.
-#' @param entity_other The text column which contains the open response for 'other' in 
+#' @param other The text column which contains the open response for 'other' in 
 #' mainentity. Defaults to for instance \code{Q1a}, if mainentity is \code{Q1}.
-#' @param sample The name of the column containing sample information.
 #' @author Kristian D. Olsen
 #' @return A list.
 #' @export
 #' @examples 
 #' x <- topline(df)
 
-topline <- function(survey, entity_other = NULL, sample = NULL) {
+topline <- function(survey, other = NULL) {
   
   # Check the input
   if (!inherits(survey, "survey")) {
     stop("Argument 'survey' is not an object with the class 'survey'. See help(survey).", call. = FALSE)
-  }
-  
-  # Measurement model must be added first
-  if (!inherits(survey$mm, "survey_mm") || !nrow(survey$mm)) {
-    stop("The measurement model must be added first. See help(add_mm).", call. = FALSE)
-  }
-  
-  # Entities must be added first
-  if (!inherits(survey$ents, "survey_ents") || !nrow(survey$ents)) {
-    stop("Entities must be added first. See help(add_entities).", call. = FALSE)
   }
   
   # Config and translations must be set beforehand.
@@ -140,65 +129,47 @@ topline <- function(survey, entity_other = NULL, sample = NULL) {
     stop("Translations must be set first. See help(set_translation).", call. = FALSE)
   }
   
+  # Data must be prepared first
+  if (!inherits(survey$df, "survey_df") || !nrow(survey$mm)) {
+    stop("The data must be prepared first. See help(prepare_data).", call. = FALSE)
+  } else if (survey$cfg$value[survey$cfg$config %in% "latents"] != "mean"){
+    stop("The data must be prepared with 'mean'. See help(prepare_data).", call. = FALSE)
+  }
+  
   # Find mainentity variable and scores
   mainentity <- survey$mm$manifest[stri_trans_tolower(survey$mm$latent) == "mainentity"]
   mainentity <- mainentity[!is.na(mainentity)]
   
-  scores <- survey$mm$manifest[stri_trans_tolower(survey$mm$latent) == "epsi"]
-  scores <- scores[!is.na(scores)]
-  
-  # Check mainentity + 'a' if entity_other is null
-  if (is.null(entity_other)) {
-    entity_other <- stri_trans_tolower(stri_c(mainentity, "a"))
-    entity_other <- survey$mm$manifest[stri_trans_tolower(survey$mm$manifest) == entity_other]
-    entity_other <- entity_other[!is.na(entity_other)]
+  # Check mainentity + 'a' if 'other' is null
+  if (is.null(other)) {
+    other <- stri_trans_tolower(stri_c(mainentity, "a"))
+    other <- survey$mm$manifest[stri_trans_tolower(survey$mm$manifest) == other]
+    other <- other[!is.na(other)]
   }
   
   # Set names for data (merges)
   names(survey$df)[names(survey$df) %in% mainentity] <- "entity"
-  names(survey$df)[names(survey$df) %in% entity_other] <- "entity_other"
-  
-  # Clean, rescale and convert to numeric
-  n <- nrow(survey$df)
-  survey$df[scores] <- vapply(survey$df[scores], clean_score, numeric(n))
-  survey$df[scores] <- vapply(survey$df[scores], rescale_score, numeric(n))
+  names(survey$df)[names(survey$df) %in% other] <- "other"
   
   # Get the entities summary
-  ents <- survey$ents[c("entity", "n")]
-  ents <- merge(ents, aggregate(survey$df[scores], survey$df["entity"], FUN = mean, na.rm = TRUE), by = "entity")
+  ents <- survey$ents[c("entity", "n", "valid")]
+  ents <- merge(ents, aggregate(survey$df[default$latents], survey$df["entity"], FUN = mean, na.rm = TRUE), by = "entity")
   
-  total <- data.frame("entity" = "Total", "n" = length(na.omit(survey$df$entity)))
-  total[scores] <- apply(survey$df[scores], 2, mean, na.rm = TRUE)
+  total <- data.frame("entity" = "Total", "n" = sum(ents$n, na.rm = TRUE), "valid" = sum(ents$valid, na.rm = TRUE))
+  total[default$latents] <- lapply(survey$df[default$latents], mean, na.rm = TRUE)
   ents <- rbind(ents, total)
   
   # Clean NaN's
-  ents[scores] <- apply(ents[scores], 2, function(x) ifelse(is.nan(x), NA, x))
+  ents[default$latents] <- lapply(ents[default$latents], function(x) ifelse(is.nan(x), NA, x))
   
-  # Add row means (KTI)
-  satisfaction <- survey$tr$replacement[survey$tr$original %in% "epsi"]
-  ents[satisfaction] <- rowMeans(ents[scores], na.rm = TRUE)
-  
-  # Add sample counts
-  if (!is.null(sample)) {
-    samp_total <- do.call(cbind, as.list(tapply(survey$df$entity, survey$df[sample], FUN = length)))
-    samp_total <- as.data.frame(samp_total, stringsAsFactors = FALSE)
-    samp_total$entity <- "Total"
-    
-    samp <- tapply(survey$df$entity, survey$df[c("entity", sample)], FUN = length)
-    samp <- cbind(data.frame("entity" = dimnames(samp)$entity, as.data.frame(samp, stringsAsFactors = FALSE)))
-    rownames(samp) <- NULL
-    
-    ents <- merge(rbind(samp, samp_total), ents, by = "entity")
-    names(ents) <- tolower(names(ents))
-  }
+  # Rename columns
+  tr <- survey$tr[survey$tr$original %in% default$latents, c("replacement", "original")]
+  names(ents) <- ordered_replace(names(ents), setNames(tr$original, tr$replacement))
   
   # Make a table for 'other'
-  other <- survey$df$entity_other
-  other <- table(other[!is.na(other) & other != ""])
-  other <- as.data.frame(other, stringsAsFactors = FALSE)
-  names(other) <- c("name", "n")
-  
-  # Order on decreasing count and alphabetical names
+  other <- survey$df$other[!is.na(survey$df$other) & survey$df$other != ""]
+  other <- tapply(other, other, FUN = length)
+  other <- data.frame("name" = names(other), "n" = unname(other), stringsAsFactors = FALSE)
   other <- other[order(-xtfrm(other$n), other$name), ]
   
   # Create a list and return results
