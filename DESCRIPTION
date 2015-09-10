@@ -10,13 +10,11 @@ License: CC-BY-SA 4.0 International
 Depends:
   R (>= 3.1)
 Imports: 
-  Amelia,
   ggplot2,
   grid,
   haven (>= 0.2.0.9000),
   knitr,
   openxlsx (>= 3.0.0),
-  plspm,
   rmarkdown,
   scales,
   stringi (>= 0.5.5),
