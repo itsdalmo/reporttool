@@ -114,8 +114,8 @@ prepare_data <- function(survey, type = "mean", cutoff = .3) {
 latents_mean <- function(survey, model, cutoff) {
 
   for (i in levels(model$latent)) {
-    survey$df[survey$df$percent_missing <= cutoff, i] <- rowMeans(
-      survey$df[survey$df$percent_missing <= cutoff, model$EM[model$latent %in% i]], na.rm = TRUE)
+    x <- survey$df[survey$df$percent_missing <= cutoff, model$EM[model$latent %in% i], drop = FALSE]
+    survey$df[survey$df$percent_missing <= cutoff, i] <- rowMeans(x, na.rm = TRUE)
   }
   
   # Return
