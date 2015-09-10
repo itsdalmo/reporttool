@@ -4,15 +4,13 @@
 \alias{topline}
 \title{Create a topline}
 \usage{
-topline(survey, entity_other = NULL, sample = NULL)
+topline(survey, other = NULL)
 }
 \arguments{
 \item{survey}{A survey.}
 
-\item{entity_other}{The text column which contains the open response for 'other' in
+\item{other}{The text column which contains the open response for 'other' in
 mainentity. Defaults to for instance \code{Q1a}, if mainentity is \code{Q1}.}
-
-\item{sample}{The name of the column containing sample information.}
 }
 \value{
 A list.

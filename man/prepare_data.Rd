@@ -10,7 +10,9 @@ prepare_data(survey, type = "mean", cutoff = 0.3)
 \item{survey}{A survey object.}
 
 \item{type}{The approach to use for latents. Either \code{mean}, \code{pls},
-\code{pls-wizard} (no latents or EM-variables) or \code{none} (no latents).}
+or \code{none} (no latents). If \code{pls} is used, only \code{coderesp} and
+\code{percent_missing} are added to the data. I.e. it is a preparation for the
+PLS-wizard.}
 }
 \value{
 Returns the survey with EM-variables and latent scores added using the
