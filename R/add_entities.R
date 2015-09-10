@@ -62,7 +62,9 @@ add_entities <- function(survey, entities = NULL) {
   }
   
   # Generate the needed data from the mainentity vector
-  if (is.null(entities)) {
+  if (all(is.na(survey$df[[mainentity]]))) {
+    stop("No observations found in mainentity column ", stri_c("(", mainentity, ")"), ".", call. = FALSE)
+  } else if (is.null(entities)) {
     entities <- new_entities(survey$df[[mainentity]])
   }
   
