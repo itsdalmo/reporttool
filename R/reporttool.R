@@ -17,7 +17,6 @@
 #'
 #' @docType package
 #' @name reporttool
-#' @import ggplot2
-#' @import stringi
+#' @import ggplot2 stringi
 
 NULL
