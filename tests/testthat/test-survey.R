@@ -29,7 +29,7 @@ test_that("Creating a survey from raw" , {
 })
 
 test_that("Creating a survey with input" , {
-
+  
   x <- add_mm(srv, lst[["measurement model"]])
   x <- set_association(x, common = TRUE)
   
@@ -52,7 +52,7 @@ test_that("Changing columnames for surveys", {
   
   expect_identical(names(x$df)[1], "mainentity")
   expect_identical(names(x$df), x$mm$manifest)
-    
+  
 })
 
 test_that("Changing marketshares for entities", {
@@ -79,5 +79,23 @@ test_that("Setting config and translations for survey", {
   
   expect_identical(x$cfg$value[1], "test")
   expect_identical(x$tr$replacement[1], "test")
+  
+})
+
+test_that("Preparing data works for survey", {
+  
+  x <- add_mm(srv)
+  x <- set_association(x, common = TRUE)
+  x <- add_entities(x)
+  x <- set_config(x)
+  x <- set_translation(x)
+  x <- prepare_data(x, "mean")
+  
+  expect_true(all(default$latents %in% names(x$df)))
+  expect_true(all(default$latents %in% x$mm$manifest))
+  expect_identical(names(x$df)[1], "coderesp")
+  expect_true("percent_missing" %in% names(x$df))
+  expect_identical(x$df$percent_missing[6], 0)
+  expect_more_than(x$df$percent_missing[7], 0.7142)
   
 })
