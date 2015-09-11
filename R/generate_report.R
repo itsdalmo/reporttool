@@ -108,12 +108,12 @@ get_survey <- function(file) {
   input <- read_data(file)
   
   # Replace names for mainentity in the data
-  me_name <- setNames(tolower(input$mm$manifest[input$mm$latent %in% "mainentity"]), "mainentity")
+  me_name <- setNames(stri_trans_tolower(input$mm$manifest[input$mm$latent %in% "mainentity"]), "mainentity")
   input <- lapply(input, function(x, re) { names(x) <- ordered_replace(names(x), re);  x }, me_name)
   
   # And subentities (if they exist)
   if ("subentity" %in% input$mm$latent) {
-    se_name <- setNames(tolower(input$mm$manifest[input$mm$latent %in% "subentity"]), "subentity")
+    se_name <- setNames(stri_trans_tolower(input$mm$manifest[input$mm$latent %in% "subentity"]), "subentity")
     input <- lapply(input, function(x, re) { names(x) <- ordered_replace(names(x), re); x }, se_name)
   }
   
