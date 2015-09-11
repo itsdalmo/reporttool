@@ -34,6 +34,7 @@ suppressMessages(library(stringi))
 
 latents <- get_default("latents")
 palette <- get_default("palette")
+cutoff <- as.numeric(cfg$value[cfg$config %in% "cutoff"])
 
 # Workbook (create and add open answers etc if needed) -------------------------
 wb <- openxlsx::createWorkbook()
