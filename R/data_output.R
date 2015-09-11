@@ -173,6 +173,8 @@ write_data <- function(x, file = NULL, encoding = "UTF-8") {
     if (ext == "sav") {
       x <- setNames(list(to_labelled(x)$df), name)
     } else if (ext == "xlsx") {
+      is_date <- vapply(x$df, inherits, what = "Date", logical(1))
+      x$df[is_date] <- lapply(x$df[is_date], as.character)
       names(x) <- ordered_replace(names(x), default$structure$survey, default$structure$sheet) 
     }
   } else if (inherits(x, "data.frame")) {
