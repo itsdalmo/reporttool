@@ -122,7 +122,7 @@ get_survey <- function(file) {
     input <- lapply(input, function(x, re) { names(x) <- ordered_replace(names(x), re); x }, se_name)
   }
   
-  # Return
-  input
+  # Return as factored data
+  factor_data(input)
   
 }
