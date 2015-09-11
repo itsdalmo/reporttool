@@ -123,6 +123,7 @@ get_survey <- function(file) {
   }
   
   # Return as factored data
+  class(input) <- c("survey", "list")
   factor_data(input)
   
 }
