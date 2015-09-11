@@ -39,9 +39,9 @@ set_colnames <- function(survey, ..., nms = NULL) {
     
     # If it is a named vector
     if (!is.null(string_names) && !any(is.na(string_names))) {
-      missing <- setdiff(string_names, survey$ents$entity)
+      missing <- setdiff(string_names, names(survey$df))
       if (length(missing)) {
-        stop("Variables not found\n:", stri_c(missing, collapse = ", "), call. = FALSE)
+        stop("Variables not found:\n", stri_c(missing, collapse = ", "), call. = FALSE)
       } else {
         names(survey$df)[match(string_names, names(survey$df))] <- nms
         survey$mm$manifest[match(string_names, survey$mm$manifest)] <- nms
