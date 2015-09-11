@@ -60,13 +60,6 @@ factor_data <- function(survey, vars = NULL) {
     survey$df[f_var] <- Map(haven::as_factor, survey$df[f_var], scale, ordered = TRUE)
   }
   
-  # Convert numerics
-  is_numeric <- survey$mm$type == "numeric"
-  if (any(is_numeric)) {
-    n_var <- survey$mm$manifest[is_numeric]
-    survey$df[n_var] <- lapply(survey$df[n_var], as.numeric)
-  }
-  
   # Convert dates
   is_date <- survey$mm$type == "date"
   if (any(is_date)) {
@@ -74,7 +67,21 @@ factor_data <- function(survey, vars = NULL) {
     d_var <- survey$mm$manifest[is_date]
     survey$df[d_var] <- Map(function(x, fmt) {
       as.POSIXct(as.character(x), format = fmt)
-      }, survey$df[d_var], d_frmt)
+    }, survey$df[d_var], d_frmt)
+  }
+  
+  # Convert numerics
+  is_numeric <- survey$mm$type == "numeric"
+  if (any(is_numeric)) {
+    n_var <- survey$mm$manifest[is_numeric]
+    survey$df[n_var] <- lapply(survey$df[n_var], as.numeric)
+  }
+  
+  # Convert integer
+  is_integer <- survey$mm$type == "integer"
+  if (any(is_integer)) {
+    i_var <- survey$mm$manifest[is_integer]
+    survey$df[i_var] <- lapply(survey$df[i_var], as.integer)
   }
   
   # Return
