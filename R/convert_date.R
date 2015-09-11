@@ -1,6 +1,6 @@
 #' Convert columns to date
 #'
-#' This function lets you convert columns with dates to \code{POSIXct}.
+#' This function lets you convert columns with dates to \code{Date}.
 #' 
 #' @param survey A survey object.
 #' @param ... Columns to convert to dates. Of the format \code{column_name = date_format}.
@@ -51,7 +51,7 @@ convert_date <- function(survey, ...) {
   
   # Change to date
   for (i in names(args)) {
-    dt <- as.POSIXct(as.character(survey$df[[i]]), format = args[[i]])
+    dt <- as.Date(as.character(survey$df[[i]]), format = args[[i]])
     
     if (all(is.na(dt))) {
       warning("Wrong format ", stri_c("(", args[[i]],")"), " for variable ", stri_c("'", i, "'"), 
