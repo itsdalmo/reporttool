@@ -66,7 +66,7 @@ factor_data <- function(survey, vars = NULL) {
     d_frmt <- survey$mm$values[is_date]
     d_var <- survey$mm$manifest[is_date]
     survey$df[d_var] <- Map(function(x, fmt) {
-      as.POSIXct(as.character(x), format = fmt)
+      as.Date(as.character(x), format = fmt)
     }, survey$df[d_var], d_frmt)
   }
   
