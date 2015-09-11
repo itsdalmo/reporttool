@@ -51,7 +51,7 @@ survey <- function(x) {
   # Check input
   if (inherits(x, "data.frame")) {
     if(is.spss(x)) { 
-      x <- from_labelled(x); warning("Added mm from labelled. You don't need to add_mm().", call. = FALSE)
+      x <- from_labelled(x); message("Added mm from labelled. You don't need to add_mm().")
     } else { 
       x <- list("df" = x) 
     }
