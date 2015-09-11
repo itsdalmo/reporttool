@@ -19,6 +19,11 @@ set_colnames <- function(survey, ..., nms = NULL) {
     stop("Argument 'survey' is not an object with the class 'survey'. See help(survey).", call. = FALSE)
   }
   
+  # Measurement model must be added first
+  if (!inherits(survey$mm, "survey_mm") || !nrow(survey$mm)) {
+    stop("The measurement model must be added first. See help(add_mm).", call. = FALSE)
+  }
+  
   # Make sure the existing manifest and colnames match
   if (!identical(names(survey$df), survey$mm$manifest)) {
     stop("Columnnames in the data and in the measurement model do not match.", call. = FALSE)
@@ -61,7 +66,7 @@ set_colnames <- function(survey, ..., nms = NULL) {
   
   # Check that all arguments are strings
   is_string <- vapply(args, is.string, logical(1))
-  if (!all(is_string)) {
+  if (!all(is_string) || is.null(names(args))) {
     stop("All input must be named strings (length 1 character vector).", call. = FALSE)
   } else {
     args <- setNames(names(args), args)
