@@ -15,7 +15,7 @@
  
 generate_report <- function(report=NULL, entity=NULL, data=NULL, type="pdf") {
   
-  report <- validate_path(report)
+  report <- clean_path(report)
   dir <- dirname(report)
   
   if (!file.exists(report)) {
@@ -26,11 +26,11 @@ generate_report <- function(report=NULL, entity=NULL, data=NULL, type="pdf") {
   if (is.null(data)) {
     data <- file.path(dir, "input.xlsx")
   } else {
-    data <- validate_path(data)
+    data <- clean_path(data)
   }
   
   if (!file.exists(data)) {
-    stop("File not found: ", data, call. = FALSE)
+    stop("File not found:\n", data, call. = FALSE)
   }
 
   # Read in the input-file
@@ -72,13 +72,14 @@ generate_report <- function(report=NULL, entity=NULL, data=NULL, type="pdf") {
          stop("Please use a supported output format.\n", call. = FALSE))
   
   invisible()
+  
 }
 
 # Report functions -------------------------------------------------------------
 
 generate_rmd <- function(entity, md, dir) {
   
-  path <- file(file.path(dir, "Markdown", paste0(entity, ".Rmd")), encoding = "UTF-8")
+  path <- file(file.path(dir, "Markdown", stri_c(entity, ".Rmd")), encoding = "UTF-8")
   on.exit(close(path), add = TRUE)
   
   writeLines(stringi::stri_replace_all(md, entity, regex = "REPLACE_ENTITY"), path)
@@ -101,7 +102,7 @@ generate_rmd <- function(entity, md, dir) {
 get_survey <- function(file) {
   
   # Validate path
-  file <- validate_path(file)
+  file <- clean_path(file)
   
   # Read in the data and convert it to class survey
   input <- read_data(file)
