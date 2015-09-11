@@ -4,15 +4,14 @@
 \alias{generate_report}
 \title{Generate report}
 \usage{
-generate_report(report = NULL, entity = NULL, data = NULL, type = "pdf")
+generate_report(survey, report = NULL, entity = NULL, type = "pdf")
 }
 \arguments{
-\item{report}{Path to the report template (.Rmd) for a specific study.}
+\item{survey}{A survey object containing the data that is being reported.}
+
+\item{report}{Path to the report template (.Rmd) for the specific study.}
 
 \item{entity}{Optional: Name of a specific entity to create a report for.}
-
-\item{data}{Optional: path to input.xlsx (if NULL, assumes that this file can
-be found in working directory.)}
 }
 \value{
 Nothing. A .Rmd file and desired output is created for each entity in
@@ -22,7 +21,7 @@ the data, or as specified.
 Generate one or more reports using the templates in this package.
 }
 \examples{
-generate_report("/Internal/Internal_report_2014.Rmd", entity=c("EPSI", "SKI"))
+generate_report(x, "/Internal/Internal_report_2014.Rmd", entity=c("EPSI", "SKI"))
 }
 \author{
 Kristian D. Olsen
