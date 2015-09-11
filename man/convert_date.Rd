@@ -12,7 +12,7 @@ convert_date(survey, ...)
 \item{...}{Columns to convert to dates. Of the format \code{column_name = date_format}.}
 }
 \description{
-This function lets you convert columns with dates to \code{POSIXct}.
+This function lets you convert columns with dates to \code{Date}.
 }
 \examples{
 x \%>\% convert_date("startdate" = "\%m/\%d/\%Y \%H:\%M:\%S")
