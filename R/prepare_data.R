@@ -38,8 +38,7 @@ prepare_data <- function(survey, type = "mean", cutoff = .3) {
     stop("'mainentity' is not specified in latents for the measurement model. 
           See help(set_association).", call. = FALSE)
   } else {
-    mainentity <- survey$mm$manifest[stri_trans_tolower(survey$mm$latent) == "mainentity"]
-    mainentity <- mainentity[!is.na(mainentity)]
+    mainentity <- filter(survey$mm, stri_trans_tolower(latent) == "mainentity")[["manifest"]]
   }
   
   # Check type
@@ -58,31 +57,30 @@ prepare_data <- function(survey, type = "mean", cutoff = .3) {
   }
 
   # Get the model
-  model <- survey$mm[stri_trans_tolower(survey$mm$latent) %in% default$latents, ]
-  model$latent <- factor(stri_trans_tolower(model$latent), levels = default$latents, ordered = TRUE)
-  model$EM <- stri_c(model$manifest, "em")
-  
-  # Order the model
-  model <- model[order(model$latent), ]
+  model <- filter(survey$mm, stri_trans_tolower(latent) %in% default$latents)
+  model <- mutate(model, latent = factor(stri_trans_tolower(latent), levels = default$latents, ordered = TRUE))
+  model <- mutate(model, EM = stri_c(manifest, "em"))
+  model <- arrange(model, latent)
   
   # Add an index to the start of the data
   if ("coderesp" %in% names(survey$df)) {
     survey <- set_colnames(survey, coderesp = "coderesp_old")
   }
   
-  survey$df <- cbind("coderesp" = 1:nrow(survey$df), survey$df)
+  survey$df <- bind_cols(data_frame("coderesp" = 1:nrow(survey$df)), survey$df)
   
   # Clean and rescale scores
-  survey$df[model$EM] <- lapply(survey$df[model$manifest], clean_score)
-  survey$df[model$EM] <- lapply(survey$df[model$EM], rescale_score)
+  survey$df[model$EM] <- mutate_each(survey$df[model$manifest], funs(clean_score(.)))
+  survey$df[model$EM] <- mutate_each(survey$df[model$EM], funs(rescale_score(.)))
 
-  # Calculate missing percentage and get the cutoff
-  survey$df["percent_missing"] <- rowSums(is.na(survey$df[model$EM]))/length(model$EM)
-  cutoff <- as.numeric(survey$cfg$value[survey$cfg$config %in% "cutoff"])
+  # Calculate missing percentage
+  survey$df <- mutate(survey$df, percent_missing = rowSums(is.na(survey$df[model$EM]))/length(model$EM))
   
   # Tally valid observations in entities
-  entities <- survey$df[survey$df$percent_missing <= cutoff,][[mainentity]]
-  entities <- new_entities(entities)
+  entities <- filter(survey$df, percent_missing <= cutoff)
+  entities <- group_by_(entities, eval(mainentity))
+  entities <- summarise(entities, n = n())
+  names(entities) <- c("entity", "valid")
   
   survey$ents$valid <- entities$valid[match(survey$ents$entity, entities$entity)]
   survey$ents$valid[is.na(survey$ents$valid)] <- 0

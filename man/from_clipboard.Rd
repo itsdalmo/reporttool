@@ -4,7 +4,7 @@
 \alias{from_clipboard}
 \title{Read from Windows/OSX clipboard}
 \usage{
-from_clipboard(sep = "\\t", header = TRUE, dec = ".", encoding = "")
+from_clipboard(sep = "\\t", header = TRUE)
 }
 \arguments{
 \item{sep}{The delimiter for columns.}

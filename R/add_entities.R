@@ -52,8 +52,7 @@ add_entities <- function(survey, entities = NULL) {
   if (!any(stri_detect(survey$mm$latent, regex = "mainentity"), na.rm = TRUE)) {
     stop("'mainentity' is not specified in latents for the measurement model. See help(set_association).", call. = FALSE)
   } else {
-    mainentity <- survey$mm$manifest[stri_trans_tolower(survey$mm$latent) == "mainentity"]
-    mainentity <- mainentity[!is.na(mainentity)]
+    mainentity <- filter(survey$mm, stri_trans_tolower(latent) == "mainentity")[["manifest"]]
   }
   
   # If more than one mainentity is specified, stop and revise
@@ -106,14 +105,10 @@ print.survey_ents <- function(ents, width = getOption("width")) {
   } 
   
   # Extract only entity, observations, valid and marketshare
-  ents <- ents[c("entity", "n", "valid", "marketshare")]
-
-  # Add the total and format marketshare as a percentage
-  ents <- rbind(ents, data.frame("entity" = "Total*", 
-                                 "n" = sum(as.numeric(ents$n)),
-                                 "valid" = sum(as.numeric(ents$valid)),
-                                 "marketshare" = sum(as.numeric(ents$marketshare)),
-                                 stringsAsFactors = FALSE))
+  ents <- select(ents, entity, n, valid, marketshare)
+  tot <- suppressWarnings(summarise_each(ents, funs(sum(as.numeric(.)))))
+  tot <- bind_cols(data_frame("entity" = "Total*"), tot)
+  ents <- bind_rows(ents, tot)
 
   # Format the strings
   w_name <- max(stri_length(ents$entity), na.rm = TRUE) + 4
@@ -146,14 +141,10 @@ new_entities <- function(mainentity) {
   mainentity <- as.character(mainentity)
   
   # Gather the information on entities
-  entities <- tapply(mainentity, mainentity, 'length')
-  entities <- data.frame("entity" = names(entities), "n" = unname(entities), "valid" = unname(entities), stringsAsFactors = FALSE)
-  entities$other <- "No" # Assumption. Must be manually specified after.
-  
-  # Add marketshare
-  entities$marketshare <- sum(entities$n)
-  entities$marketshare <- entities$n/entities$marketshare
-  
+  entities <- data_frame(entity = as.character(mainentity))
+  entities <- summarise(group_by(entities, entity), n = n(), valid = n)
+  entities <- mutate(entities, other = "No", marketshare = n/sum(n)) 
+
   # Return
   entities
   

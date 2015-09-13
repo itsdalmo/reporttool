@@ -35,8 +35,7 @@ add_weights.survey <- function(survey, ...) {
   }
   
   # Get the mainentity variable from data
-  mainentity <- survey$mm$manifest[stri_trans_tolower(survey$mm$latent) == "mainentity"]
-  mainentity <- mainentity[!is.na(mainentity)]
+  mainentity <- filter(survey$mm, stri_trans_tolower(latent) == "mainentity")[["manifest"]]
   
   # Add weights (w) to data.frame
   survey$df$w <- calculate_weights(survey$df[[mainentity]], survey$ents)

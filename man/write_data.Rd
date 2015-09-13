@@ -4,22 +4,21 @@
 \alias{write_data}
 \title{Write common file formats}
 \usage{
-write_data(x, file = NULL, encoding = "UTF-8")
+write_data(x, file, ...)
 }
 \arguments{
-\item{x}{The data to be written. Can be a data.frame or a list (of df's).}
+\item{x}{The data to be written. (\code{data.frame}, \code{list} or \code{survey}).}
 
-\item{file}{Path and extension for saving the data.}
-
-\item{encoding}{The encoding to use for txt and csv-files.}
+\item{file}{Path.}
 }
 \description{
-A simple wrapper for writing common data formats. The specific format is
-specified by the extension given in the filename. If no filename is given,
-data will be written to output.xlsx in the current working directory.
+A simple wrapper for writing common data formats. The format is determined
+by the extension given in \code{file}. Flat files are written with \code{readr},
+and the encoding is always \code{UTF-8}. For xlsx, the function uses \code{to_sheet}
+(which in turn uses \code{openxlsx}).
 }
 \note{
-Writing .xlsx requires that the openxlsx package is installed.
+Use \code{lapply} to write a list of data to flat files (csv, txt etc).
 }
 \examples{
 write_data(x, file = "test.xlsx")

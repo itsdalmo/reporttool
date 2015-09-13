@@ -149,14 +149,14 @@ new_survey <- function() {
 
 new_scaffold <- function(nms, size = 0L) {
   
-  if (is.null(nms)) return(data.frame())
+  if (is.null(nms)) return(data_frame())
   
   # Allot a vector for the data.frame
   df <- replicate(length(nms), vector("character", size), simplify = FALSE)
   df <- setNames(df, nms)
   
   # Return the minimum structure
-  as.data.frame(df, stringsAsFactors = FALSE)
+  as_data_frame(df)
   
 }
 
@@ -170,6 +170,9 @@ merge_with_scaffold <- function(scaffold, x) {
     
   }
   
+  # Also return scaffold early if x is null/contains no data
+  if (is.null(x) || nrow(x) == 0L) return(scaffold)
+  
   # If not, convert x to a list
   x <- as.list(x)
   names(x) <- stri_trans_tolower(names(x))
@@ -181,6 +184,6 @@ merge_with_scaffold <- function(scaffold, x) {
   
   # Set correct names for result and return as data.frame
   names(result) <- names(scaffold)
-  as.data.frame(result, stringsAsFactors = FALSE)
+  as_data_frame(result)
   
 }

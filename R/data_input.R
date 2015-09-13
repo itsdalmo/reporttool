@@ -15,7 +15,7 @@
 #' @examples 
 #' x <- from_clipboard()
 
-from_clipboard <- function(sep = "\t", header = TRUE, dec = ".", encoding = "") {
+from_clipboard <- function(sep = "\t", header = TRUE) {
   
   if ((Sys.info()["sysname"] == "Windows")) {
     file <- "clipboard-128"
@@ -27,7 +27,7 @@ from_clipboard <- function(sep = "\t", header = TRUE, dec = ".", encoding = "") 
   }
   
   # Read lines
-  lines <- suppressWarnings(readLines(file))
+  lines <- suppressWarnings(readr::read_lines(file))
   
   # Workaround for OS X
   if (length(lines) != 1L) {
@@ -42,17 +42,11 @@ from_clipboard <- function(sep = "\t", header = TRUE, dec = ".", encoding = "") 
     on.exit(close(con), add = TRUE)
     
     # Read as table
-    lines <- read.table(con, 
-                        header = header,
-                        na.strings = default$na_strings,
-                        sep = sep,
-                        dec = dec,
-                        fill = TRUE,
-                        colClasses = "character",
-                        stringsAsFactors = FALSE)
+    lines <- read.table(con, header = header, sep = sep, fill = TRUE, stringsAsFactors = FALSE)
+    class(lines) <- c("tbl_df", "tbl", "data.frame")
     
-    # Lowercase names
-    names(lines) <- stri_trans_tolower(names(lines))
+    #lines <- readr::read_delim(con, delim = sep, col_names = header) # Not working?
+    
   }
   
   return(lines)
@@ -61,25 +55,22 @@ from_clipboard <- function(sep = "\t", header = TRUE, dec = ".", encoding = "") 
 
 #' Read common data formats
 #'
-#' A simple wrapper for reading data. Currently supports Rdata, sav, txt,
-#' csv, csv2 and xlsx. The function also lowercases all list and column names,
-#' and cleans common strings for missing values.
-#' 
+#' A simple wrapper for reading data which currently supports Rdata, sav, txt,
+#' csv, csv2 and xlsx. Under the hood, it uses \code{readxl}, \code{readr} and 
+#' \code{haven}.
 #'
 #' @param file Path to a Rdata, sav (SPSS), txt, csv, csv2 or xlsx file.
-#' @param sheet Optional: If you are trying to read a xlsx file, you can also
-#' specify which sheets to read.
+#' @param ... Additional arguments passed to \code{readxl} and \code{readr}. For
+#' instance you can use \code{sheet} to specify a xlsx sheet when reading.
 #' @param encoding The encoding to use for txt and csv-files.
 #' @author Kristian D. Olsen
 #' @return A data.frame. If more than one sheet is read from a xlsx file 
 #' (or you are reading a Rdata file) a list is returned instead.
-#' @note When reading xlsx, csv or txt, all columns will be 'character'. For 
-#' Rdata it is returned as is. SPSS is also not modified, as it contains labelled variables.
 #' @export
 #' @examples 
 #' x <- read_data("test.xlsx")
 
-read_data <- function(file, sheet = NULL, encoding = "UTF-8") {
+read_data <- function(file, ..., encoding = "UTF-8") {
   
   file <- clean_path(file)
   
@@ -87,12 +78,17 @@ read_data <- function(file, sheet = NULL, encoding = "UTF-8") {
     stop("Path does not exist:\n", file, call. = FALSE)
   }
   
+  # Locale and dots
+  loc <- readr::locale(encoding = encoding)
+  dots <- list(...)
+  
   # Pick input-function based on extension
   switch(tolower(tools::file_ext(file)),
          sav = read_spss(file),
-         txt = read_txt(file, encoding, header = TRUE),
-         csv = read_csv(file, encoding),
-         xlsx = read_xlsx(file, sheet),
+         txt = read_flat(file, sep = "\t", loc, dots),
+         tsv = read_flat(file, sep = "\t", loc, dots),
+         csv = read_flat(file, sep = ",", loc, dots),
+         xlsx = read_xlsx(file, dots),
          rdata = read_rdata(file),
          stop("Unrecognized input format in:\n", file, call. = FALSE))
 }
@@ -102,113 +98,65 @@ read_data <- function(file, sheet = NULL, encoding = "UTF-8") {
 
 read_spss <- function(file) {
   
-  df <- haven::read_sav(file)
-  names(df) <- stri_trans_tolower(names(df))
-  df
+  haven::read_sav(file)
   
 }
 
 read_rdata <- function(file) {
   
   # Create an empty environment to load the rdata
-  lst <- new.env(parent = emptyenv())
-  load(file, envir = lst)
+  data <- new.env(parent = emptyenv())
+  load(file, envir = data)
   
   # Convert the environment to a list and lowercase names
-  lst <- as.list(lst)
-  lst <- lapply(lst, lowercase_names)
+  data <- as.list(data)
   
-  if (length(lst) == 1L) {
-    lst <- lst[[1]]
-  }
+  # Return first element if only one exists
+  if (length(data) == 1L) data <- as_data_frame(data[[1]])
   
-  return(lst)
+  data
   
 }
 
-read_txt <- function(file, encoding, header) {
+read_flat <- function(file, sep, loc, dots) {
   
-  args <- list(file = file, 
-               header = header,
-               fileEncoding = encoding, 
-               na.strings = default$na_strings,
-               sep = "\t",
-               quote = "\"",
-               dec = ".",
-               comment.char = "",
-               fill = TRUE,
-               colClasses = "character",
-               stringsAsFactors = FALSE)
+  if (sep == ";") loc$decimal_mark <- ","
   
-  df <- do.call(utils::read.table, args)
+  # Update standard args
+  args <- list(file = file, delim = sep, locale = loc)
+  args <- append(dots, args[!names(args) %in% names(dots)])
   
-  # Lowercase names
-  names(df) <- stri_trans_tolower(names(df))
+  # Read the data
+  do.call(readr::read_delim, args)
   
-  return(df)
 }
 
-read_csv <- function(file, encoding) {
-  
-  args <- list(file = file,
-               fileEncoding = encoding,
-               na.strings = default$na_strings,
-               header = TRUE, 
-               sep = ";", 
-               quote = "\"", 
-               dec = ",", 
-               comment.char = "",
-               fill = TRUE, 
-               colClasses = "character",
-               stringsAsFactors = FALSE)
-  
-  df <- do.call(utils::read.table, args)
- 
-  # If only one column is returned - try comma separated
-  if (dim(df)[2] == 1L) {
-    args[c("sep", "dec")] <- c(",", ".")
-    df <- do.call(utils::read.table, args)
-  }
-  
-  # Lowercase names
-  names(df) <- stri_trans_tolower(names(df))
-  
-  return(df)
-}
-
-read_xlsx <- function(file, sheet) {
+read_xlsx <- function(file, dots) {
   
   # Get the sheetnames to be read
-  wb <- openxlsx::getSheetNames(file)
+  wb <- readxl::excel_sheets(file)
   
-  if (!is.null(sheet)) {
-    sheet <- wb[stri_trans_tolower(wb) %in% stri_trans_tolower(sheet)]
+  if (!is.null(dots) && "sheet" %in% names(dots)) {
+    sheet <- dots$sheet
+    if (is.character(sheet)) {
+      sheet <- wb[stri_trans_tolower(wb) %in% stri_trans_tolower(sheet)]
+    }
   } else {
     sheet <- wb
   }
   
-  # Read data to list and set names
-  lst <- lapply(sheet, openxlsx::read.xlsx, xlsxFile = file)
-  names(lst) <- sheet
+  # Read data to list
+  data <- lapply(sheet, function(x) {
+    x <- try(readxl::read_excel(file, x), silent = TRUE) 
+    if (inherits(x, "try-error")) data_frame() else x })
   
-  # Set all list entries to be data.frame and/or clean NA. All columns to character
-  lst <- lapply(lst, function(x) {
-    if (length(x)) vapply(x, as.character, character(nrow(x))) })
-  lst <- lapply(lst, set_missing)
-  
-  # Lowercase names
-  if (inherits(lst, "list")) {
-    lst <- lapply(lst, lowercase_names)
-  } 
-  
-  names(lst) <- stri_trans_tolower(names(lst))
+  # Set names
+  names(data) <- sheet
   
   # If only one sheet was read, return a data.frame instead
-  if (length(lst) == 1L) {
-    lst <- lst[[1]]
-  }
+  if (length(data) == 1L) data <- data[[1]]
   
   # Return
-  return(lst)
+  data
   
 }

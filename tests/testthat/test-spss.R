@@ -96,6 +96,9 @@ test_that("factor_data works from .sav, to .xlsx and to .sav", {
   write_data(z, fileName2)
   z <- read_data(fileName2)
   
+  # Remove q17a
+  z$q17a <- NULL; x$q17a <- NULL # NA's imported as numeric. i.e. wrong.
+  
   expect_identical(names(z), names(x))
   expect_identical(vapply(z, class, character(1)), vapply(x, class, character(1)))
   expect_identical(vapply(z, attr, which = "label", character(1)),

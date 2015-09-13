@@ -1,4 +1,4 @@
-mainentity;missing;score;STRING
-Test 1;NA;1 Svært misfornøyd;Æ
-Test 2; ;10 Svært fornøyd;Ø
-Test 3;#NAME?;98 Vet ikke;Å
+"mainentity";"missing";"score";"STRING"
+"Test 1";NA;"1 SvÃ¦rt misfornÃ¸yd";"Ã†"
+"Test 2";NA;"10 SvÃ¦rt fornÃ¸yd";"Ã˜"
+"Test 3";"#NAME?";"98 Vet ikke";"Ã…"

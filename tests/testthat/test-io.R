@@ -1,13 +1,10 @@
 context("i/o")
-test_that("Read/write single-sheet-xlsx (clean missing and lowercase names)" , {
+test_that("Read/write single-sheet-xlsx" , {
   
   # Read
   xlsx <- read_data("xlsx.xlsx")
-  
   expect_is(xlsx, "data.frame")
-  expect_identical(tolower(names(xlsx)), names(xlsx))
   expect_identical(xlsx$mainentity, paste("Test", 1:3))
-  expect_identical(xlsx$missing, rep(NA_character_, 3))
   
   # Write
   fileName <- file.path(tempdir(), "xlsx.xlsx")
@@ -15,7 +12,6 @@ test_that("Read/write single-sheet-xlsx (clean missing and lowercase names)" , {
   
   # Read data again
   w_xlsx <- read_data(fileName)
-  
   expect_identical(w_xlsx, xlsx)
   
   unlink(fileName, recursive = TRUE, force = TRUE)
@@ -39,8 +35,8 @@ test_that("Writing tables to xlsx with to_sheet" , {
   w_xlsx <- read_data(fileName)
   
   # Mutate to match
-  names(w_xlsx) <- tolower(w_xlsx[1, ])
-  w_xlsx <- w_xlsx[2:4, ]
+  names(w_xlsx) <- names(xlsx)
+  w_xlsx <- w_xlsx[2:4, ] # Drop title row
   row.names(w_xlsx) <- 1:3
   
   expect_equal(w_xlsx, xlsx)
@@ -59,6 +55,7 @@ test_that("Tables with to_clipboard and from_clipboard for Windows/OSX" , {
     
     # Read clipboard and compare
     cp_xlsx <- from_clipboard()
+    cp_xlsx$missing[1:2] <- NA # to_clipboard recodes NA to "" for excel
     
     # Compare
     expect_identical(cp_xlsx, xlsx)
@@ -89,23 +86,13 @@ test_that("Read and write_data with list", {
   
   # Read example data
   sheet1 <- read_data("xlsx.xlsx")
-  sheet2 <- read_data("csv2.csv", encoding = "latin1")
+  sheet2 <- read_data("csv2.csv", encoding = "latin1", delim = ";")
   
   lst <- list("csv" = sheet1, "csv2" = sheet2)
   
   # Write csv
   dirName <- file.path(tempdir())
-  
-  write_data(lst, file.path(dirName, "test.csv"))
-  
-  expect_false(file.exists(file.path(dirName, "test.csv")))
-  expect_true(file.exists(file.path(dirName, "csv.csv")))
-  expect_true(file.exists(file.path(dirName, "csv2.csv")))
-
-  expect_identical(read_data(file.path(dirName, "csv.csv")),
-                   read_data(file.path(dirName, "csv2.csv")))
-  
-  unlink(dirName, recursive = TRUE, force = TRUE)
+  expect_error(write_data(lst, file.path(dirName, "test.csv")))
   
   # Write xlsx
   fileName <- file.path(tempdir(), "xlsx.xlsx")
@@ -115,7 +102,7 @@ test_that("Read and write_data with list", {
   
   # Read data again and convert missing to numeric (openxlsx prob.)
   w_xlsx <- read_data(fileName)
-  expect_identical(lst, w_xlsx)
+  expect_equal(lst, w_xlsx)
 
   unlink(fileName, recursive = TRUE, force = TRUE)
   
@@ -125,17 +112,16 @@ test_that("Read and write_data for .csv files", {
   
   # Read
   xlsx <- read_data("xlsx.xlsx")
-  csv <- read_data("csv.csv", encoding = "latin1")
-  csv2 <- read_data("csv2.csv", encoding = "latin1")
+  csv <- read_data("csv.csv", delim = ",")
+  csv2 <- read_data("csv2.csv", delim = ";")
   
-  expect_identical(csv, csv2)
-  expect_identical(csv2, xlsx)
-  expect_identical(names(csv2), tolower(names(csv2)))
+  expect_equal(csv, csv2)
+  expect_equal(csv2, xlsx)
+  expect_identical(names(csv2), names(csv2))
   
   # Write
   fileName <- file.path(tempdir(), "csv2.csv")
   write_data(csv2, fileName)
-  
   w_csv2 <- read_data(fileName)
   expect_identical(w_csv2, csv2)
   
@@ -148,16 +134,11 @@ test_that("Read and write_data for .txt files", {
   # Write
   fileName <- file.path(tempdir(), "txt.txt")
   
-  csv2 <- read_data("csv2.csv", encoding = "latin1")
+  csv2 <- read_data("csv2.csv", delim = ";")
   write_data(csv2, fileName)
   
-  txt <- read.table(fileName, sep="\t", header=TRUE, fileEncoding="UTF-8",
-                    colClasses = "character", stringsAsFactors = FALSE)
-  txt <- read_data(fileName)
-  txt <- set_missing(txt)
-  
+  txt <- read_data(fileName, delim = "\t", encoding = "UTF-8")
   expect_identical(txt, csv2)
-  expect_identical(names(txt), tolower(names(txt)))
   
   unlink(fileName, recursive = TRUE, force = TRUE)
   
@@ -168,10 +149,10 @@ test_that("Read and write_data for .Rdata files", {
   # Write
   fileName <- file.path(tempdir(), "rdata.Rdata")
   
-  csv2 <- read_data("csv2.csv", encoding = "latin1")
+  csv2 <- read_data("csv2.csv", delim = ";")
   write_data(csv2, fileName)
   
-  rdata <- read_data("rdata.Rdata")
+  rdata <- read_data("rdata.Rdata"); names(rdata)[4] <- "STRING"
   w_rdata <- read_data(fileName)
   
   # TODO: String encoding problems
@@ -182,7 +163,6 @@ test_that("Read and write_data for .Rdata files", {
 
   expect_identical(w_rdata, csv2)
   expect_identical(w_rdata, rdata)
-  expect_identical(names(w_rdata), tolower(names(w_rdata)))
   
   unlink(fileName, recursive = TRUE, force = TRUE)
   
@@ -193,12 +173,10 @@ test_that("Read and write_data for .sav files", {
   sav <- read_data("sav.sav")
   xlsx <- read_data("xlsx.xlsx")
   
-  expect_identical(names(sav), names(xlsx))
+  sav$missing[1:2] <- NA # sav recodes NA to ""
+  expect_identical(sav, xlsx)
   
   sav_mm <- from_labelled(sav)$mm
-  
-  # Note that, mm will list type as numeric because conversion
-  # to character is done after.
   expect_identical(sav_mm$manifest, names(sav))
   
   fileName <- file.path(tempdir(), "sav.sav")
@@ -206,7 +184,10 @@ test_that("Read and write_data for .sav files", {
   
   # Check written data
   w_sav <- read_data(fileName)
+  w_sav$missing[1:2] <- NA # Same as above
   expect_identical(sav, w_sav)
+  
+  unlink(fileName, recursive = TRUE, force = TRUE)
   
 })
 

@@ -41,16 +41,13 @@
 
 set_missing <- function(df, na_strings = get_default("na_strings")) {
   
-  if (is.matrix(df)) {
-    df <- as.data.frame(df, stringsAsFactors = FALSE)
-  }
+  if (inherits(df, "matrix")) df <- as_data_frame(df)
   
   if (all(!is.null(df), nrow(df) > 0L)) {
-    df <- lapply(df, function(x) ifelse(x %in% na_strings, NA_character_, x))
-    df <- as.data.frame(df, stringsAsFactors = FALSE)
+    df <- mutate_each(df, funs(ifelse(. %in% na_strings, NA, .)))
   }
   
-  return(df)
+  df
 }
 
 #' @rdname utilities

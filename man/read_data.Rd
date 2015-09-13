@@ -4,13 +4,13 @@
 \alias{read_data}
 \title{Read common data formats}
 \usage{
-read_data(file, sheet = NULL, encoding = "UTF-8")
+read_data(file, ..., encoding = "UTF-8")
 }
 \arguments{
 \item{file}{Path to a Rdata, sav (SPSS), txt, csv, csv2 or xlsx file.}
 
-\item{sheet}{Optional: If you are trying to read a xlsx file, you can also
-specify which sheets to read.}
+\item{...}{Additional arguments passed to \code{readxl} and \code{readr}. For
+instance you can use \code{sheet} to specify a xlsx sheet when reading.}
 
 \item{encoding}{The encoding to use for txt and csv-files.}
 }
@@ -19,13 +19,9 @@ A data.frame. If more than one sheet is read from a xlsx file
 (or you are reading a Rdata file) a list is returned instead.
 }
 \description{
-A simple wrapper for reading data. Currently supports Rdata, sav, txt,
-csv, csv2 and xlsx. The function also lowercases all list and column names,
-and cleans common strings for missing values.
-}
-\note{
-When reading xlsx, csv or txt, all columns will be 'character'. For
-Rdata it is returned as is. SPSS is also not modified, as it contains labelled variables.
+A simple wrapper for reading data which currently supports Rdata, sav, txt,
+csv, csv2 and xlsx. Under the hood, it uses \code{readxl}, \code{readr} and
+\code{haven}.
 }
 \examples{
 x <- read_data("test.xlsx")

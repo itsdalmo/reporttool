@@ -36,14 +36,8 @@ to_clipboard <- function(x, encoding = "") {
       cols <- FALSE
     }
     
-    utils::write.table(x = x,
-                       file = file,
-                       sep = "\t",
-                       na = "",
-                       dec = ",",
-                       row.names = FALSE,
-                       col.names = cols,
-                       fileEncoding = encoding)
+    utils::write.table(x = x, file = file, sep = "\t", na = "", dec = ",",
+                       row.names = FALSE, col.names = cols, fileEncoding = encoding)
     
   }
   
@@ -138,68 +132,63 @@ to_sheet <- function(df, wb, title = "Table", sheet = "analysis", row = 1L,
 
 #' Write common file formats
 #'
-#' A simple wrapper for writing common data formats. The specific format is
-#' specified by the extension given in the filename. If no filename is given,
-#' data will be written to output.xlsx in the current working directory.
+#' A simple wrapper for writing common data formats. The format is determined 
+#' by the extension given in \code{file}. Flat files are written with \code{readr},
+#' and the encoding is always \code{UTF-8}. For xlsx, the function uses \code{to_sheet} 
+#' (which in turn uses \code{openxlsx}). 
 #'
-#' @param x The data to be written. Can be a data.frame or a list (of df's).
-#' @param file Path and extension for saving the data.
-#' @param encoding The encoding to use for txt and csv-files.
+#' @param x The data to be written. (\code{data.frame}, \code{list} or \code{survey}).
+#' @param file Path.
 #' @author Kristian D. Olsen
-#' @note Writing .xlsx requires that the openxlsx package is installed.
+#' @note Use \code{lapply} to write a list of data to flat files (csv, txt etc).
 #' @export
 #' @examples 
 #' write_data(x, file = "test.xlsx")
 
-write_data <- function(x, file = NULL, encoding = "UTF-8") {
+write_data <- function(x, file, ...) {
   
-  # Make sure a file is specified
-  if (is.null(file)) {
-    stop("No file specified.", call. = FALSE)
-  }
-  
+  # Get file information
   file <- clean_path(file)
   ext <- tools::file_ext(file)
   name <- stri_replace(basename(file), "$1", regex = stri_c("(.*)\\.", ext, "$"))
   ext <- stri_trans_tolower(ext)
   
   # Convert matrix to data.frame
-  if (inherits(x, "matrix")) {
-    x <- as.data.frame(x, stringsAsFactors = FALSE)
-  }
+  if (inherits(x, "matrix")) x <- as_data_frame(x)
   
-  # Check object class
+  # Check if it is a survey and convert depending on output format
   if (inherits(x, "survey")) {
     if (ext == "sav") {
-      x <- setNames(list(to_labelled(x)$df), name)
+      x <- to_labelled(x)$df
     } else if (ext == "xlsx") {
       is_date <- vapply(x$df, inherits, what = "Date", logical(1))
       x$df[is_date] <- lapply(x$df[is_date], as.character)
       names(x) <- ordered_replace(names(x), default$structure$survey, default$structure$sheet) 
     }
   } else if (inherits(x, "data.frame")) {
-    x <- setNames(list(x), name)
+    if (ext %in% c("xlsx", "rdata")) {
+      x <- setNames(list(x), name)
+    }
   } else if (!inherits(x, "list")) {
-    stop("This function expects a matrix, data.frame or list", call. = FALSE)
+    stop("This function expects a matrix, data.frame, list or survey.", call. = FALSE)
   }
   
-  # Handle NULL in list names
-  if (is.null(names(x))) {
-    names(x) <- stri_c("DF", 1:length(x))
+  # Only xlsx and rdata supports a list of output
+  if (inherits(x, "list") && !ext %in% c("xlsx", "rdata")) {
+      stop("Use lapply to write lists that are not survey objects and output is not xlsx.", call. = FALSE) 
   }
   
-  # Stop if list can be written to a single file, but no valid filename is given.
-  if (name == "" && length(x) == 1) {
-    stop("Please provide a valid filename.")
-  }
+  # Gather dots
+  dots <- list(...)
   
   # Use extension to write correct format
   switch(ext,
-         sav = write_spss(x, dirname(file)),
+         sav = write_spss(x, file),
          rdata = write_rdata(x, file),
-         xlsx = write_xlsx(x, file),
-         csv = write_csv(x, dirname(file), encoding),
-         txt = write_txt(x, dirname(file), encoding, sep = "\t"),
+         xlsx = write_xlsx(x, file, dots),
+         txt = write_flat(x, file, delim = "\t", dots),
+         tsv = write_flat(x, file, delim = "\t", dots),
+         csv = write_flat(x, file, delim = ",", dots),
          stop("Unrecognized output format: ", ext))
   
   invisible()
@@ -207,56 +196,34 @@ write_data <- function(x, file = NULL, encoding = "UTF-8") {
 
 # Output wrappers --------------------------------------------------------------
 
-write_spss <- function(lst, file) {
+write_spss <- function(data, file) {
   
-  is_labelled <- vapply(lst, is.spss, logical(1))
-  if(!all(is_labelled)) warning("No labelled variables found in: \n", 
-                                stri_c(names(lst[!is_labelled]), collapse = ", "), call. = FALSE)
+  if (!is.spss(data)) {
+    warning("No labelled variables found.", call. = FALSE)
+  }
   
-  # Write the data
-  lapply(names(lst), function(nm, lst, file) {
-    haven::write_sav(lst[[nm]], path = stri_c(file.path(file, nm), ".sav")) }, lst, file)
+  haven::write_sav(data, path = file)
   
 }
 
-write_rdata <- function(lst, file) {
+write_rdata <- function(data, file) {
   
-  save(list = names(lst), file = file, envir = list2env(lst, parent = emptyenv()))
-  
-}
-
-
-write_txt <- function(lst, file, encoding, sep) {
-  
-  lapply(names(lst), function(nm, lst, file, encoding) {
-    utils::write.table(x = lst[[nm]],
-                       file = stri_c(file.path(file, nm), ".txt"),
-                       sep = sep,
-                       na = "",
-                       dec = ".",
-                       row.names = FALSE,
-                       fileEncoding = encoding,
-                       quote = FALSE)}, 
-    lst, file, encoding)
+  save(list = names(data), file = file, envir = list2env(data, parent = emptyenv()))
   
 }
 
-write_csv <- function(lst, file, encoding) {
-
-  lapply(names(lst), function(nm, lst, file, encoding) {
-    utils::write.table(x = lst[[nm]], 
-                      file = stri_c(file.path(file, nm), ".csv"), 
-                      sep = ";", 
-                      na = "",
-                      dec = ",",
-                      row.names = FALSE,
-                      fileEncoding = encoding,
-                      qmethod = "double")}, 
-            lst, file, encoding)
-
+write_flat <- function(data, file, delim, dots) {
+  
+  # Update standard args
+  args <- list(x = data, path = file, delim = delim)
+  args <- append(dots, args[!names(args) %in% names(dots)])
+  
+  # Read the data
+  do.call(readr::write_delim, args)
+  
 }
 
-write_xlsx <- function(lst, file) {
+write_xlsx <- function(data, file, dots) {
   
   # If the file exists, load and write to it
   if (file.exists(file)) { 
@@ -265,16 +232,13 @@ write_xlsx <- function(lst, file) {
     wb <- openxlsx::createWorkbook()
   }
   
+  # Update standard args
+  args <- list(row = 1L, format_style = FALSE, format_values = FALSE, append = FALSE)
+  args <- append(dots, args[!names(args) %in% names(dots)])
   
-  lapply(names(lst), function(nm, lst, wb) {
-    to_sheet(lst[[nm]], 
-             wb = wb, 
-             sheet = nm, 
-             row = 1L, 
-             format_style = FALSE, 
-             format_values = FALSE, 
-             append = FALSE)}, 
-    lst, wb)
+  lapply(names(data), function(nm, x, wb) {
+    a <- list(df = x[[nm]], wb = wb, sheet = nm); a <- append(a, args)
+    do.call(to_sheet, a)}, data, wb)
   
   openxlsx::saveWorkbook(wb, file, overwrite = TRUE)
   

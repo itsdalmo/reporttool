@@ -138,14 +138,16 @@ new_mm <- function(df) {
   question <- stri_replace(manifest, regex = "\\.", " ")
   
   # Get the variable types (error-prone, but better than nothing)
-  type <- vapply(df, class, character(1))
+  type <- lapply(df, class)
+  type <- lapply(type, function(x) { if (length(x) > 1 && x[1] == "ordered") "factor" else x})
+  type <- unlist(type)
   
   # Set type and try to determine whether it is a scale
-  is_character <- manifest[type == "character"]
+  is_factor <- type == "factor"
   
-  # Assume that any variables with 1 or more observed alues starting with 1-2
+  # Assume that any variables with 1 or more observed values starting with 1-2
   # numbers, are scale variables with end-points and/or "do not know".
-  is_scale <- vapply(df[is_character], function(x) {
+  is_scale <- vapply(df[is_factor], function(x) {
     x <- na.omit(unique(x))
     n <- length(x)
     l <- stri_detect(x, regex = "^[0-9]{1,2}[^0-9][[:alpha:][:punct:] ]+")
@@ -153,24 +155,48 @@ new_mm <- function(df) {
   }, logical(1))
   
   # Clean up the scale variable values (only keep endpoints)
-  scale_values <- lapply(df[is_scale], function(x) {
+  scale_values <- lapply(df[is_factor[is_factor == TRUE] & is_scale], function(x) {
     x <- na.omit(unique(x))
     s <- stri_replace(x, "$1", regex = "^[0-9]{1,2}\\s*=?\\s*([[:alpha:]]*)")
     s[s != ""]
   })
   
   # Return if any scale variables were found
-  if (length(is_scale)) {
+  if (any(is_scale)) {
     values <- vector("character", length(manifest))
     values[is_scale] <- vapply(scale_values, stri_c, collapse = "\n", character(1))
     type[is_scale] <- "scale"
+  } else {
+    values <- NA
   }
   
   # Create the data.frame
-  mm <- data.frame("latent" = NA, "manifest" = manifest, "question" = question, 
-                   "type" = type, "values" = values, stringsAsFactors = FALSE)
+  mm <- data_frame("latent" = NA, "manifest" = manifest, 
+                   "question" = question, "type" = type, "values" = values)
   
   # Return
   mm
+  
+}
+
+update_mm <- function(survey, cols) {
+  
+  # Create a new measurement model
+  mm <- new_mm(survey$df[cols])
+  
+  # Find new columns, or old columns that have been changed
+  new_cols <- setdiff(cols, survey$mm$manifest)
+  old_cols <- setdiff(cols, new_cols)
+  
+  # Update old columns
+  changed <- mm[mm$manifest %in% old_cols, c("type", "values")]
+  survey$mm[survey$mm$manifest %in% old_cols, c("type", "values")] <- changed
+  
+  # And new columns
+  survey$mm <- bind_rows(survey$mm, mm[mm$manifest %in% new_cols, ])
+  class(survey$mm) <- c("survey_mm", "data.frame")
+  
+  # Return
+  survey
   
 }
