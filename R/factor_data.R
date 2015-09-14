@@ -63,11 +63,9 @@ factor_data <- function(survey, vars = NULL) {
   # Convert dates
   is_date <- survey$mm$type == "date"
   if (any(is_date)) {
-    d_frmt <- survey$mm$values[is_date]
     d_var <- survey$mm$manifest[is_date]
-    survey$df[d_var] <- Map(function(x, fmt) {
-      as.Date(as.character(x), format = fmt)
-    }, survey$df[d_var], d_frmt)
+    survey$df[d_var] <- lapply(survey$df[d_var], as.character)
+    survey$df[d_var] <- lapply(survey$df[d_var], as.Date)
   }
   
   # Convert numerics
