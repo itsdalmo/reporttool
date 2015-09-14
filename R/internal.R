@@ -313,11 +313,10 @@ write_sharepoint <- function(survey, file) {
   }
   
   # Get mainentity
-  mainentity <- survey$mm$manifest[stri_trans_tolower(survey$mm$latent) == "mainentity"]
-  mainentity <- mainentity[!is.na(mainentity)]
+  mainentity <- filter(survey$mm, stri_trans_tolower(latent) == "mainentity")[["manifest"]]
   
   # Get the measurement model and the cutoff
-  model <- survey$mm[stri_trans_tolower(survey$mm$latent) %in% default$latents, ]
+  model <- filter(survey$mm, stri_trans_tolower(latent) %in% default$latents)
   cutoff <- as.numeric(survey$cfg$value[survey$cfg$config %in% "cutoff"])
   
   # Locate or create required directories
@@ -358,16 +357,17 @@ write_sharepoint <- function(survey, file) {
   survey$df[mainentity] <- as.numeric(survey$df[[mainentity]])
   
   # Properly order entities
-  survey$ents$entity <- factor(survey$ents$entity, levels = me_levels, ordered = TRUE)
-  survey$ents <- survey$ents[order(survey$ents$entity), ]
+  survey$ents <- mutate(survey$ents, entity = factor(entity, levels = me_levels, ordered = TRUE))
+  survey$ents <- arrange(survey$ents, entity)
   row.names(survey$ents) <- 1:nrow(survey$ents)
   
   # Write EM data
-  em_data <- survey$df[survey$df$percent_missing <= cutoff, c(model$manifest, mainentity, "coderesp")]
-  em_data <- em_data[order(em_data[[mainentity]]), ]
-  em_data[model$manifest] <- lapply(em_data[model$manifest], clean_score)
-  em_data[model$manifest] <- lapply(em_data[model$manifest], function(x) { x[is.na(x)] <- 98; x })
-  
+  em_data <- filter(survey$df, percent_missing <= cutoff)
+  em_data <- select(em_data, one_of(c(model$manifest, mainentity, "coderesp")))
+  em_data <- arrange_(em_data, eval(mainentity))
+  em_data <- mutate_each(em_data, funs(clean_score(.)), one_of(model$manifest))
+  em_data <- mutate_each(em_data, funs(ifelse(is.na(.), 98, .)), one_of(model$manifest))
+
   do.call(write.table, args = append(list(
     x = em_data,
     file = file.path(file_dirs["input"], "em_data.txt")),
