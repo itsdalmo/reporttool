@@ -137,14 +137,12 @@ topline <- function(survey, other = NULL) {
   }
   
   # Find mainentity variable and scores
-  mainentity <- survey$mm$manifest[stri_trans_tolower(survey$mm$latent) == "mainentity"]
-  mainentity <- mainentity[!is.na(mainentity)]
-  
+  mainentity <- filter(survey$mm, stri_trans_tolower(latent) == "mainentity")[["manifest"]]
+
   # Check mainentity + 'a' if 'other' is null
   if (is.null(other)) {
     other <- stri_trans_tolower(stri_c(mainentity, "a"))
-    other <- survey$mm$manifest[stri_trans_tolower(survey$mm$manifest) == other]
-    other <- other[!is.na(other)]
+    other <- filter(survey$mm, stri_trans_tolower(latent) == other)[["manifest"]]
   }
   
   # Set names for data (merges)
@@ -152,29 +150,31 @@ topline <- function(survey, other = NULL) {
   names(survey$df)[names(survey$df) %in% other] <- "other"
   
   # Get the entities summary
-  ents <- survey$ents[c("entity", "n", "valid")]
-  ents <- merge(ents, aggregate(survey$df[default$latents], survey$df["entity"], FUN = mean, na.rm = TRUE), by = "entity")
+  ents <- select(survey$ents, entity, n, valid)
+  ents <- left_join(ents, summarise_each(group_by(select(survey$df, entity, one_of(default$latents)), entity), 
+                                         funs(mean(., na.rm = TRUE))), by = c("entity" = "entity"))
   
-  total <- data.frame("entity" = "Total", "n" = sum(ents$n, na.rm = TRUE), "valid" = sum(ents$valid, na.rm = TRUE))
-  total[default$latents] <- lapply(survey$df[default$latents], mean, na.rm = TRUE)
-  ents <- rbind(ents, total)
+  total <- bind_cols(data_frame("entity" = "Total"), summarise_each(select(ents, n, valid), funs(sum(., na.rm = TRUE))))
+  total <- bind_cols(total, summarise_each(select(survey$df, one_of(default$latents)), funs(mean(., na.rm = TRUE))))
+  ents <- bind_rows(ents, total)
   
   # Clean NaN's
   ents[default$latents] <- lapply(ents[default$latents], function(x) ifelse(is.nan(x), NA, x))
   
   # Rename columns
-  tr <- survey$tr[survey$tr$original %in% default$latents, c("replacement", "original")]
+  tr <- filter(select(survey$tr, replacement, original), original %in% default$latents)
   names(ents) <- ordered_replace(names(ents), setNames(tr$original, tr$replacement))
   
-  # Make a table for 'other'
-  other <- survey$df$other[!is.na(survey$df$other) & survey$df$other != ""]
-  other <- tapply(other, other, FUN = length)
-  other <- data.frame("name" = names(other), "n" = unname(other), stringsAsFactors = FALSE)
-  other <- other[order(-xtfrm(other$n), other$name), ]
+  lst <- list("entities" = ents)
   
-  # Create a list and return results
-  lst <- list("entities" = ents, "other" = other)
-  
+  # Make a table for 'other' if the variable is found
+  if (length(other)) {
+    other <- filter(select(df, other), !is.na(other), other != "")
+    other <- summarise(group_by(df, other), n = n())
+    other <- arrange(other, desc(n))
+    lst <- append(lst, list("other" = other))
+  }
+
   return(lst)
   
 }
