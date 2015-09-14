@@ -1,5 +1,4 @@
 #' @export
-
 mutate_.survey <- function(survey, ..., .dots) {
   
   # Gather dots and mutate the data
@@ -16,7 +15,6 @@ mutate_.survey <- function(survey, ..., .dots) {
 }
 
 #' @export
-
 select_.survey <- function(survey, ..., .dots) {
   
   # Gather dots and apply select to data
@@ -47,7 +45,32 @@ select_.survey <- function(survey, ..., .dots) {
 }
 
 #' @export
+rename_.survey <- function(survey, ..., .dots) {
+  
+  # Gather dots and apply select to data
+  dots <- lazyeval::all_dots(.dots, ...)
+  survey$df <- dplyr::rename_(survey$df, .dots = dots)
+  
+  # Get list of renamed variables
+  expr <- dots[!is.na(names(dots)) & names(dots) != ""]
+  if (length(expr)) {
+    nms <- lapply(names(expr), function(nm) { x <- expr[[nm]]$expr; if (x != nm) x })
+    nms <- setNames(unlist(nms), names(expr))
+  } else {
+    nms <- NULL
+  }
+  
+  # Update renames in manifest
+  if (!is.null(nms) && length(nms)) {
+    survey$mm$manifest <- ordered_replace(survey$mm$manifest, nms, names(nms))
+  }
+  
+  # Return
+  survey
+  
+}
 
+#' @export
 filter_.survey <- function(survey, ..., .dots) {
   
   # Gather dots and filter data
