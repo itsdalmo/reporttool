@@ -95,7 +95,8 @@ prepare_data <- function(survey, type = "mean", cutoff = .3) {
   # Create a updated measurement model
   vars <- setdiff(names(survey$df), survey$mm$manifest)
   mm <- new_scaffold(default$structure$mm, size = length(vars))
-  mm$manifest <- vars; mm$question <- vars; mm$type <- c("int", rep("numeric", length(vars)-1)); mm$latent <- NA
+  mm$manifest <- vars; mm$question <- vars; mm$latent <- NA
+  mm$type <- c("integer", rep("numeric", length(vars)-1))
   
   # Replace the measurement model
   survey$mm <- rbind(mm[1, ], survey$mm, mm[2:nrow(mm), ])
