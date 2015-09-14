@@ -142,33 +142,39 @@ new_mm <- function(df) {
   type <- lapply(type, function(x) { if (length(x) > 1 && x[1] == "ordered") "factor" else x})
   type <- unlist(type)
   
-  # Set type and try to determine whether it is a scale
+  # See if any variables are factors
+  values <- vector("character", length(manifest))
   is_factor <- type == "factor"
   
-  # Assume that any variables with 1 or more observed values starting with 1-2
-  # numbers, are scale variables with end-points and/or "do not know".
-  is_scale <- vapply(df[is_factor], function(x) {
-    x <- na.omit(unique(x))
-    n <- length(x)
-    l <- stri_detect(x, regex = "^[0-9]{1,2}[^0-9][[:alpha:][:punct:] ]+")
-    all(sum(l) >= 1, length(x) <= 11)
-  }, logical(1))
-  
-  # Clean up the scale variable values (only keep endpoints)
-  scale_values <- lapply(df[is_factor[is_factor == TRUE] & is_scale], function(x) {
-    x <- na.omit(unique(x))
-    s <- stri_replace(x, "$1", regex = "^[0-9]{1,2}\\s*=?\\s*([[:alpha:]]*)")
-    s[s != ""]
-  })
-  
-  # Return if any scale variables were found
-  if (any(is_scale)) {
-    values <- vector("character", length(manifest))
-    values[is_scale] <- vapply(scale_values, stri_c, collapse = "\n", character(1))
-    type[is_scale] <- "scale"
-  } else {
-    values <- NA
+  # Get factor levels
+  if (any(is_factor)) {
+    values <- lapply(df[is_factor], levels)
+  } 
+
+  # See if any factors are scales
+  if (any(is_factor)) {
+    is_scale <- vapply(values, function(x) {
+      x <- na.omit(unique(x))
+      l <- stri_detect(x, regex = "^[0-9]{1,2}[^0-9][[:alpha:][:punct:] ]+")
+      all(sum(l) >= 1, length(x) <= 11)
+    }, logical(1))
   }
+
+  # If we have scales, only keep the end points and update mm
+  if (any(is_scale)) {
+    values[is_scale] <- lapply(values[is_scale], function(x) {
+      x <- na.omit(unique(x))
+      s <- stri_replace(x, "$1", regex = "^[0-9]{1,2}\\s*=?\\s*([[:alpha:]]*)")
+      s[s != ""]
+    })
+
+    values[is_scale] <- vapply(values[is_scale], stri_c, collapse = "\n", character(1))
+    type[is_scale] <- "scale"
+  }
+
+  # Update factor values
+  only_fact <- is_factor & !is_scale
+  values[only_fact] <- vapply(values[only_fact], stri_c, collapse = "\n", character(1))
   
   # Create the data.frame
   mm <- data_frame("latent" = NA, "manifest" = manifest, 
