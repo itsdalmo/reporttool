@@ -48,7 +48,7 @@ test_that("Changing columnames for surveys", {
   
   x <- add_mm(srv)
   x <- set_association(x, common = TRUE)
-  x <- set_colnames(x, q1 = "mainentity")
+  x <- rename(x, mainentity = q1)
   
   expect_identical(names(x$df)[1], "mainentity")
   expect_identical(names(x$df), x$mm$manifest)
