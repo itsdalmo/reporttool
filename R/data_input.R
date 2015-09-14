@@ -27,7 +27,7 @@ from_clipboard <- function(sep = "\t", header = TRUE) {
   }
   
   # Read lines
-  lines <- suppressWarnings(readr::read_lines(file))
+  lines <- suppressWarnings(readLines(file))
   
   # Workaround for OS X
   if (length(lines) != 1L) {
@@ -42,10 +42,15 @@ from_clipboard <- function(sep = "\t", header = TRUE) {
     on.exit(close(con), add = TRUE)
     
     # Read as table
-    lines <- read.table(con, header = header, sep = sep, fill = TRUE, stringsAsFactors = FALSE)
-    class(lines) <- c("tbl_df", "tbl", "data.frame")
+    lines <- read.table(con, 
+                        header = header,
+                        na.strings = c("NA", ""),
+                        sep = sep,
+                        fill = TRUE,
+                        stringsAsFactors = FALSE)
     
-    #lines <- readr::read_delim(con, delim = sep, col_names = header) # Not working?
+    # Set classes
+    class(lines) <- c("tbl_df", "tbl", "data.frame")
     
   }
   
