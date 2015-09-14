@@ -4,7 +4,7 @@
 \alias{read_data}
 \title{Read common data formats}
 \usage{
-read_data(file, ..., encoding = "UTF-8")
+read_data(file, ..., encoding = "UTF-8", decimal = ".")
 }
 \arguments{
 \item{file}{Path to a Rdata, sav (SPSS), txt, csv, csv2 or xlsx file.}
@@ -13,6 +13,9 @@ read_data(file, ..., encoding = "UTF-8")
 instance you can use \code{sheet} to specify a xlsx sheet when reading.}
 
 \item{encoding}{The encoding to use for txt and csv-files.}
+
+\item{decimal}{The decimal marker in the file. Typically "," in scandinavia,
+and "." in the U.S.}
 }
 \value{
 A data.frame. If more than one sheet is read from a xlsx file

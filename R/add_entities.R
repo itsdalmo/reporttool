@@ -106,6 +106,7 @@ print.survey_ents <- function(ents, width = getOption("width")) {
   
   # Extract only entity, observations, valid and marketshare
   ents <- select(ents, entity, n, valid, marketshare)
+  ents <- mutate_each(ents, funs(as.numeric(.)), n, valid, marketshare)
   tot <- suppressWarnings(summarise_each(ents, funs(sum(as.numeric(.)))))
   tot <- bind_cols(data_frame("entity" = "Total*"), tot)
   ents <- bind_rows(ents, tot)

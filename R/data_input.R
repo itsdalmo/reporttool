@@ -68,6 +68,8 @@ from_clipboard <- function(sep = "\t", header = TRUE) {
 #' @param ... Additional arguments passed to \code{readxl} and \code{readr}. For
 #' instance you can use \code{sheet} to specify a xlsx sheet when reading.
 #' @param encoding The encoding to use for txt and csv-files.
+#' @param decimal The decimal marker in the file. Typically "," in scandinavia,
+#' and "." in the U.S.
 #' @author Kristian D. Olsen
 #' @return A data.frame. If more than one sheet is read from a xlsx file 
 #' (or you are reading a Rdata file) a list is returned instead.
@@ -75,7 +77,7 @@ from_clipboard <- function(sep = "\t", header = TRUE) {
 #' @examples 
 #' x <- read_data("test.xlsx")
 
-read_data <- function(file, ..., encoding = "UTF-8") {
+read_data <- function(file, ..., encoding = "UTF-8", decimal = ".") {
   
   file <- clean_path(file)
   
@@ -84,7 +86,7 @@ read_data <- function(file, ..., encoding = "UTF-8") {
   }
   
   # Locale and dots
-  loc <- readr::locale(encoding = encoding)
+  loc <- readr::locale(encoding = encoding, decimal_mark = decimal)
   dots <- list(...)
   
   # Pick input-function based on extension

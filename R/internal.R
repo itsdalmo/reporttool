@@ -186,20 +186,25 @@ topline <- function(survey, other = NULL) {
 #' 
 #' @param file Path to a study directory on the intranet.
 #' @param mainentity The mainentity variable. Defaults to \code{"q1"}.
+#' @param encoding The encoding used for input-files. Usually "latin1", but
+#' R produced files use "UTF-8". 
 #' @author Kristian D. Olsen
 #' @return A survey object with measurement model and entities specified.
 #' @export
 #' @examples 
 #' x <- read_sharepoint("https://the.intranet.se/EPSI/example")
 
-read_sharepoint <- function(file, mainentity = "q1") {
+read_sharepoint <- function(file, mainentity = "q1", encoding = "latin1") {
   
+  # Check path
   if (!tools::file_ext(file) == "") {
     stop("The specified path is not a directory:\n", file, call. = FALSE)
+  } else {
+    file <- clean_path(file)
+    if (!file.exists(file)) {
+      stop("The specified directory does not exist:\n", file, call. = FALSE)
+    }
   }
-  
-  # Make https links compatible with windows file explorer
-  file <- intranet_link(file)
   
   # Check if the specified directory contains the expected folders
   req_folders <- c("data", "input", "output")
@@ -226,6 +231,12 @@ read_sharepoint <- function(file, mainentity = "q1") {
     stop("There is more than one .sav file ending with \"EM\"\n", call. = FALSE)
   }
   
+  # Identify mainentity in manifest
+  mainentity <- filter(srv$mm, stri_trans_tolower(manifest) == mainentity)[["manifest"]]
+  if (!length(mainentity)) {
+    stop("Could not find mainentity.", call. = FALSE)
+  } 
+  
   # Find and read in the input files
   input_dir <- list.files(file_dirs["input"])
   input_files <- input_dir[stri_detect(stri_trans_tolower(input_dir), regex = ".*(config|measurement model).*\\.txt$")]
@@ -236,19 +247,30 @@ read_sharepoint <- function(file, mainentity = "q1") {
     stop("The required files were not found in the input directory:\n Measurement model.txt and config.txt.", call. = FALSE)
   }
   
-  input <- list("cf" = read_txt(input_files["cf"], encoding = "latin1", header = FALSE),
-                "mm" = read_txt(input_files["mm"], encoding = "latin1", header = TRUE))
+  cols_mm <- list("Manifest" = readr::col_character())
+  input <- list("cf" = read_data(input_files["cf"], 
+                                 encoding = encoding, 
+                                 decimal = ",", 
+                                 col_names = FALSE),
+                "mm" = read_data(input_files["mm"], 
+                                 encoding = encoding, 
+                                 decimal = ",", 
+                                 col_names = TRUE, 
+                                 col_types = cols_mm))
+  
+  # Lowercase for referencing
+  input <- lapply(input, lowercase_names)
   
   # Convert to a supported format and extract latent association
   input$mm <- unlist(lapply(input$mm[-1], function(x, manifest) {manifest[x == -1, 1]}, input$mm[1]))
-  input$mm <- data.frame("latent" = names(input$mm), "manifest" = input$mm, stringsAsFactors = FALSE, row.names = NULL)
-  input$mm$latent <- stri_replace_all(input$mm$latent, "$1", regex = "([a-z]+)[0-9]+")
+  input$mm <- data_frame("latent" = names(input$mm), "manifest" = input$mm)
+  input$mm$latent <- stri_replace_all(input$mm$latent, "$1", regex = "([a-z]+).manifest.*")
   
   # Assign latent association to the measurement model (use match in case order differs)
   srv$mm$latent[match(stri_trans_tolower(input$mm$manifest), stri_trans_tolower(srv$mm$manifest))] <- input$mm$latent
-  srv <- set_association(srv, mainentity = mainentity)
   
   # Add entities based on the data and update with marketshares
+  srv <- set_association(srv, mainentity = mainentity)
   srv <- add_entities(srv)
   srv$ents$marketshare <- stri_replace(input$cf[[4]][match(srv$ents$entity, input$cf[[2]])], ".", regex = ",")
 

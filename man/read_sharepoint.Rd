@@ -4,12 +4,15 @@
 \alias{read_sharepoint}
 \title{Extract from a study directory on sharepoint}
 \usage{
-read_sharepoint(file, mainentity = "q1")
+read_sharepoint(file, mainentity = "q1", encoding = "latin1")
 }
 \arguments{
 \item{file}{Path to a study directory on the intranet.}
 
 \item{mainentity}{The mainentity variable. Defaults to \code{"q1"}.}
+
+\item{encoding}{The encoding used for input-files. Usually "latin1", but
+R produced files use "UTF-8".}
 }
 \value{
 A survey object with measurement model and entities specified.
