@@ -52,10 +52,9 @@ rename_.survey <- function(survey, ..., .dots) {
   survey$df <- dplyr::rename_(survey$df, .dots = dots)
   
   # Get list of renamed variables
-  expr <- dots[!is.na(names(dots)) & names(dots) != ""]
-  if (length(expr)) {
-    nms <- lapply(names(expr), function(nm) { x <- expr[[nm]]$expr; if (x != nm) x })
-    nms <- setNames(unlist(nms), names(expr))
+  if (length(dots)) {
+    nms <- lapply(dots, function(x) x$expr)
+    nms <- setNames(unlist(nms), names(dots))
   } else {
     nms <- NULL
   }
