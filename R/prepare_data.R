@@ -64,7 +64,7 @@ prepare_data <- function(survey, type = "mean", cutoff = .3) {
   
   # Add an index to the start of the data
   if ("coderesp" %in% names(survey$df)) {
-    survey <- set_colnames(survey, coderesp = "coderesp_old")
+    survey <- rename(survey, coderesp_old = coderesp)
   }
   
   survey$df <- bind_cols(data_frame("coderesp" = 1:nrow(survey$df)), survey$df)
