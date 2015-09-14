@@ -158,6 +158,8 @@ new_mm <- function(df) {
       l <- stri_detect(x, regex = "^[0-9]{1,2}[^0-9][[:alpha:][:punct:] ]+")
       all(sum(l) >= 1, length(x) <= 11)
     }, logical(1))
+  } else {
+    is_scale <- FALSE
   }
 
   # If we have scales, only keep the end points and update mm
