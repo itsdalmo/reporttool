@@ -156,10 +156,10 @@ test_that("Read and write_data for .Rdata files", {
   w_rdata <- read_data(fileName)
   
   # TODO: String encoding problems
-  if ((Sys.info()["sysname"] == "Windows")) {
-    Encoding(rdata$score) <- "UTF-8"
-    Encoding(rdata$string) <- "UTF-8"
-  }
+#   if ((Sys.info()["sysname"] == "Windows")) {
+#     Encoding(rdata$score) <- "UTF-8"
+#     Encoding(rdata$string) <- "UTF-8"
+#   }
 
   expect_identical(w_rdata, csv2)
   expect_identical(w_rdata, rdata)
