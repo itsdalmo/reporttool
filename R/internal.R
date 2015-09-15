@@ -170,8 +170,8 @@ topline <- function(survey, other = NULL) {
   
   # Make a table for 'other' if the variable is found
   if (length(other)) {
-    other <- filter(select(df, other), !is.na(other), other != "")
-    other <- summarise(group_by(df, other), n = n())
+    other <- filter(select(survey$df, other), !is.na(other), other != "")
+    other <- summarise(group_by(other, other), n = n())
     other <- arrange(other, desc(n))
     lst <- append(lst, list("other" = other))
   }
