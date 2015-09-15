@@ -153,7 +153,7 @@ topline <- function(survey, other = NULL) {
   ents <- select(survey$ents, entity, n, valid)
   ents <- left_join(ents, summarise_each(group_by(select(survey$df, entity, one_of(default$latents)), entity), 
                                          funs(mean(., na.rm = TRUE))), by = c("entity" = "entity"))
-  ents <- filter(ents, !is.na(entities))
+  ents <- filter(ents, !is.na(entity))
   
   total <- bind_cols(data_frame("entity" = "Total"), summarise_each(select(ents, n, valid), funs(sum(., na.rm = TRUE))))
   total <- bind_cols(total, summarise_each(select(survey$df, one_of(default$latents)), funs(mean(., na.rm = TRUE))))
