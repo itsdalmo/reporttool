@@ -1,4 +1,36 @@
 #' @export
+tbl_vars.survey <- function(survey) names(survey$df)
+
+#' @export
+group_by_.survey <- function(survey, ..., .dots, add = FALSE) {
+  survey$df <- dplyr::group_by_(survey$df, ..., .dots = .dots, add = add)
+  survey
+}
+
+#' @export
+groups.survey <- function(x) NULL
+
+#' @export
+summarise_.survey <- function(survey, ..., .dots) {
+  dots <- lazyeval::all_dots(.dots, ..., all_named = TRUE)
+  survey$df <- dplyr::summarise_(survey$df, .dots = dots)
+  
+  # Subset measurement model
+  survey$mm <- filter(survey$mm, manifest %in% names(dots))
+  class(survey$mm) <- c("survey_mm", class(survey$mm))
+  
+  survey
+}
+
+#' @export
+arrange_.survey <- function(survey, ..., .dots) {
+  dots <- lazyeval::all_dots(.dots, ..., all_named = TRUE)
+  survey$df <- dplyr::arrange_(survey$df, .dots = dots)
+  
+  survey
+}
+
+#' @export
 mutate_.survey <- function(survey, ..., .dots) {
   
   # Gather dots and mutate the data
@@ -37,7 +69,7 @@ select_.survey <- function(survey, ..., .dots) {
   
   # Subset measurement model
   survey$mm <- filter(survey$mm, manifest %in% names(survey$df))
-  class(survey$mm) <- c("survey_mm", "data.frame")
+  class(survey$mm) <- c("survey_mm", class(survey$mm))
   
   # Return
   survey
