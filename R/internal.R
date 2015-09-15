@@ -317,8 +317,8 @@ write_sharepoint <- function(survey, file) {
   
   # Get the measurement model and the cutoff
   model <- filter(survey$mm, stri_trans_tolower(latent) %in% default$latents)
-  cutoff <- as.numeric(survey$cfg$value[survey$cfg$config %in% "cutoff"])
-  
+  cutoff <- as.numeric(filter(survey$cfg, config == "cutoff")[["value"]])
+
   # Locate or create required directories
   req_folders <- c("Data", "Input")
   dir_folders <- list.files(file)
@@ -341,9 +341,10 @@ write_sharepoint <- function(survey, file) {
   file_dirs <- setNames(file.path(file, dir_folders[is_required]), stri_trans_tolower(req_folders))
 
   # Write data
-  data_file <- survey$cfg$value[survey$cfg$config %in% c("study", "segment", "year")]
+  data_file <- filter(survey$cfg, config %in% c("study", "segment", "year"))[["value"]]
   data_file <- stri_c(stri_trans_totitle(data_file[1]), stri_trans_toupper(data_file[2]), data_file[3], sep = " ")
   data_file <- file.path(file_dirs["data"], stri_c(data_file, ".sav"))
+  data_file <- stri_replace_all(data_file, " ", regex = "\\s\\s")
   
   write_data(survey, file = data_file)
   
