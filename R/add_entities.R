@@ -63,7 +63,13 @@ add_entities <- function(survey, entities = NULL) {
   # Generate the needed data from the mainentity vector
   if (all(is.na(survey$df[[mainentity]]))) {
     stop("No observations found in mainentity column ", stri_c("(", mainentity, ")"), ".", call. = FALSE)
-  } else if (is.null(entities)) {
+  } else if (any(is.na(survey$df[[mainentity]]))) {
+    warning("Removed rows in data where mainentity was NA.", call. = FALSE)
+    filter_call <- lazyeval::interp(quote(!is.na(var)), var = as.name(mainentity))
+    survey <- filter_(survey, .dots = filter_call)
+  } 
+  
+  if (is.null(entities)) {
     entities <- new_entities(survey$df[[mainentity]])
   }
   
