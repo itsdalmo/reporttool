@@ -141,8 +141,8 @@ topline <- function(survey, other = NULL) {
 
   # Check mainentity + 'a' if 'other' is null
   if (is.null(other)) {
-    other <- stri_trans_tolower(stri_c(mainentity, "a"))
-    other <- filter(survey$mm, stri_trans_tolower(latent) == other)[["manifest"]]
+    other <- stri_c(mainentity, "a")
+    other <- filter(survey$mm, stri_detect(manifest, regex = stri_c("^", other), case_insensitive = TRUE))[["manifest"]]
   }
   
   # Set names for data (merges)
@@ -153,6 +153,7 @@ topline <- function(survey, other = NULL) {
   ents <- select(survey$ents, entity, n, valid)
   ents <- left_join(ents, summarise_each(group_by(select(survey$df, entity, one_of(default$latents)), entity), 
                                          funs(mean(., na.rm = TRUE))), by = c("entity" = "entity"))
+  ents <- filter(ents, !is.na(entities))
   
   total <- bind_cols(data_frame("entity" = "Total"), summarise_each(select(ents, n, valid), funs(sum(., na.rm = TRUE))))
   total <- bind_cols(total, summarise_each(select(survey$df, one_of(default$latents)), funs(mean(., na.rm = TRUE))))
