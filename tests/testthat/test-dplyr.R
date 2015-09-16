@@ -84,3 +84,19 @@ test_that("filtering survey data", {
   
   
 })
+
+test_that("summarising survey data", {
+  
+  x <- set_association(srv, common = TRUE)
+  x <- add_entities(x)
+  x <- set_config(x)
+  x <- prepare_data(x)
+  x <- select(x, q1, one_of(default$latents))
+  x <- group_by(x, q1)
+  x <- summarise_each(x, funs(mean(., na.rm = TRUE)), -q1)
+  
+  expect_identical(names(x$df), c("q1", default$latents))
+  expect_identical(nrow(x$df), 1L)
+  expect_identical(names(x$df), x$mm$manifest)
+  
+})

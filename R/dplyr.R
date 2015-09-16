@@ -13,10 +13,11 @@ groups.survey <- function(x) NULL
 #' @export
 summarise_.survey <- function(survey, ..., .dots) {
   dots <- lazyeval::all_dots(.dots, ..., all_named = TRUE)
+  grps <- unlist(groups(survey$df))
   survey$df <- dplyr::summarise_(survey$df, .dots = dots)
   
   # Subset measurement model
-  survey$mm <- filter(survey$mm, manifest %in% names(dots))
+  survey$mm <- filter(survey$mm, manifest %in% c(names(dots), grps))
   class(survey$mm) <- c("survey_mm", class(survey$mm))
   
   survey
