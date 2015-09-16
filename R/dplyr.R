@@ -67,8 +67,9 @@ select_.survey <- function(survey, ..., .dots) {
     survey$mm$manifest <- ordered_replace(survey$mm$manifest, nms, names(nms))
   }
   
-  # Subset measurement model
-  survey$mm <- filter(survey$mm, manifest %in% names(survey$df))
+  # Subset measurement model while retaining order
+  row_order <- match(names(survey$df), survey$mm$manifest)
+  survey$mm <- slice(survey$mm, row_order)
   class(survey$mm) <- c("survey_mm", class(survey$mm))
   
   # Return
