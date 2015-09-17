@@ -58,7 +58,7 @@ test_that("Tables with to_clipboard and from_clipboard for Windows/OSX" , {
     cp_xlsx$missing[1:2] <- NA # to_clipboard recodes NA to "" for excel
     
     # Compare
-    expect_identical(cp_xlsx, xlsx)
+    expect_equal(cp_xlsx, xlsx)
     
   }
   
