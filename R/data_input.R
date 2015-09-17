@@ -36,22 +36,7 @@ from_clipboard <- function(sep = "\t", header = TRUE) {
   
   # Check if any of the lines contain the sep
   if (any(stri_detect(lines, regex = stri_c("[", sep, "]")))) {
-    
-    # Open a connection
-    con <- textConnection(lines)
-    on.exit(close(con), add = TRUE)
-    
-    # Read as table
-    lines <- read.table(con, 
-                        header = header,
-                        na.strings = c("NA", ""),
-                        sep = sep,
-                        fill = TRUE,
-                        stringsAsFactors = FALSE)
-    
-    # Set classes
-    class(lines) <- c("tbl_df", "tbl", "data.frame")
-    
+    lines <- readr::read_delim(lines, delim = sep)
   }
   
   return(lines)
