@@ -126,7 +126,7 @@ read_flat <- function(file, sep, loc, dots) {
 read_xlsx <- function(file, dots) {
   
   # Get the sheetnames to be read
-  wb <- readxl::excel_sheets(file)
+  wb <- openxlsx::getSheetNames(file)
   
   if (!is.null(dots) && "sheet" %in% names(dots)) {
     sheet <- dots$sheet
@@ -140,19 +140,9 @@ read_xlsx <- function(file, dots) {
   }
   
   # Read data to list
-  data <- lapply(sheet, function(x) {
-    x <- try(readxl::read_excel(file, x), silent = TRUE) 
-    if (inherits(x, "try-error")) data_frame() else x })
-  
-  # Clean rows that are all NA
-  data <- lapply(data, function(x) {
-    rows <- rowSums(is.na(x)) < ncol(x)
-    if (any(rows)) { 
-      x <- x[rows, ]; structure(x, class = c("tbl_df", "tbl", "data.frame"))
-    } else { 
-      data_frame() 
-    }
-  })
+  data <- lapply(sheet, openxlsx::read.xlsx, xlsxFile = file)
+  data <- lapply(data, function(x) if (is.null(x)) data_frame() else structure(x, class = c("tbl_df", "tbl", "data.frame")))
+  data <- lapply(data, set_missing, na_strings = "")
   
   # Set names
   names(data) <- sheet
