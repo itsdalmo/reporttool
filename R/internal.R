@@ -260,7 +260,7 @@ read_sharepoint <- function(file, mainentity = "q1", encoding = "latin1") {
                                  col_types = cols_mm))
   
   # Lowercase for referencing
-  input <- lapply(input, lowercase_names)
+  input <- lapply(input, function(x) { names(x) <- stri_trans_tolower(names(x)); x })
   
   # Convert to a supported format and extract latent association
   input$mm <- unlist(lapply(input$mm[-1], function(x, manifest) {manifest[x == -1, 1]}, input$mm[1]))
