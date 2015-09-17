@@ -118,15 +118,6 @@ intranet_link <- function(https) {
   
 }
 
-#' @rdname utilities
-#' @export
-lowercase_names <- function(x, nm = names(x)) {
-  
-  if(!is.null(nm)) names(x) <- stri_trans_tolower(nm); x
-  
-}
-
-
 # MISC -------------------------------------------------------------------------
 
 clean_path <- function(path) {
