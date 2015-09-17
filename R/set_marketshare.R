@@ -11,7 +11,7 @@
 #' @examples 
 #' x %>% set_marketshares("reporttool" = 1)
 
-set_marketshares <- function(survey, ..., ms = NULL) {
+set_marketshare <- function(survey, ..., ms = NULL) {
   
   # Check class
   if (!inherits(survey, "survey")) {

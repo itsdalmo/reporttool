@@ -60,7 +60,7 @@ test_that("Changing marketshares for entities", {
   x <- add_mm(srv)
   x <- set_association(x, common = TRUE)
   x <- add_entities(x)
-  x <- set_marketshares(x, Example = .3)
+  x <- set_marketshare(x, Example = .3)
   
   expect_identical(x$ents$marketshare, .3)
   
