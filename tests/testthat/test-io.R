@@ -86,7 +86,7 @@ test_that("Read and write_data with list", {
   
   # Read example data
   sheet1 <- read_data("xlsx.xlsx")
-  sheet2 <- read_data("csv2.csv", encoding = "latin1", delim = ";")
+  sheet2 <- read_data("csv2.csv", encoding = "UTF-8", delim = ";")
   
   lst <- list("csv" = sheet1, "csv2" = sheet2)
   
