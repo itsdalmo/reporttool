@@ -18,7 +18,6 @@ Imports:
   lazyeval,
   openxlsx (>= 3.0.0),
   readr (>= 0.1.1.9000),
-  readxl (>= 0.1.0.9000),
   rmarkdown,
   scales,
   stringi (>= 0.5.5),
