@@ -107,7 +107,7 @@ print.survey_mm <- function(mm, width = getOption("width")) {
   # Type
   mm$type <- vapply(mm$type, function(x) {
     x <- ifelse(is.na(x), "miss", x)
-    switch(x, character = "(char)", factor = "(fctr)", numeric = "(num)", date = "(date)",
+    switch(x, character = "(char)", factor = "(fctr)", numeric = "(num)", Date = "(date)",
            scale = "(scale)", integer = "(int)", "(????)") }, character(1))
   
   mm$type <- ifelse(!is.na(mm$latent), stri_c(mm$type, "*"), mm$type)
