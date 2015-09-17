@@ -159,6 +159,16 @@ read_xlsx <- function(file, dots) {
     x <- try(readxl::read_excel(file, x), silent = TRUE) 
     if (inherits(x, "try-error")) data_frame() else x })
   
+  # Clean rows that are all NA
+  data <- lapply(data, function(x) {
+    rows <- rowSums(is.na(x)) < ncol(x)
+    if (any(rows)) { 
+      x <- x[rows, ]; structure(x, class = c("tbl_df", "tbl", "data.frame"))
+    } else { 
+      data_frame() 
+    }
+  })
+  
   # Set names
   names(data) <- sheet
   
