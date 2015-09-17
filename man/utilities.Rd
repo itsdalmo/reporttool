@@ -51,9 +51,6 @@ A few wrappers to make a common tasks less verbose.
    the default missing value strings. See \code{defaults.R} for these
    strings.}
 
-   \item{\code{lowercase_names}}{Used to lowercase columnnames in lists
-   (instead of an anonyomous function.)}
-
 }
 }
 \examples{

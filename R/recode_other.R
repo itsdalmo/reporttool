@@ -10,7 +10,7 @@
 #' @examples 
 #' x %>% recode_entites(other = "q1a", "Example" = "test")
 
-recode_entities <- function(survey, other = NULL, ...) {
+recode_other <- function(survey, other = NULL, ...) {
   
   # Check the input
   if (!inherits(survey, "survey")) {
@@ -29,12 +29,13 @@ recode_entities <- function(survey, other = NULL, ...) {
     mainentity <- filter(survey$mm, stri_trans_tolower(latent) == "mainentity")[["manifest"]]
   }
   
+  # Find open answers for mainentity if not specified
   if (is.null(other)) {
     other <- stri_c(mainentity, "a")
     other <- filter(survey$mm, stri_detect(manifest, regex = stri_c("^", other), case_insensitive = TRUE))[["manifest"]]
   }
   
-  # Gather dots
+  # Gather dots and vectors
   dots <- list(...)
   entity <- survey$df[[mainentity]]
   others <- survey$df[[other]]
@@ -50,15 +51,8 @@ recode_entities <- function(survey, other = NULL, ...) {
   
   # Stop if missing
   if (length(missing)) {
-    stop("The following values were not found in the mainentity column:\n", stri_c(missing, collapse = ", "), call. = FALSE)
-  }
-  
-  # For factors, replace with factor values
-  if (is.factor(entity)) {
-    nms <- match(names(dots), unique(entity))
-    val <- setNames(nms, names(dots))
-  } else {
-    val <- dots
+    stop("The following values were not found in the mainentity column:\n", 
+         stri_c(missing, collapse = ", "), call. = FALSE)
   }
   
   # Lowercase and do the recode
@@ -70,9 +64,10 @@ recode_entities <- function(survey, other = NULL, ...) {
     others[others %in% dots[[nm]]] <- ""
   }
   
-  # Assign and return
+  # Assign
   survey$df[[other]] <- others
   survey$df[[mainentity]] <- entity
+  
   survey
   
 }
