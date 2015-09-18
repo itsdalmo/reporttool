@@ -180,7 +180,7 @@ new_mm <- function(df) {
   
   # Create the data.frame
   mm <- data_frame("latent" = NA, "manifest" = manifest, 
-                   "question" = question, "type" = type, "values" = values)
+                   "question" = question, "type" = type, "values" = unlist(values))
   
   # Return
   mm
@@ -198,7 +198,9 @@ update_mm <- function(survey, cols) {
   
   # Update old columns
   changed <- mm[mm$manifest %in% old_cols, c("type", "values")]
-  survey$mm[survey$mm$manifest %in% old_cols, c("type", "values")] <- changed
+  if (nrow(changed)) {
+    survey$mm[survey$mm$manifest %in% old_cols, c("type", "values")] <- changed
+  }
   
   # And new columns
   survey$mm <- bind_rows(survey$mm, mm[mm$manifest %in% new_cols, ])
