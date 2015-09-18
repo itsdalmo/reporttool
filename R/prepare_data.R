@@ -25,10 +25,6 @@ prepare_data <- function(survey, type = "mean", cutoff = .3) {
     stop("The measurement model must be added first. See help(add_mm).", call. = FALSE)
   }
   
-  if (!inherits(survey$ents, "survey_ents") || !nrow(survey$ents)) {
-    stop("Entities must be added first. See help(add_entities).", call. = FALSE)
-  }
-  
   if (!inherits(survey$cfg, "survey_cfg") || !nrow(survey$cfg)) {
     stop("The config must be added first. See help(set_config).", call. = FALSE)
   }
@@ -76,15 +72,6 @@ prepare_data <- function(survey, type = "mean", cutoff = .3) {
   # Calculate missing percentage
   survey$df <- mutate(survey$df, percent_missing = rowSums(is.na(survey$df[model$EM]))/length(model$EM))
   
-  # Tally valid observations in entities
-  entities <- filter(survey$df, percent_missing <= cutoff)
-  entities <- group_by_(entities, eval(mainentity))
-  entities <- summarise(entities, n = n())
-  names(entities) <- c("entity", "valid")
-  
-  survey$ents$valid <- entities$valid[match(survey$ents$entity, entities$entity)]
-  survey$ents$valid[is.na(survey$ents$valid)] <- 0
-  
   # Add latents to the data
   if (type == "mean") {
     survey <- latents_mean(survey, model, cutoff)
@@ -103,7 +90,7 @@ prepare_data <- function(survey, type = "mean", cutoff = .3) {
   class(survey$mm) <- c("survey_mm", "data.frame")
   
   # Set class and return
-  class(survey$df) <- c("survey_df", "tbl_df", "tbl", "data.frame")
+  class(survey$df) <- c("tbl_df", "tbl", "data.frame")
   survey
   
 }
