@@ -51,7 +51,8 @@ survey <- function(x) {
   # Check input
   if (inherits(x, "data.frame")) {
     if(is.spss(x)) { 
-      x <- from_labelled(x); message("Added mm from labelled. You don't need to add_mm().")
+      x <- from_labelled(x); class(x$mm) <- c("survey_mm", "data.frame")
+      message("Added mm from labelled. You don't need to add_mm().")
     } else { 
       x <- list("df" = x) 
     }
@@ -72,6 +73,7 @@ survey <- function(x) {
   if (any(data %in% names(x))) {
     data <- intersect(found, data); found <- setdiff(found, data)
     srv[data] <- Map(merge_with_scaffold, srv[data], x[data])
+    srv[data] <- lapply(srv[data], as_data_frame)
   }
     
   # Only keep the parts that can be appended to the scaffolding
@@ -80,11 +82,9 @@ survey <- function(x) {
   }
   
   # Set the class of underlying objects
-  for (i in names(srv)) {
+  for (i in names(srv[found])) {
     if (i %in% c("mm", "ents")) {
       class(srv[[i]]) <- c(stri_c("survey_", i), "data.frame")
-    } else if (inherits(srv[[i]], "data.frame")) {
-      class(srv[[i]]) <- c("tbl_df", "tbl", "data.frame")
     }
   }
   
