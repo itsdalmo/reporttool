@@ -131,10 +131,8 @@ topline <- function(survey, other = NULL) {
   }
   
   # Data must be prepared first
-  if (!inherits(survey$df, "survey_df") || !nrow(survey$mm)) {
-    stop("The data must be prepared first. See help(prepare_data).", call. = FALSE)
-  } else if (survey$cfg$value[survey$cfg$config %in% "latents"] != "mean"){
-    stop("The data must be prepared with 'mean'. See help(prepare_data).", call. = FALSE)
+  if (!all(default$latents %in% names(survey$df))) {
+    stop("Latents were not found in the data. See help(prepare_data).", call. = FALSE)
   }
   
   # Find mainentity variable and scores
