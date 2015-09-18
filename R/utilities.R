@@ -6,6 +6,8 @@
 #' 
 #' \describe{
 #' 
+#'    \item{\code{recode}}{Recode variables.} 
+#' 
 #'    \item{\code{intranet_link}}{Converts any http(s) link with a .se domain
 #'    to a link for a network drive (sharepoint) on windows.}  
 #' 
@@ -36,6 +38,36 @@
 #' @examples 
 #' get_default("palette")
 
+recode <- function(x, ..., by = x) {
+  funs <- lazyeval::lazy_eval(lazyeval::lazy_dots(...))
+  is_logical <- vapply(funs, is.logical, logical(1))
+  
+  # Check input
+  if (length(x) != length(by)) {
+    stop("Arguments 'x' and 'by' must be the same length.", call. = FALSE)
+  } else if (is.factor(x)) {
+    missing <- setdiff(names(funs), levels(x))
+    if (length(missing)) {
+      stop("Some named arguments do not match levels in the factor:\n",
+           stri_c(missing, ", "), call. = FALSE)
+    }
+  } else if (any(is_logical) && !is.logical(by)) {
+    stop("Argument 'by' is not logical, but one or more of the arguments are.", call. = FALSE)
+  }
+  
+  
+  # Lowercase and recode
+  by <- stri_trans_tolower(by)
+  for (nm in names(funs)) {
+    x[by %in% stri_trans_tolower(funs[[nm]])] <- nm
+  }
+  
+  x
+  
+}
+
+#' @rdname utilities
+#' @export
 set_missing <- function(df, na_strings = get_default("na_strings")) {
   
   if (inherits(df, "matrix")) df <- as_data_frame(df)

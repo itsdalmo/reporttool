@@ -6,11 +6,14 @@
 \alias{get_default}
 \alias{intranet_link}
 \alias{ordered_replace}
+\alias{recode}
 \alias{rescale_score}
 \alias{set_missing}
 \title{Utilities}
 \usage{
 get_default(string)
+
+recode(x, ..., by = x)
 
 set_missing(df, na_strings = get_default("na_strings"))
 
@@ -29,6 +32,8 @@ A few wrappers to make a common tasks less verbose.
 
 
 \describe{
+
+   \item{\code{recode}}{Recode variables.}
 
    \item{\code{intranet_link}}{Converts any http(s) link with a .se domain
    to a link for a network drive (sharepoint) on windows.}
