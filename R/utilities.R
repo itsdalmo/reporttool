@@ -41,9 +41,13 @@
 recode <- function(x, ..., by = x) {
   funs <- lazyeval::lazy_eval(lazyeval::lazy_dots(...))
   is_logical <- vapply(funs, is.logical, logical(1))
+  is_null <- vapply(funs, is.null, logical(1))
   
   # Check input
-  if (length(x) != length(by)) {
+  if (any(is_null)) {
+    null <- names(funs)[is_null]
+    stop("Some of the arguments evaluate to NULL:\n", stri_c(null, collapse = ", "), call. = FALSE)
+  } else if (length(x) != length(by)) {
     stop("Arguments 'x' and 'by' must be the same length.", call. = FALSE)
   } else if (is.factor(x)) {
     missing <- setdiff(names(funs), levels(x))
