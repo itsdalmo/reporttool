@@ -174,6 +174,8 @@ topline <- function(survey, other = NULL) {
     other <- summarise(group_by(other, other), n = n())
     other <- arrange(other, desc(n))
     lst <- append(lst, list("other" = other))
+  } else {
+    warning("A column corresponding to 'other' was not found in the data.", call. = FALSE)
   }
 
   return(lst)
@@ -344,7 +346,7 @@ write_sharepoint <- function(survey, file) {
   # Write data
   data_file <- filter(survey$cfg, config %in% c("study", "segment", "year"))[["value"]]
   data_file <- stri_c(stri_trans_totitle(data_file[1]), stri_trans_toupper(data_file[2]), data_file[3], sep = " ")
-  data_file <- file.path(file_dirs["data"], stri_c(data_file, ".sav"))
+  data_file <- file.path(file_dirs["data"], stri_c(data_file, "EM", ".sav"))
   data_file <- stri_replace_all(data_file, " ", regex = "\\s\\s")
   
   write_data(survey, file = data_file)
