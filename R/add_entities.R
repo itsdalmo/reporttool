@@ -60,7 +60,7 @@ add_entities <- function(survey, entities = NULL) {
     stop("More than one 'mainentity' found. Please revise measurement model.", call. = FALSE)
   }
   
-  # Generate the needed data from the mainentity vector
+  # Check mainentities
   if (all(is.na(survey$df[[mainentity]]))) {
     stop("No observations found in mainentity column ", stri_c("(", mainentity, ")"), ".", call. = FALSE)
   } else if (any(is.na(survey$df[[mainentity]]))) {
@@ -69,8 +69,11 @@ add_entities <- function(survey, entities = NULL) {
     survey <- filter_(survey, .dots = filter_call)
   } 
   
+  # Generate a new summary if none is given
   if (is.null(entities)) {
-    entities <- new_entities(survey$df[[mainentity]])
+    cutoff <- as.numeric(filter(survey$cfg, config == "cutoff")[["value"]])
+    cutoff <- if (!length(cutoff) || is.na(cutoff)) NULL else cutoff
+    entities <- new_entities(survey$df, mainentity, cutoff)
   }
   
   # Warn and replace if entities contains existing data
@@ -143,15 +146,26 @@ print.survey_ents <- function(ents, width = getOption("width")) {
 
 # Utilities --------------------------------------------------------------------
 
-new_entities <- function(mainentity) {
+new_entities <- function(df, mainentity, cutoff = NULL) {
   
-  mainentity <- as.character(mainentity)
+  # All observations
+  entities <- data_frame(entity = as.character(df[[mainentity]]))
+  entities <- summarise(group_by(entities, entity), n = n())
   
-  # Gather the information on entities
-  entities <- data_frame(entity = as.character(mainentity))
-  entities <- summarise(group_by(entities, entity), n = n(), valid = n)
-  entities <- mutate(entities, other = "No", marketshare = n/sum(n)) 
-
+  # Valid observations
+  if ("percent_missing" %in% names(df) && !is.null(cutoff)) {
+    valid <- filter(df, percent_missing <= cutoff)
+    valid <- data_frame(entity = as.character(valid[[mainentity]]))
+    valid <- summarise(group_by(valid, entity), valid = n())
+    entities <- left_join(entities, valid, by = c("entity" = "entity"))
+  } else {
+    warning("Missing percentage and/or cutoff was not found. See help(prepare_data).", call. = FALSE)
+    entities <- mutate(entities, valid = n)
+  }
+  
+  entities$valid[is.na(entities$valid)] <- 0
+  entities <- mutate(entities, marketshare = valid/sum(valid))
+  
   # Return
   entities
   
