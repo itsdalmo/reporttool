@@ -1,12 +1,12 @@
 library(devtools);test()
 library(stringi)
 
-x <- read_data("c:/Users/krist_000/Desktop/Data_SK_11 septemeber.sav")
+x <- read_data("../EPSI/Kronjylland H2015/Data_SK_11 septemeber.sav")
 
 
 xx <- survey(x) %>%
       rename(q1_org = Q1, q1 = b_4) %>%
-      mutate(q1 = stri_replace_all(var, "", regex = "\""), 
+      mutate(q1 = stri_replace_all(q1, "", regex = "\""), 
              q1 = factor(q1, levels = unique(q1))) %>%
       set_association(common = TRUE) %>% 
       add_entities() %>%
