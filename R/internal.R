@@ -28,6 +28,7 @@ write_questionnaire <- function(quest, file, study = "Banking", segment = "B2C",
   
   # Subset and create index
   quest <- quest[stri_trans_tolower(quest$study) == study & stri_trans_tolower(quest$segment) == segment, ]
+  quest[] <- lapply(quest, stri_replace_all, replacement = "", regex = "\\r")
   quest$index <- NA
   
   # Expand scale variable levels
