@@ -18,7 +18,7 @@ summarise_.survey <- function(survey, ..., .dots) {
   
   # Subset measurement model
   survey$mm <- filter(survey$mm, manifest %in% c(names(dots), grps))
-  class(survey$mm) <- c("survey_mm", class(survey$mm))
+  class(survey$mm) <- c("survey_mm", "data.frame")
   
   survey
 }
@@ -71,7 +71,7 @@ select_.survey <- function(survey, ..., .dots) {
   # Subset measurement model while retaining order
   row_order <- match(names(survey$df), survey$mm$manifest)
   survey$mm <- slice(survey$mm, row_order)
-  class(survey$mm) <- c("survey_mm", class(survey$mm))
+  class(survey$mm) <- c("survey_mm", "data.frame")
   
   # Return
   survey
@@ -109,6 +109,14 @@ filter_.survey <- function(survey, ..., .dots) {
   # Gather dots and filter data
   dots <- lazyeval::all_dots(.dots, ...)
   survey$df <- dplyr::filter_(survey$df, .dots = dots)
+  
+  # Update entities if the association is set
+  has_me <- any(stri_detect(survey$mm$latent, regex = "mainentity"), na.rm = TRUE)
+  if (has_me && mainentity %in% names(survey$df)) {
+    survey <- add_entities(survey)
+  } else {
+    warning("Entities could not be updated.", call. = FALSE)
+  }
   
   # Return
   survey
