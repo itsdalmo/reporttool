@@ -1,58 +1,58 @@
 #' @export
-tbl_vars.survey <- function(survey) names(survey$df)
+tbl_vars.survey <- function(srv) names(srv$df)
 
 #' @export
-group_by_.survey <- function(survey, ..., .dots, add = FALSE) {
-  survey$df <- dplyr::group_by_(survey$df, ..., .dots = .dots, add = add)
-  survey
+group_by_.survey <- function(srv, ..., .dots, add = FALSE) {
+  srv$df <- dplyr::group_by_(srv$df, ..., .dots = .dots, add = add)
+  srv
 }
 
 #' @export
 groups.survey <- function(x) NULL
 
 #' @export
-summarise_.survey <- function(survey, ..., .dots) {
+summarise_.survey <- function(srv, ..., .dots) {
   dots <- lazyeval::all_dots(.dots, ..., all_named = TRUE)
-  grps <- unlist(groups(survey$df))
-  survey$df <- dplyr::summarise_(survey$df, .dots = dots)
+  grps <- unlist(groups(srv$df))
+  srv$df <- dplyr::summarise_(srv$df, .dots = dots)
   
   # Subset measurement model
-  survey$mm <- filter(survey$mm, manifest %in% c(names(dots), grps))
-  class(survey$mm) <- c("survey_mm", "data.frame")
+  srv$mm <- filter(srv$mm, manifest %in% c(names(dots), grps))
+  srv$mm <- as.survey_mm(srv$mm)
   
-  survey
+  srv
 }
 
 #' @export
-arrange_.survey <- function(survey, ..., .dots) {
+arrange_.survey <- function(srv, ..., .dots) {
   dots <- lazyeval::all_dots(.dots, ..., all_named = TRUE)
-  survey$df <- dplyr::arrange_(survey$df, .dots = dots)
+  srv$df <- dplyr::arrange_(srv$df, .dots = dots)
   
-  survey
+  srv
 }
 
 #' @export
-mutate_.survey <- function(survey, ..., .dots) {
+mutate_.survey <- function(srv, ..., .dots) {
   
   # Gather dots and mutate the data
   dots <- lazyeval::all_dots(.dots, ..., all_named = TRUE)
-  survey$df <- dplyr::mutate_(survey$df, .dots = dots)
+  srv$df <- dplyr::mutate_(srv$df, .dots = dots)
 
   # Update mm (overhead)
   cols <- unique(names(dots))
-  survey <- update_mm(survey, cols)
+  srv <- update_mm(srv, cols)
   
   # Return
-  survey
+  srv
   
 }
 
 #' @export
-select_.survey <- function(survey, ..., .dots) {
+select_.survey <- function(srv, ..., .dots) {
   
   # Gather dots and apply select to data
   dots <- lazyeval::all_dots(.dots, ...)
-  survey$df <- dplyr::select_(survey$df, .dots = dots)
+  srv$df <- dplyr::select_(srv$df, .dots = dots)
   
   # Get list of renamed variables
   expr <- dots[!is.na(names(dots)) & names(dots) != ""]
@@ -65,25 +65,25 @@ select_.survey <- function(survey, ..., .dots) {
   
   # Update renames in manifest
   if (!is.null(nms) && length(nms)) {
-    survey$mm$manifest <- ordered_replace(survey$mm$manifest, nms, names(nms))
+    srv$mm$manifest <- ordered_replace(srv$mm$manifest, nms, names(nms))
   }
   
   # Subset measurement model while retaining order
-  row_order <- match(names(survey$df), survey$mm$manifest)
-  survey$mm <- slice(survey$mm, row_order)
-  class(survey$mm) <- c("survey_mm", "data.frame")
+  row_order <- match(names(srv$df), srv$mm$manifest)
+  srv$mm <- slice(srv$mm, row_order)
+  srv$mm <- as.survey_mm(srv$mm)
   
   # Return
-  survey
+  srv
   
 }
 
 #' @export
-rename_.survey <- function(survey, ..., .dots) {
+rename_.survey <- function(srv, ..., .dots) {
   
   # Gather dots and apply select to data
   dots <- lazyeval::all_dots(.dots, ...)
-  survey$df <- dplyr::rename_(survey$df, .dots = dots)
+  srv$df <- dplyr::rename_(srv$df, .dots = dots)
   
   # Get list of renamed variables
   if (length(dots)) {
@@ -95,30 +95,30 @@ rename_.survey <- function(survey, ..., .dots) {
   
   # Update renames in manifest
   if (!is.null(nms) && length(nms)) {
-    survey$mm$manifest <- ordered_replace(survey$mm$manifest, nms, names(nms))
+    srv$mm$manifest <- ordered_replace(srv$mm$manifest, nms, names(nms))
   }
   
   # Return
-  survey
+  srv
   
 }
 
 #' @export
-filter_.survey <- function(survey, ..., .dots) {
+filter_.survey <- function(srv, ..., .dots) {
   
   # Gather dots and filter data
   dots <- lazyeval::all_dots(.dots, ...)
-  survey$df <- dplyr::filter_(survey$df, .dots = dots)
+  srv$df <- dplyr::filter_(srv$df, .dots = dots)
   
   # Update entities if the association is set
-  has_me <- any(stri_detect(survey$mm$latent, regex = "mainentity"), na.rm = TRUE)
-  if (has_me && mainentity %in% names(survey$df)) {
-    survey <- add_entities(survey)
+  has_me <- any(stri_detect(srv$mm$latent, regex = "mainentity"), na.rm = TRUE)
+  if (has_me && mainentity %in% names(srv$df)) {
+    srv <- add_entities(srv)
   } else {
     warning("Entities could not be updated.", call. = FALSE)
   }
   
   # Return
-  survey
+  srv
   
 }
