@@ -4,10 +4,10 @@
 \alias{set_marketshare}
 \title{Set marketshares for entities}
 \usage{
-set_marketshare(survey, ..., ms = NULL)
+set_marketshare(srv, ..., ms = NULL)
 }
 \arguments{
-\item{survey}{A survey object.}
+\item{srv}{A survey object.}
 
 \item{...}{Marketshares for individual entities. Of the format \code{name = marketshare}.}
 
