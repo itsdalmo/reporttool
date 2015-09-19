@@ -97,14 +97,14 @@ prepare_data <- function(srv, type = "mean", cutoff = .3) {
 
 # Utilities --------------------------------------------------------------------
 
-latents_mean <- function(survey, model, cutoff) {
+latents_mean <- function(srv, model, cutoff) {
 
   for (i in levels(model$latent)) {
-    x <- survey$df[survey$df$percent_missing <= cutoff, model$EM[model$latent %in% i], drop = FALSE]
-    survey$df[survey$df$percent_missing <= cutoff, i] <- rowMeans(x, na.rm = TRUE)
+    x <- srv$df[srv$df$percent_missing <= cutoff, model$EM[model$latent %in% i], drop = FALSE]
+    srv$df[srv$df$percent_missing <= cutoff, i] <- rowMeans(x, na.rm = TRUE)
   }
   
   # Return
-  survey
+  srv
   
 }
