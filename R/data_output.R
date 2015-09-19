@@ -30,12 +30,7 @@ to_clipboard <- function(x, encoding = "") {
     writeLines(x, file)
   } else {
     
-    if (inherits(x, "data.frame")) {
-      cols <- TRUE
-    } else {
-      cols <- FALSE
-    }
-    
+    cols <- if (is.data.frame(x)) TRUE else FALSE
     utils::write.table(x = x, file = file, sep = "\t", na = "", dec = ",",
                        row.names = FALSE, col.names = cols, fileEncoding = encoding)
     
@@ -154,10 +149,10 @@ write_data <- function(x, file, ...) {
   ext <- stri_trans_tolower(ext)
   
   # Convert matrix to data.frame
-  if (inherits(x, "matrix")) x <- as_data_frame(x)
+  if (is.matrix(x)) x <- as_data_frame(x)
   
   # Check if it is a survey and convert depending on output format
-  if (inherits(x, "survey")) {
+  if (is.survey(x)) {
     if (ext == "sav") {
       x <- to_labelled(x)$df
     } else if (ext == "xlsx") {
@@ -165,16 +160,17 @@ write_data <- function(x, file, ...) {
       x$df[is_date] <- lapply(x$df[is_date], as.character)
       names(x) <- ordered_replace(names(x), default$structure$survey, default$structure$sheet) 
     }
-  } else if (inherits(x, "data.frame")) {
+  } else if (is.data.frame(x)) {
     if (ext %in% c("xlsx", "rdata")) {
       x <- setNames(list(x), name)
     }
-  } else if (!inherits(x, "list")) {
+  } else if (!is.list(x)) {
     stop("This function expects a matrix, data.frame, list or survey.", call. = FALSE)
   }
   
   # Only xlsx and rdata supports a list of output
-  if (inherits(x, "list") && !ext %in% c("xlsx", "rdata")) {
+  supports_list <- ext %in% c("xlsx", "rdata")
+  if (is.list2(x) && !supports_list) {
       stop("Use lapply to write lists that are not survey objects and output is not xlsx.", call. = FALSE) 
   }
   
