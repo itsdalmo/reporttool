@@ -4,10 +4,10 @@
 \alias{topline}
 \title{Create a topline}
 \usage{
-topline(survey, other = NULL)
+topline(srv, other = NULL)
 }
 \arguments{
-\item{survey}{A survey.}
+\item{srv}{A survey.}
 
 \item{other}{The text column which contains the open response for 'other' in
 mainentity. Defaults to for instance \code{Q1a}, if mainentity is \code{Q1}.}

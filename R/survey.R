@@ -83,8 +83,10 @@ survey <- function(x) {
   
   # Set the class of underlying objects
   for (i in names(srv[found])) {
-    if (i %in% c("mm", "ents")) {
-      class(srv[[i]]) <- c(stri_c("survey_", i), "data.frame")
+    if (i == "mm") {
+      srv[[i]] <- as.survey_mm(srv[[i]])
+    } else if (i == "ents") {
+      srv[[i]] <- as.survey_ents(srv[[i]])
     }
   }
   

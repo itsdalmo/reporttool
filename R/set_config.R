@@ -3,16 +3,16 @@
 #' Use this function to specify config for the survey. Use it without arguments
 #' to add default values.
 #' 
-#' @param survey A survey object.
+#' @param srv A survey object.
 #' @param ... The config you would like to set for the study.
 #' @author Kristian D. Olsen
 #' @export
 
-set_config <- function(survey, ...) {
+set_config <- function(srv, ...) {
   
   # Check class
-  if (!inherits(survey, "survey")) {
-    stop("Argument 'survey' is not an object with the class 'survey'. See help(survey).", call. = FALSE)
+  if (!is.survey(srv)) {
+    stop("Argument 'srv' is not an object with the class 'survey'. See help(survey).", call. = FALSE)
   }
   
   # Gather dots
@@ -25,13 +25,13 @@ set_config <- function(survey, ...) {
   cfg$value <- default$config$value
   
   # Merge with existing information
-  if (nrow(survey$cfg)) {
-    nms <- intersect(cfg$config, survey$cfg$config)
-    cfg$value[cfg$config %in% nms] <- survey$cfg$value[survey$cfg$config %in% nms]
+  if (nrow(srv$cfg)) {
+    nms <- intersect(cfg$config, srv$cfg$config)
+    cfg$value[cfg$config %in% nms] <- srv$cfg$value[srv$cfg$config %in% nms]
   }
   
   # Assign the replacement
-  survey$cfg <- structure(cfg, class = c("survey_cfg", "data.frame"))
+  srv$cfg <- as.survey_cfg(cfg)
   
   # Check that all arguments are character vectors
   is_string <- vapply(args, is.string, logical(1))
@@ -40,7 +40,7 @@ set_config <- function(survey, ...) {
   }
   
   # Throw an error if arguments do not match the manifest
-  missing <- setdiff(names(args), survey$cfg$config)
+  missing <- setdiff(names(args), srv$cfg$config)
   if (length(missing)) {
     missing <- stri_c(missing, collapse = ", ")
     warning(stri_c("Values not found in config:\n", missing), call. = FALSE)
@@ -48,10 +48,15 @@ set_config <- function(survey, ...) {
   
   # Update with a loop for clarity
   for (i in names(args)[!names(args) %in% missing]) {
-    survey$cfg$value[survey$cfg$config %in% i] <- args[[i]]
+    srv$cfg$value[srv$cfg$config %in% i] <- args[[i]]
   }
   
   # Return
-  survey
+  srv
   
 }
+
+# Utilities --------------------------------------------------------------------
+
+is.survey_cfg <- function(x) inherits(x, "survey_cfg")
+as.survey_cfg <- function(x) structure(x, class = c("survey_cfg", "data.frame"))

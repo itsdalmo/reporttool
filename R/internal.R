@@ -109,7 +109,7 @@ write_questionnaire <- function(quest, file, study = "Banking", segment = "B2C",
 #' answered 'other'. It requires that both the measurement model and entities are
 #' specified, and that the config and translations have been set.
 #' 
-#' @param survey A survey.
+#' @param srv A survey.
 #' @param other The text column which contains the open response for 'other' in 
 #' mainentity. Defaults to for instance \code{Q1a}, if mainentity is \code{Q1}.
 #' @author Kristian D. Olsen
@@ -118,57 +118,57 @@ write_questionnaire <- function(quest, file, study = "Banking", segment = "B2C",
 #' @examples 
 #' x <- topline(df)
 
-topline <- function(survey, other = NULL) {
+topline <- function(srv, other = NULL) {
   
   # Check the input
-  if (!inherits(survey, "survey")) {
-    stop("Argument 'survey' is not an object with the class 'survey'. See help(survey).", call. = FALSE)
+  if (!is.survey(srv)) {
+    stop("Argument 'srv' is not an object with the class 'survey'. See help(survey).", call. = FALSE)
   }
   
   # Config and translations must be set beforehand.
-  if (!inherits(survey$tr, "survey_tr") || !nrow(survey$tr)) {
+  if (!is.survey_tr(srv$tr) || !nrow(srv$tr)) {
     stop("Translations must be set first. See help(set_translation).", call. = FALSE)
   }
   
   # Data must be prepared first
-  if (!all(default$latents %in% names(survey$df))) {
+  if (!all(default$latents %in% names(srv$df))) {
     stop("Latents were not found in the data. See help(prepare_data).", call. = FALSE)
   }
   
   # Find mainentity variable and scores
-  mainentity <- filter(survey$mm, stri_trans_tolower(latent) == "mainentity")[["manifest"]]
+  mainentity <- filter(srv$mm, stri_trans_tolower(latent) == "mainentity")[["manifest"]]
 
   # Check mainentity + 'a' if 'other' is null
   if (is.null(other)) {
     other <- stri_c(mainentity, "a")
-    other <- filter(survey$mm, stri_detect(manifest, regex = stri_c("^", other), case_insensitive = TRUE))[["manifest"]]
+    other <- filter(srv$mm, stri_detect(manifest, regex = stri_c("^", other), case_insensitive = TRUE))[["manifest"]]
   }
   
   # Set names for data (merges)
-  names(survey$df)[names(survey$df) %in% mainentity] <- "entity"
-  names(survey$df)[names(survey$df) %in% other] <- "other"
+  names(srv$df)[names(srv$df) %in% mainentity] <- "entity"
+  names(srv$df)[names(srv$df) %in% other] <- "other"
   
   # Get the entities summary
-  ents <- select(survey$ents, entity, n, valid)
-  ents <- left_join(ents, summarise_each(group_by(select(survey$df, entity, one_of(default$latents)), entity), 
+  ents <- select(srv$ents, entity, n, valid)
+  ents <- left_join(ents, summarise_each(group_by(select(srv$df, entity, one_of(default$latents)), entity), 
                                          funs(mean(., na.rm = TRUE))), by = c("entity" = "entity"))
   
   total <- bind_cols(data_frame("entity" = "Total"), summarise_each(select(ents, n, valid), funs(sum(., na.rm = TRUE))))
-  total <- bind_cols(total, summarise_each(select(survey$df, one_of(default$latents)), funs(mean(., na.rm = TRUE))))
+  total <- bind_cols(total, summarise_each(select(srv$df, one_of(default$latents)), funs(mean(., na.rm = TRUE))))
   ents <- bind_rows(ents, total)
   
   # Clean NaN's
   ents[default$latents] <- lapply(ents[default$latents], function(x) ifelse(is.nan(x), NA, x))
   
   # Rename columns
-  tr <- filter(select(survey$tr, replacement, original), original %in% default$latents)
+  tr <- filter(select(srv$tr, replacement, original), original %in% default$latents)
   names(ents) <- ordered_replace(names(ents), setNames(tr$original, tr$replacement))
   
   lst <- list("entities" = ents)
   
   # Make a table for 'other' if the variable is found
   if (length(other)) {
-    other <- filter(select(survey$df, other), !is.na(other), other != "")
+    other <- filter(select(srv$df, other), !is.na(other), other != "")
     other <- mutate(other, other = stri_trans_tolower(other))
     other <- summarise(group_by(other, other), n = n())
     other <- arrange(other, desc(n))

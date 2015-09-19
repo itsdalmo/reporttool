@@ -2,7 +2,7 @@
 #'
 #' Generate one or more reports using the templates in this package.
 #' 
-#' @param survey A survey object containing the data that is being reported.
+#' @param srv A survey object containing the data that is being reported.
 #' @param report Path to the report template (.Rmd) for the specific study.
 #' @param entity Optional: Name of a specific entity to create a report for.
 #' @return Nothing. A .Rmd file and desired output is created for each entity in
@@ -12,26 +12,26 @@
 #' @examples 
 #' generate_report(x, "/Internal/Internal_report_2014.Rmd", entity=c("EPSI", "SKI"))
  
-generate_report <- function(survey, report=NULL, entity=NULL, type="pdf") {
+generate_report <- function(srv, report=NULL, entity=NULL, type="pdf") {
   
   # Check the input
-  if (!inherits(survey, "survey")) {
-    stop("Argument 'survey' is not an object with the class 'survey'. See help(survey).", call. = FALSE)
+  if (!is.survey(srv)) {
+    stop("Argument 'srv' is not an object with the class 'survey'. See help(survey).", call. = FALSE)
   }
   
   # Get mainentity variable
-  nms <- survey$mm$manifest[survey$mm$latent %in% "mainentity"]
+  nms <- srv$mm$manifest[srv$mm$latent %in% "mainentity"]
   rep <- "mainentity"
   
   # And subentity if it exists
-  if ("subentity" %in% survey$mm$latent) {
-    nms <- c(nms, survey$mm$manifest[survey$mm$latent %in% "subentity"])
+  if ("subentity" %in% srv$mm$latent) {
+    nms <- c(nms, srv$mm$manifest[srv$mm$latent %in% "subentity"])
     rep <- c("mainentity", "subentity")
   }
   
   # Replace name for data
-  for (i in names(survey)) {
-    names(survey[[i]]) <- ordered_replace(names(survey[[i]]), nms, rep)
+  for (i in names(srv)) {
+    names(srv[[i]]) <- ordered_replace(names(srv[[i]]), nms, rep)
   }
   
   # Get report path
@@ -45,12 +45,12 @@ generate_report <- function(survey, report=NULL, entity=NULL, type="pdf") {
   # Check if entity is specified, if not - use mainentity and generate a report each
   if (is.null(entity)) {
     message("No entity specified, creating report for all (main) entities.")
-    entity <- unique(survey$df$mainentity)
+    entity <- unique(srv$df$mainentity)
   }
   
   # Convert input to an environment to avoid loading data multiple times
   # when generating more than one report
-  srv_envir <- list2env(survey, parent = environment())
+  srv_envir <- list2env(srv, parent = environment())
   
   # Read in the report template
   md <- readLines(report, encoding = "UTF-8")

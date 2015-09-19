@@ -4,10 +4,10 @@
 \alias{set_translation}
 \title{Set translations for the survey}
 \usage{
-set_translation(survey, ..., language = "norwegian")
+set_translation(srv, ..., language = "norwegian")
 }
 \arguments{
-\item{survey}{A survey object.}
+\item{srv}{A survey object.}
 
 \item{...}{The translations you would like to set.}
 

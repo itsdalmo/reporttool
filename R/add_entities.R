@@ -25,7 +25,7 @@
 #' A structure and naming convention is also required for the survey itself, see
 #' \code{help(survey) for information.}
 #'
-#' @param survey A survey object.
+#' @param srv A survey object.
 #' @param entity Optional: Specify a \code{data.frame} which contains the summary
 #' and information for entities.
 #' @author Kristian D. Olsen
@@ -36,23 +36,23 @@
 #' x <- survey(data.frame("test" = 1, stringsAsFactors = FALSE))
 #' x %>% add_mm() %>% add_entities()
 
-add_entities <- function(survey, entities = NULL) {
+add_entities <- function(srv, entities = NULL) {
   
   # Check the input
-  if (!inherits(survey, "survey")) {
+  if (!is.survey(srv)) {
     stop("Argument 'survey' is not an object with the class 'survey'. See help(survey).", call. = FALSE)
   }
   
   # Measurement model must be added first
-  if (!inherits(survey$mm, "survey_mm") || !nrow(survey$mm)) {
+  if (!is.survey_mm(srv$mm) || !nrow(srv$mm)) {
     stop("The measurement model must be added first. See help(add_mm).", call. = FALSE)
   }
   
   # Mainentity must be specified in latents
-  if (!any(stri_detect(survey$mm$latent, regex = "mainentity"), na.rm = TRUE)) {
+  if (!any(stri_detect(srv$mm$latent, regex = "mainentity"), na.rm = TRUE)) {
     stop("'mainentity' is not specified in latents for the measurement model. See help(set_association).", call. = FALSE)
   } else {
-    mainentity <- filter(survey$mm, stri_trans_tolower(latent) == "mainentity")[["manifest"]]
+    mainentity <- filter(srv$mm, stri_trans_tolower(latent) == "mainentity")[["manifest"]]
   }
   
   # If more than one mainentity is specified, stop and revise
@@ -61,33 +61,63 @@ add_entities <- function(survey, entities = NULL) {
   }
   
   # Check mainentities
-  if (all(is.na(survey$df[[mainentity]]))) {
+  if (all(is.na(srv$df[[mainentity]]))) {
     stop("No observations found in mainentity column ", stri_c("(", mainentity, ")"), ".", call. = FALSE)
-  } else if (any(is.na(survey$df[[mainentity]]))) {
+  } else if (any(is.na(srv$df[[mainentity]]))) {
     warning("Removed rows in data where mainentity was NA.", call. = FALSE)
     filter_call <- lazyeval::interp(quote(!is.na(var)), var = as.name(mainentity))
-    survey <- filter_(survey, .dots = filter_call)
+    srv <- filter_(srv, .dots = filter_call)
   } 
   
   # Generate a new summary if none is given
   if (is.null(entities)) {
-    cutoff <- as.numeric(filter(survey$cfg, config == "cutoff")[["value"]])
+    cutoff <- as.numeric(filter(srv$cfg, config == "cutoff")[["value"]])
     cutoff <- if (!length(cutoff) || is.na(cutoff)) NULL else cutoff
-    entities <- new_entities(survey$df, mainentity, cutoff)
+    entities <- new_entities(srv$df, mainentity, cutoff)
   }
   
   # Warn and replace if entities contains existing data
-  if (nrow(survey$ents)) {
+  if (nrow(srv$ents)) {
     warning("Entities have been replaced.", call. = FALSE)
-    survey$ents <- new_scaffold(default$structure$ents)
+    srv$ents <- new_scaffold(default$structure$ents)
   }
   
   # Replace entities in the survey and set class
-  survey$ents <- merge_with_scaffold(survey$ents, entities)
-  class(survey$ents) <- c("survey_ents", "data.frame")
+  srv$ents <- merge_with_scaffold(srv$ents, entities)
+  srv$ents <- as.survey_ents(srv$ents)
   
   # Return
-  survey
+  srv
+  
+}
+
+# Utilities --------------------------------------------------------------------
+
+is.survey_ents <- function(x) inherits(x, "survey_ents")
+as.survey_ents <- function(x) structure(x, class = c("survey_ents", "data.frame"))
+
+new_entities <- function(df, mainentity, cutoff = NULL) {
+  
+  # All observations
+  entities <- data_frame(entity = as.character(df[[mainentity]]))
+  entities <- summarise(group_by(entities, entity), n = n())
+  
+  # Valid observations
+  if ("percent_missing" %in% names(df) && !is.null(cutoff)) {
+    valid <- filter(df, percent_missing <= cutoff)
+    valid <- data_frame(entity = as.character(valid[[mainentity]]))
+    valid <- summarise(group_by(valid, entity), valid = n())
+    entities <- left_join(entities, valid, by = c("entity" = "entity"))
+  } else {
+    warning("Missing percentage and/or cutoff was not found. See help(prepare_data).", call. = FALSE)
+    entities <- mutate(entities, valid = n)
+  }
+  
+  entities$valid[is.na(entities$valid)] <- 0
+  entities <- mutate(entities, marketshare = valid/sum(valid))
+  
+  # Return
+  entities
   
 }
 
@@ -119,7 +149,7 @@ print.survey_ents <- function(ents, width = getOption("width")) {
   tot <- suppressWarnings(summarise_each(ents, funs(sum(as.numeric(.)))))
   tot <- bind_cols(data_frame("entity" = "Total*"), tot)
   ents <- bind_rows(ents, tot)
-
+  
   # Format the strings
   w_name <- max(stri_length(ents$entity), na.rm = TRUE) + 4
   w_n <- max(stri_length(ents$n), na.rm = TRUE) + 4
@@ -141,32 +171,5 @@ print.survey_ents <- function(ents, width = getOption("width")) {
   for (i in 1:nrow(ents)) {
     cat(ents$entity[i], ents$n[i], ents$valid[i], ents$marketshare[i], sep = "", collapse = "\n")
   }
-  
-}
-
-# Utilities --------------------------------------------------------------------
-
-new_entities <- function(df, mainentity, cutoff = NULL) {
-  
-  # All observations
-  entities <- data_frame(entity = as.character(df[[mainentity]]))
-  entities <- summarise(group_by(entities, entity), n = n())
-  
-  # Valid observations
-  if ("percent_missing" %in% names(df) && !is.null(cutoff)) {
-    valid <- filter(df, percent_missing <= cutoff)
-    valid <- data_frame(entity = as.character(valid[[mainentity]]))
-    valid <- summarise(group_by(valid, entity), valid = n())
-    entities <- left_join(entities, valid, by = c("entity" = "entity"))
-  } else {
-    warning("Missing percentage and/or cutoff was not found. See help(prepare_data).", call. = FALSE)
-    entities <- mutate(entities, valid = n)
-  }
-  
-  entities$valid[is.na(entities$valid)] <- 0
-  entities <- mutate(entities, marketshare = valid/sum(valid))
-  
-  # Return
-  entities
   
 }

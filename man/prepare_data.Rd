@@ -4,10 +4,10 @@
 \alias{prepare_data}
 \title{Prepare survey data}
 \usage{
-prepare_data(survey, type = "mean", cutoff = 0.3)
+prepare_data(srv, type = "mean", cutoff = 0.3)
 }
 \arguments{
-\item{survey}{A survey object.}
+\item{srv}{A survey object.}
 
 \item{type}{The approach to use for latents. Either \code{mean}, \code{pls},
 or \code{none} (no latents). If \code{pls} is used, only \code{coderesp} and

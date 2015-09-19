@@ -4,7 +4,7 @@
 #' In addition, it calculates missing percentage and tallies the valid observations
 #' for each entity. 
 #' 
-#' @param survey A survey object.
+#' @param srv A survey object.
 #' @param type The approach to use for latents. Either \code{mean}, \code{pls},
 #' or \code{none} (no latents). If \code{pls} is used, only \code{coderesp} and
 #' \code{percent_missing} are added to the data. I.e. it is a preparation for the
@@ -14,34 +14,34 @@
 #' @author Kristian D. Olsen
 #' @export
 
-prepare_data <- function(survey, type = "mean", cutoff = .3) {
+prepare_data <- function(srv, type = "mean", cutoff = .3) {
   
   # Check the input
-  if (!inherits(survey, "survey")) {
-    stop("Argument 'survey' is not an object with the class 'survey'. See help(survey).", call. = FALSE)
+  if (!is.survey(srv)) {
+    stop("Argument 'srv' is not an object with the class 'survey'. See help(survey).", call. = FALSE)
   }
   
-  if (!inherits(survey$mm, "survey_mm") || !nrow(survey$mm)) {
+  if (!is.survey_mm(srv$mm) || !nrow(srv$mm)) {
     stop("The measurement model must be added first. See help(add_mm).", call. = FALSE)
   }
   
-  if (!inherits(survey$cfg, "survey_cfg") || !nrow(survey$cfg)) {
+  if (!is.survey_cfg(srv$cfg) || !nrow(srv$cfg)) {
     stop("The config must be added first. See help(set_config).", call. = FALSE)
   }
   
   # Mainentity must be specified
-  if (!any(stri_detect(survey$mm$latent, regex = "mainentity"))) {
+  if (!any(stri_detect(srv$mm$latent, regex = "mainentity"))) {
     stop("'mainentity' is not specified in latents for the measurement model. 
           See help(set_association).", call. = FALSE)
   } else {
-    mainentity <- filter(survey$mm, stri_trans_tolower(latent) == "mainentity")[["manifest"]]
+    mainentity <- filter(srv$mm, stri_trans_tolower(latent) == "mainentity")[["manifest"]]
   }
   
   # Check type
   if (!type %in% c("none", "mean", "pls")) {
       stop("Invalid type. Please use 'none', 'mean' or 'pls'.", call. = FALSE)
   } else {
-    survey$cfg$value[survey$cfg$config %in% "latents"] <- type
+    srv$cfg$value[srv$cfg$config %in% "latents"] <- type
   }
   
   # Check cutoff
@@ -49,49 +49,49 @@ prepare_data <- function(survey, type = "mean", cutoff = .3) {
   if (is.na(cutoff) || cutoff > 1 || cutoff < 0) {
     stop("Invalid cutoff. Must be a number between 0 and 1.", call. = FALSE)
   } else {
-    survey$cfg$value[survey$cfg$config %in% "cutoff"] <- cutoff
+    srv$cfg$value[srv$cfg$config %in% "cutoff"] <- cutoff
   }
 
   # Get the model
-  model <- filter(survey$mm, stri_trans_tolower(latent) %in% default$latents)
+  model <- filter(srv$mm, stri_trans_tolower(latent) %in% default$latents)
   model <- mutate(model, latent = factor(stri_trans_tolower(latent), levels = default$latents, ordered = TRUE))
   model <- mutate(model, EM = stri_c(manifest, "em"))
   model <- arrange(model, latent)
   
   # Add an index to the start of the data
-  if ("coderesp" %in% names(survey$df)) {
-    survey <- rename(survey, coderesp_old = coderesp)
+  if ("coderesp" %in% names(srv$df)) {
+    srv <- rename(srv, coderesp_old = coderesp)
   }
   
-  survey$df <- bind_cols(data_frame("coderesp" = 1:nrow(survey$df)), survey$df)
+  srv$df <- bind_cols(data_frame("coderesp" = 1:nrow(srv$df)), srv$df)
   
   # Clean and rescale scores
-  survey$df[model$EM] <- mutate_each(survey$df[model$manifest], funs(clean_score(.)))
-  survey$df[model$EM] <- mutate_each(survey$df[model$EM], funs(rescale_score(.)))
+  srv$df[model$EM] <- mutate_each(srv$df[model$manifest], funs(clean_score(.)))
+  srv$df[model$EM] <- mutate_each(srv$df[model$EM], funs(rescale_score(.)))
 
   # Calculate missing percentage
-  survey$df <- mutate(survey$df, percent_missing = rowSums(is.na(survey$df[model$EM]))/length(model$EM))
+  srv$df <- mutate(srv$df, percent_missing = rowSums(is.na(srv$df[model$EM]))/length(model$EM))
   
   # Add latents to the data
   if (type == "mean") {
-    survey <- latents_mean(survey, model, cutoff)
+    srv <- latents_mean(srv, model, cutoff)
   } else if (type == "pls") {
-    survey$df <- survey$df[!names(survey$df) %in% model$EM]
+    srv$df <- srv$df[!names(srv$df) %in% model$EM]
   }
   
   # Create a updated measurement model
-  vars <- setdiff(names(survey$df), survey$mm$manifest)
+  vars <- setdiff(names(srv$df), srv$mm$manifest)
   mm <- new_scaffold(default$structure$mm, size = length(vars))
   mm$manifest <- vars; mm$question <- vars; mm$latent <- NA
   mm$type <- c("integer", rep("numeric", length(vars)-1))
   
   # Replace the measurement model
-  survey$mm <- rbind(mm[1, ], survey$mm, mm[2:nrow(mm), ])
-  class(survey$mm) <- c("survey_mm", "data.frame")
+  srv$mm <- rbind(mm[1, ], srv$mm, mm[2:nrow(mm), ])
+  srv$mm <- as.survey_mm(srv$mm)
   
   # Set class and return
-  class(survey$df) <- c("tbl_df", "tbl", "data.frame")
-  survey
+  srv$df <- as_data_frame(srv$df)
+  srv
   
 }
 

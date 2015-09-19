@@ -4,10 +4,10 @@
 \alias{factor_data}
 \title{Convert variables to factor}
 \usage{
-factor_data(survey, vars = NULL)
+factor_data(srv, vars = NULL)
 }
 \arguments{
-\item{survey}{A survey object.}
+\item{srv}{A survey object.}
 
 \item{vars}{The variables to convert. If \code{NULL}, variables specified as
 \code{factor} in the measurement model will be converted. Specify if you want

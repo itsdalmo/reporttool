@@ -4,10 +4,10 @@
 \alias{generate_report}
 \title{Generate report}
 \usage{
-generate_report(survey, report = NULL, entity = NULL, type = "pdf")
+generate_report(srv, report = NULL, entity = NULL, type = "pdf")
 }
 \arguments{
-\item{survey}{A survey object containing the data that is being reported.}
+\item{srv}{A survey object containing the data that is being reported.}
 
 \item{report}{Path to the report template (.Rmd) for the specific study.}
 

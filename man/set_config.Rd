@@ -4,10 +4,10 @@
 \alias{set_config}
 \title{Set configuration for the survey}
 \usage{
-set_config(survey, ...)
+set_config(srv, ...)
 }
 \arguments{
-\item{survey}{A survey object.}
+\item{srv}{A survey object.}
 
 \item{...}{The config you would like to set for the study.}
 }

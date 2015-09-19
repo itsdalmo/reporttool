@@ -30,7 +30,7 @@
 #' A structure and naming convention is also required for the survey itself, see
 #' \code{help(survey) for information.}
 #'
-#' @param survey A survey object.
+#' @param srv A survey object.
 #' @param mm Optional: Specify a \code{data.frame} which contains the measurement
 #' model. 
 #' @author Kristian D. Olsen
@@ -41,17 +41,17 @@
 #' x <- survey(data.frame("test" = 1, stringsAsFactors = FALSE))
 #' x %>% add_mm()
 
-add_mm <- function(survey, mm = NULL) {
+add_mm <- function(srv, mm = NULL) {
   
   # Check the input
-  if (!inherits(survey, "survey")) {
-    stop("Argument 'survey' is not an object with the class 'survey'. See help(survey).", call. = FALSE)
+  if (!is.survey(srv)) {
+    stop("Argument 'srv' is not an object with the class 'survey'. See help(survey).", call. = FALSE)
   }
   
   # Generate new, or check that the provided mm is a data.frame
   if (is.null(mm)) {
-    mm <- new_mm(survey$df)
-  } else if (!inherits(mm, "data.frame")) {
+    mm <- new_mm(srv$df)
+  } else if (!is.data.frame(mm)) {
       stop("Measurement model (if specified) should be a data.frame.", call. = FALSE)
   }
   
@@ -61,75 +61,48 @@ add_mm <- function(survey, mm = NULL) {
   # change the columnnames in the data?
   
   # Warn and replace if measurement model contains existing data
-  if (nrow(survey$mm)) {
+  if (nrow(srv$mm)) {
     warning("Measurement model has been replaced.", call. = FALSE)
-    survey$mm <- new_scaffold(default$structure$mm)
+    srv$mm <- new_scaffold(default$structure$mm)
   }
   
-  # Replace mm in the survey and set class
-  survey$mm <- merge_with_scaffold(survey$mm, mm)
-  class(survey$mm) <- c("survey_mm", "data.frame")
+  # Replace mm in the srv and set class
+  srv$mm <- merge_with_scaffold(srv$mm, mm)
+  srv$mm <- as.survey_mm(srv$mm)
   
   # Return
-  survey
+  srv
   
 }
-
-# Methods ----------------------------------------------------------------------
-
-#' @rdname add_mm
-#' @method print survey_mm
-#' @export
-print.survey_mm <- function(mm, width = getOption("width")) {
-  
-  cat("Measurement model\n")
-  
-  # Return early if it is empty
-  if (is.null(mm)) {
-    cat("Not specified (NULL). See help(add_mm)\n"); return()
-  } 
-  
-  # Print the number of observations
-  n <- nrow(mm); cat("Observations: ", n, "\n\n", sep = ""); if (!n) return()
-  
-  # Return early if it contains no columnnames (obs = 0)
-  if (!ncol(mm)) {
-    cat("No columns\n"); return()
-  }
-  
-  # Lowercase for easier referencing
-  names(mm) <- stri_trans_tolower(names(mm))
-  
-  w_name <- max(stri_length(mm$manifest), na.rm = TRUE) + 1
-  w_reserved <- 8 + w_name + 3 # $ and three spaces as separation
-  w_available <- width - w_reserved - 5 # in case of large font
-  
-  # Type
-  mm$type <- vapply(mm$type, function(x) {
-    x <- ifelse(is.na(x), "miss", x)
-    switch(x, character = "(char)", factor = "(fctr)", numeric = "(num)", Date = "(date)",
-           scale = "(scale)", integer = "(int)", "(????)") }, character(1))
-  
-  mm$type <- ifelse(!is.na(mm$latent), stri_c(mm$type, "*"), mm$type)
-  
-  # Clean manifest/type
-  mm$manifest <- vapply(mm$manifest, stri_pad_right, width = w_name, character(1))
-  mm$type <- vapply(mm$type, stri_pad_right, width = 8, character(1))
-  
-  # Shorten question-text to the remaining width
-  mm$question <- vapply(mm$question, stri_sub, to = w_available-2, character(1))
-  
-  # Print
-  for (i in 1:nrow(mm)) {
-    cat("$", mm$manifest[i], mm$type[i], " ", mm$question[i], sep = "", collapse = "\n")
-  }
-  
-  cat("Note: Associations (including latents) are marked with *\n")
-  
-}
-
 
 # Utilities --------------------------------------------------------------------
+
+is.survey_mm <- function(x) inherits(x, "survey_mm")
+as.survey_mm <- function(x) structure(x, class = c("survey_mm", "data.frame"))
+
+update_mm <- function(srv, cols) {
+  
+  # Create a new measurement model
+  mm <- new_mm(srv$df[cols])
+  
+  # Find new columns, or old columns that have been changed
+  new_cols <- setdiff(cols, srv$mm$manifest)
+  old_cols <- setdiff(cols, new_cols)
+  
+  # Update old columns
+  changed <- mm[mm$manifest %in% old_cols, c("type", "values")]
+  if (nrow(changed)) {
+    srv$mm[srv$mm$manifest %in% old_cols, c("type", "values")] <- changed
+  }
+  
+  # And new columns
+  srv$mm <- bind_rows(srv$mm, mm[mm$manifest %in% new_cols, ])
+  srv$mm <- as.survey_mm(srv$mm)
+  
+  # Return
+  srv
+  
+}
 
 new_mm <- function(df) {
   
@@ -187,26 +160,55 @@ new_mm <- function(df) {
   
 }
 
-update_mm <- function(survey, cols) {
+# Methods ----------------------------------------------------------------------
+
+#' @rdname add_mm
+#' @method print survey_mm
+#' @export
+print.survey_mm <- function(mm, width = getOption("width")) {
   
-  # Create a new measurement model
-  mm <- new_mm(survey$df[cols])
+  cat("Measurement model\n")
   
-  # Find new columns, or old columns that have been changed
-  new_cols <- setdiff(cols, survey$mm$manifest)
-  old_cols <- setdiff(cols, new_cols)
+  # Return early if it is empty
+  if (is.null(mm)) {
+    cat("Not specified (NULL). See help(add_mm)\n"); return()
+  } 
   
-  # Update old columns
-  changed <- mm[mm$manifest %in% old_cols, c("type", "values")]
-  if (nrow(changed)) {
-    survey$mm[survey$mm$manifest %in% old_cols, c("type", "values")] <- changed
+  # Print the number of observations
+  n <- nrow(mm); cat("Observations: ", n, "\n\n", sep = ""); if (!n) return()
+  
+  # Return early if it contains no columnnames (obs = 0)
+  if (!ncol(mm)) {
+    cat("No columns\n"); return()
   }
   
-  # And new columns
-  survey$mm <- bind_rows(survey$mm, mm[mm$manifest %in% new_cols, ])
-  class(survey$mm) <- c("survey_mm", "data.frame")
+  # Lowercase for easier referencing
+  names(mm) <- stri_trans_tolower(names(mm))
   
-  # Return
-  survey
+  w_name <- max(stri_length(mm$manifest), na.rm = TRUE) + 1
+  w_reserved <- 8 + w_name + 3 # $ and three spaces as separation
+  w_available <- width - w_reserved - 5 # in case of large font
+  
+  # Type
+  mm$type <- vapply(mm$type, function(x) {
+    x <- ifelse(is.na(x), "miss", x)
+    switch(x, character = "(char)", factor = "(fctr)", numeric = "(num)", Date = "(date)",
+           scale = "(scale)", integer = "(int)", "(????)") }, character(1))
+  
+  mm$type <- ifelse(!is.na(mm$latent), stri_c(mm$type, "*"), mm$type)
+  
+  # Clean manifest/type
+  mm$manifest <- vapply(mm$manifest, stri_pad_right, width = w_name, character(1))
+  mm$type <- vapply(mm$type, stri_pad_right, width = 8, character(1))
+  
+  # Shorten question-text to the remaining width
+  mm$question <- vapply(mm$question, stri_sub, to = w_available-2, character(1))
+  
+  # Print
+  for (i in 1:nrow(mm)) {
+    cat("$", mm$manifest[i], mm$type[i], " ", mm$question[i], sep = "", collapse = "\n")
+  }
+  
+  cat("Note: Associations (including latents) are marked with *\n")
   
 }

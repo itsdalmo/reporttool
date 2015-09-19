@@ -5,12 +5,12 @@
 \alias{print.survey_ents}
 \title{Add a summary of entities to a survey}
 \usage{
-add_entities(survey, entities = NULL)
+add_entities(srv, entities = NULL)
 
 \method{print}{survey_ents}(ents, width = getOption("width"))
 }
 \arguments{
-\item{survey}{A survey object.}
+\item{srv}{A survey object.}
 
 \item{entity}{Optional: Specify a \code{data.frame} which contains the summary
 and information for entities.}

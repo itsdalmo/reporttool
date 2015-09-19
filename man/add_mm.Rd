@@ -5,12 +5,12 @@
 \alias{print.survey_mm}
 \title{Add measurement model to a survey}
 \usage{
-add_mm(survey, mm = NULL)
+add_mm(srv, mm = NULL)
 
 \method{print}{survey_mm}(mm, width = getOption("width"))
 }
 \arguments{
-\item{survey}{A survey object.}
+\item{srv}{A survey object.}
 
 \item{mm}{Optional: Specify a \code{data.frame} which contains the measurement
 model.}
