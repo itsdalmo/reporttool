@@ -172,3 +172,4 @@ clean_path <- function(path) {
 isFALSE <- function(x) identical(x, FALSE)
 is.string <- function(x) is.character(x) && length(x) == 1
 is.spss <- function(x) any(vapply(x, inherits, what = "labelled", logical(1)))
+is.list2 <- function(x) inherits(x, "list")

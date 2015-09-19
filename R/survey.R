@@ -49,14 +49,14 @@ survey <- function(x) {
   srv <- new_survey()
   
   # Check input
-  if (inherits(x, "data.frame")) {
+  if (is.data.frame(x)) {
     if(is.spss(x)) { 
       x <- from_labelled(x); class(x$mm) <- c("survey_mm", "data.frame")
       message("Added mm from labelled. You don't need to add_mm().")
     } else { 
       x <- list("df" = x) 
     }
-  } else if (!inherits(x, "list")) {
+  } else if (!is.list2(x)) {
     stop("A list or data.frame was expected.", class. = FALSE)
   }
   
