@@ -63,31 +63,25 @@ prepare_data <- function(srv, type = "mean", cutoff = .3) {
     srv <- rename(srv, coderesp_old = coderesp)
   }
   
-  srv$df <- bind_cols(data_frame("coderesp" = 1:nrow(srv$df)), srv$df)
-  
+  srv <- select(mutate(srv, coderesp = 1:n()), coderesp, everything())
+
   # Clean and rescale scores
   srv$df[model$EM] <- mutate_each(srv$df[model$manifest], funs(clean_score(.)))
-  srv$df[model$EM] <- mutate_each(srv$df[model$EM], funs(rescale_score(.)))
+  srv <- mutate_each(srv, funs(rescale_score(.)), one_of(model$EM))
 
   # Calculate missing percentage
-  srv$df <- mutate(srv$df, percent_missing = rowSums(is.na(srv$df[model$EM]))/length(model$EM))
+  perc_miss <- rowSums(is.na(srv$df[model$EM]))/length(model$EM)
+  srv <- mutate(srv, percent_missing = perc_miss)
   
   # Add latents to the data
   if (type == "mean") {
     srv <- latents_mean(srv, model, cutoff)
   } else if (type == "pls") {
-    srv$df <- srv$df[!names(srv$df) %in% model$EM]
+    srv <- select(srv, -one_of(model$EM))
   }
   
-  # Create a updated measurement model
-  vars <- setdiff(names(srv$df), srv$mm$manifest)
-  mm <- new_scaffold(default$structure$mm, size = length(vars))
-  mm$manifest <- vars; mm$question <- vars; mm$latent <- NA
-  mm$type <- c("integer", rep("numeric", length(vars)-1))
-  
-  # Replace the measurement model
-  srv$mm <- rbind(mm[1, ], srv$mm, mm[2:nrow(mm), ])
-  srv$mm <- as.survey_mm(srv$mm)
+  # Always update entities
+  srv <- add_entities(srv)
   
   # Set class and return
   srv$df <- as_data_frame(srv$df)
@@ -100,11 +94,14 @@ prepare_data <- function(srv, type = "mean", cutoff = .3) {
 latents_mean <- function(srv, model, cutoff) {
 
   for (i in levels(model$latent)) {
-    x <- srv$df[srv$df$percent_missing <= cutoff, model$EM[model$latent %in% i], drop = FALSE]
-    srv$df[srv$df$percent_missing <= cutoff, i] <- rowMeans(x, na.rm = TRUE)
+    score <- srv$df[srv$df$percent_missing <= cutoff, model$EM[model$latent %in% i], drop = FALSE]
+    score <- rowMeans(score, na.rm = TRUE)
+    
+    srv <- mutate_(srv, .dots = setNames(list(score), i))
   }
   
   # Return
   srv
   
 }
+
