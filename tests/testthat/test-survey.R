@@ -74,10 +74,10 @@ test_that("Setting config and translations for survey", {
   expect_identical(default$config$value, x$cfg$value)
   expect_identical(default$translation$norwegian, x$tr$replacement)
   
-  x <- set_config(srv, reporttool = "test")
+  x <- set_config(srv, study = "test")
   x <- set_translation(x, image = "test")
   
-  expect_identical(x$cfg$value[1], "test")
+  expect_identical(x$cfg$value[2], "test")
   expect_identical(x$tr$replacement[1], "test")
   
 })
