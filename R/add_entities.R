@@ -84,7 +84,7 @@ add_entities <- function(srv, entities = NULL) {
     
     if (shares_set) {
       ms <- setNames(srv$ents$marketshare, srv$ents$entity)
-      msg <- stri_c(msg, "Except marketshares.", collapse = " ")
+      msg <- stri_c(msg, "Except marketshares.", sep = " ")
     } 
     
     # Warn and replace entities
