@@ -209,7 +209,7 @@ read_sharepoint <- function(file, mainentity = "q1", encoding = "latin1") {
   }
   
   # Check if the specified directory contains the expected folders
-  req_folders <- c("data", "input", "output")
+  req_folders <- c("data", "input")
   dir_folders <- list.files(file)
   
   # Create paths for each of the expected folders
@@ -228,7 +228,7 @@ read_sharepoint <- function(file, mainentity = "q1", encoding = "latin1") {
   
   if (length(data_files) == 1L) {
     srv <- read_data(file.path(file_dirs["data"], data_files))
-    srv <- survey(srv)
+    srv <- if(is.spss(srv)) survey(srv) else add_mm(survey(srv))
   } else {
     stop("There is more than one .sav file ending with \"EM\"\n", call. = FALSE)
   }
@@ -286,23 +286,30 @@ read_sharepoint <- function(file, mainentity = "q1", encoding = "latin1") {
 #' This function creates the necessary input files for model estimation, in the
 #' specified directory.
 #' 
-#' @param lst A survey object.
-#' @param dir The directory on sharepoint where you would like to write the input
+#' @param srv A survey object.
+#' @param file The directory on sharepoint where you would like to write the input
 #' files.
 #' @author Kristian D. Olsen
 #' @export
 #' @examples 
 #' write_sharepoint("https://the.intranet.se/EPSI/example")
 
-write_sharepoint <- function(survey, file) {
+write_sharepoint <- function(srv, file) {
   
   # Check the input
-  if (!inherits(survey, "survey")) {
-    stop("Argument 'survey' is not an object with the class 'survey'. See help(survey).", call. = FALSE)
+  if (!is.survey(srv)) {
+    stop("Argument 'sv' is not an object with the class 'survey'. See help(survey).", call. = FALSE)
+  } else if (!is.survey_ents(srv$ents)) {
+    stop("Entities must be added first. See help(add_entities).", call. = FALSE)
   }
   
-  if (!inherits(survey$df, "survey_df") || !nrow(survey$df)) {
-    stop("Data must be prepared first. See help(prepare_data).", call. = FALSE)
+  # Data must be prepared first
+  if (!all(default$latents %in% names(srv$df))) {
+    stop("Latents were not found in the data. See help(prepare_data).", call. = FALSE)
+  } else if (!"coderesp" %in% names(srv$df)) {
+    stop("Column 'coderesp' was not found in the data. See help(prepare_data).", call. = FALSE)
+  } else if (!"percent_missing" %in% names(srv$df)) {
+    stop("Column 'percent_missing' was not found in the data. See help(prepare_data).", call. = FALSE)
   }
   
   if (!tools::file_ext(file) == "") {
@@ -315,11 +322,11 @@ write_sharepoint <- function(survey, file) {
   }
   
   # Get mainentity
-  mainentity <- filter(survey$mm, stri_trans_tolower(latent) == "mainentity")[["manifest"]]
+  mainentity <- filter(srv$mm, stri_trans_tolower(latent) == "mainentity")[["manifest"]]
   
   # Get the measurement model and the cutoff
-  model <- filter(survey$mm, stri_trans_tolower(latent) %in% default$latents)
-  cutoff <- as.numeric(filter(survey$cfg, config == "cutoff")[["value"]])
+  model <- filter(srv$mm, stri_trans_tolower(latent) %in% default$latents)
+  cutoff <- as.numeric(filter(srv$cfg, config == "cutoff")[["value"]])
 
   # Locate or create required directories
   req_folders <- c("Data", "Input")
@@ -343,29 +350,33 @@ write_sharepoint <- function(survey, file) {
   file_dirs <- setNames(file.path(file, dir_folders[is_required]), stri_trans_tolower(req_folders))
 
   # Write data
-  data_file <- filter(survey$cfg, config %in% c("study", "segment", "year"))[["value"]]
+  data_file <- filter(srv$cfg, config %in% c("study", "segment", "year"))[["value"]]
   data_file <- stri_c(stri_trans_totitle(data_file[1]), stri_trans_toupper(data_file[2]), data_file[3], sep = " ")
   data_file <- file.path(file_dirs["data"], stri_c(data_file, "EM", ".sav"))
   data_file <- stri_replace_all(data_file, " ", regex = "\\s\\s")
   
-  write_data(survey, file = data_file)
+  write_data(srv, file = data_file)
   
   # Input files
   args <- list(sep = "\t", na = "", dec = ",", fileEncoding = "latin1", 
                row.names = FALSE, col.names = TRUE, quote = FALSE)
   
   # Factor the data and convert mainentity to numeric
-  survey <- factor_data(survey, vars = mainentity)
-  me_levels <- levels(survey$df[[mainentity]])
-  survey$df[mainentity] <- as.numeric(survey$df[[mainentity]])
+  srv <- factor_data(srv, vars = mainentity)
+  me_levels <- levels(srv$df[[mainentity]])
+  srv$df[mainentity] <- as.numeric(srv$df[[mainentity]])
+  
+  if (is.null(me_levels)) {
+    stop("The mainentity column must be a factor variable.", call. = FALSE)
+  }
   
   # Properly order entities
-  survey$ents <- mutate(survey$ents, entity = factor(entity, levels = me_levels, ordered = TRUE))
-  survey$ents <- arrange(survey$ents, entity)
-  row.names(survey$ents) <- 1:nrow(survey$ents)
+  srv$ents <- mutate(srv$ents, entity = factor(entity, levels = me_levels, ordered = TRUE))
+  srv$ents <- arrange(srv$ents, entity)
+  row.names(srv$ents) <- 1:nrow(srv$ents)
   
   # Write EM data
-  em_data <- filter(survey$df, percent_missing <= cutoff)
+  em_data <- filter(srv$df, percent_missing <= cutoff)
   em_data <- select(em_data, one_of(c(model$manifest, mainentity, "coderesp")))
   em_data <- arrange_(em_data, eval(mainentity))
   em_data <- mutate_each(em_data, funs(clean_score(.)), one_of(model$manifest))
@@ -379,14 +390,14 @@ write_sharepoint <- function(survey, file) {
   # Write config
   args$col.names <- FALSE; args$row.names <- TRUE
   do.call(write.table, args = append(list(
-    x = survey$ents[, c("entity", "valid", "marketshare")],
+    x = srv$ents[, c("entity", "valid", "marketshare")],
     file = file.path(file_dirs["input"], "config.txt")),
     args))
   
   # Q1 names
   args$row.names <- FALSE
   do.call(write.table, args = append(list(
-    x = survey$ents$entity,
+    x = srv$ents$entity,
     file = file.path(file_dirs["input"], "q1names.txt")),
     args))
   

@@ -30,7 +30,7 @@ prepare_data <- function(srv, type = "mean", cutoff = .3) {
   }
   
   # Mainentity must be specified
-  if (!any(stri_detect(srv$mm$latent, regex = "mainentity"))) {
+  if (!any(stri_detect(srv$mm$latent, regex = "mainentity"), na.rm = TRUE)) {
     stop("'mainentity' is not specified in latents for the measurement model. 
           See help(set_association).", call. = FALSE)
   } else {

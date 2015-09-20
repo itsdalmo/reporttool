@@ -22,7 +22,7 @@ default <- list(
   "structure" = list(
     "survey" = c("df", "cd", "hd", "ents", "mm", "tr", "cfg"),
     "sheet" = c("data", "contrast data", "historic data", "entities", "measurement model", "translations", "config"),
-    "ents" = c("entity", "n", "valid", "marketshare", "other"),
+    "ents" = c("entity", "n", "valid", "marketshare"),
     "mm" = c("latent", "manifest", "question", "type", "values"),
     "tr" = c("original", "replacement"),
     "cfg" = c("config", "value")),

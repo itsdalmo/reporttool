@@ -23,7 +23,7 @@ test_that("Creating a survey from raw" , {
   x <- add_entities(x)
   
   expect_true(all(c("mainentity", default$latents) %in% x$mm$latent[1:8]))
-  expect_identical(x$ents$entity, "Example")
+  expect_identical(as.character(x$ents$entity), "Example")
   expect_identical(x$ents$n, 19L)
   
 })
@@ -39,7 +39,7 @@ test_that("Creating a survey with input" , {
   
   expect_true(all(c("mainentity", default$latents) %in% tolower(x$mm$latent)))
   expect_true(all(is.na(x$mm$type)))
-  expect_identical(x$ents$entity, "Example")
+  expect_identical(as.character(x$ents$entity), "Example")
   expect_identical(x$ents$n, 19L)
   
 })
