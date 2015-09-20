@@ -43,6 +43,9 @@ set_marketshare <- function(srv, ..., ms = NULL) {
         stop("ms must either be a named vector or same length as entities.", call. = FALSE)
       }
     }
+    # Note that marketshares have been set
+    srv$cfg$value[srv$cfg$config %in% "marketshares"] <- "yes"
+    
   }
   
   # Do manual renaming from named strings
@@ -63,13 +66,16 @@ set_marketshare <- function(srv, ..., ms = NULL) {
   missing_ents <- setdiff(names(args), srv$ents$entity)
   if (length(missing_ents)) {
     missing_mm <- stri_c(missing_ents, collapse = ", ")
-    stop(stri_c("Entities not found in ents:\n", missing_ents), call. = FALSE)
+    stop(stri_c("Entities not found:\n", missing_ents), call. = FALSE)
   }
   
   # Update with a for loop for clarity
   for (i in names(args)) {
     srv$ents$marketshare[srv$ents$entity %in% i] <- args[[i]]
   }
+  
+  # Note that marketshares have been set
+  srv$cfg$value[srv$cfg$config %in% "marketshares"] <- "yes"
   
   # Return
   srv
