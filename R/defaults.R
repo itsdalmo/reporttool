@@ -53,9 +53,9 @@ default <- list(
                     "Snitt webstudien", "Vår", "Høst")),
   
   "config" = list(
-    "setting" = c("reporttool", "study", "segment", "year", "period", 
-                  "language", "method", "cutoff", "latents"),
-    "value" = c("1.2", "Barnehage", "", "2015", "fall", "norwegian", "web", .3, "mean")
+    "setting" = c("reporttool", "study", "segment", "year", "period", "method",
+                  "language", "cutoff", "latents", "marketshares"),
+    "value" = c("1.2", "Barnehage", "", "2015", "fall", "web", "norwegian", .3, "mean", "no")
   ),
   
   "template" = list(
