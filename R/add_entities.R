@@ -76,17 +76,34 @@ add_entities <- function(srv, entities = NULL) {
     entities <- new_entities(srv$df, mainentity, cutoff)
   }
   
-  # Warn and replace if entities contains existing data
+  # See if entities and marketshares already exist
+  ms <- NULL
   if (nrow(srv$ents)) {
-    warning("Entities have been replaced.", call. = FALSE)
+    msg <- "Entities have been replaced."
+    shares_set <- srv$cfg$value[srv$cfg$config %in% "marketshares"] == "yes"
+    
+    if (shares_set) {
+      ms <- setNames(srv$ents$marketshare, srv$ents$entity)
+      msg <- stri_c(msg, "Except marketshares.", collapse = " ")
+    } 
+    
+    # Warn and replace entities
+    warning(msg, call. = FALSE)
     srv$ents <- new_scaffold(default$structure$ents)
+    
   }
   
-  # Replace entities in the survey and set class
+  # Replace entities
   srv$ents <- merge_with_scaffold(srv$ents, entities)
-  srv$ents <- as.survey_ents(srv$ents)
   
-  # Return
+  # Use the old marketshares if they were set
+  if (!is.null(ms)) {
+    ms <- ms[names(ms) %in% srv$ents$entity]
+    srv$ents$marketshare[match(names(ms), srv$ents$entity)] <- ms
+  }
+  
+  # Set class and return
+  srv$ents <- as.survey_ents(srv$ents)
   srv
   
 }
