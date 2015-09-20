@@ -65,7 +65,12 @@ test_that("Writing questionnaires", {
   
   expect_identical(w_q$Manifest, "Q1")
   expect_identical(w_q$Question, "Test question")
-  expect_identical(w_q$Values, "1 Lowest\n...\n10 Highest\n")
+  
+  if (Sys.info()["sysname"] %in% "Windows") {
+    expect_identical(w_q$Values, "1 Lowest\r\n...\r\n10 Highest\r\n")
+  } else {
+    expect_identical(w_q$Values, "1 Lowest\n...\n10 Highest\n")
+  }
   
   unlink(fileName, recursive = TRUE, force = TRUE)
   
