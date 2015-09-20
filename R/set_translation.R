@@ -57,6 +57,9 @@ set_translation <- function(srv, ..., language = "norwegian") {
     srv$tr$replacement[srv$tr$original %in% i] <- args[[i]]
   }
   
+  # Note that translations have been set
+  srv$cfg$value[srv$cfg$config %in% "language"] <- language
+  
   # Return
   srv
   
