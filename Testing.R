@@ -9,11 +9,10 @@ xx <- survey(x) %>%
       mutate(q1 = stri_replace_all(q1, "", regex = "\""), 
              q1 = factor(q1, levels = unique(q1))) %>%
       set_association(common = TRUE) %>% 
-      add_entities() %>%
       set_config() %>%
       set_translation() %>%
-      prepare_data()
-
+      prepare_data() %>%
+      add_entities()
 
 all(names(xx$df) %in% xx$mm$manifest)
 
