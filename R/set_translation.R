@@ -27,7 +27,7 @@ set_translation <- function(srv, ..., language = "norwegian") {
   # Add a default language if wanted
   if (!is.null(language)) {
     if (!stri_trans_tolower(language) %in% names(default$translation)) stop("Language not found.", call. = FALSE)
-    tr$replacement <- default$translation[[language]]
+    tr$replacement <- stri_encode(default$translation[[language]], from = "UTF-8")
   }
   
   # Merge with existing information
