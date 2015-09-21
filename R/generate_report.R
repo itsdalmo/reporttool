@@ -105,16 +105,16 @@ prepare_report <- function(srv) {
   mainentity <- srv$mm$manifest[srv$mm$latent %in% "mainentity"]
   if (length(mainentity)) {
     if (mainentity %in% names(srv$df)) srv <- rename_(srv, .dots = setNames(list(mainentity), "mainentity"))
-    if (mainentity %in% names(srv$cd)) srv$cd <- rename_(cd, .dots = setNames(list(mainentity), "mainentity"))
-    if (mainentity %in% names(srv$hd)) srv$hd <- rename_(hd, .dots = setNames(list(mainentity), "mainentity"))
+    if (mainentity %in% names(srv$cd)) names(srv$cd) <- ordered_replace(names(srv$cd), setNames(mainentity, "mainentity"))
+    if (mainentity %in% names(srv$hd)) names(srv$hd) <- ordered_replace(names(srv$hd), setNames(mainentity, "mainentity"))
   }
   
   # Replace subentity
   subentity <- srv$mm$manifest[srv$mm$latent %in% "subentity"]
   if (length(subentity)) {
     if (subentity %in% names(srv$df)) srv <- rename_(srv, .dots = setNames(list(subentity), "subentity"))
-    if (subentity %in% names(srv$cd)) srv$cd <- rename_(srv$cd, .dots = setNames(list(subentity), "subentity"))
-    if (subentity %in% names(srv$hd)) srv$hd <- rename_(srv$hd, .dots = setNames(list(subentity), "subentity"))
+    if (subentity %in% names(srv$cd)) names(srv$cd) <- ordered_replace(names(srv$cd), setNames(subentity, "subentity"))
+    if (subentity %in% names(srv$hd)) names(srv$hd) <- ordered_replace(names(srv$hd), setNames(subentity, "subentity"))
   }
   
   # Return
