@@ -72,7 +72,8 @@ test_that("Setting config and translations for survey", {
   x <- set_translation(x)
   
   expect_identical(default$config$value, x$cfg$value)
-  expect_identical(default$translation$norwegian, x$tr$replacement)
+  expect_identical(stri_encode(default$translation$norwegian, from = "UTF-8"), 
+                   x$tr$replacement)
   
   x <- set_config(srv, study = "test")
   x <- set_translation(x, image = "test")
