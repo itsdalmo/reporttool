@@ -19,21 +19,6 @@ generate_report <- function(srv, report=NULL, entity=NULL, type="pdf") {
     stop("Argument 'srv' is not an object with the class 'survey'. See help(survey).", call. = FALSE)
   }
   
-  # Get mainentity variable
-  nms <- srv$mm$manifest[srv$mm$latent %in% "mainentity"]
-  rep <- "mainentity"
-  
-  # And subentity if it exists
-  if ("subentity" %in% srv$mm$latent) {
-    nms <- c(nms, srv$mm$manifest[srv$mm$latent %in% "subentity"])
-    rep <- c("mainentity", "subentity")
-  }
-  
-  # Replace name for data
-  for (i in names(srv)) {
-    names(srv[[i]]) <- ordered_replace(names(srv[[i]]), nms, rep)
-  }
-  
   # Get report path
   report <- clean_path(report)
   dir <- dirname(report)
@@ -50,7 +35,7 @@ generate_report <- function(srv, report=NULL, entity=NULL, type="pdf") {
   
   # Convert input to an environment to avoid loading data multiple times
   # when generating more than one report
-  srv_envir <- list2env(srv, parent = environment())
+  srv_envir <- list2env(prepare_report(srv), parent = environment())
   
   # Read in the report template
   md <- readLines(report, encoding = "UTF-8")
@@ -77,6 +62,63 @@ generate_report <- function(srv, report=NULL, entity=NULL, type="pdf") {
          stop("Please use a supported output format.\n", call. = FALSE))
   
   invisible()
+  
+}
+
+#' Prepare survey for reporting
+#'
+#' This function prepares a survey for reporting.
+#' 
+#' @param srv A survey object.
+#' @author Kristian D. Olsen
+#' @export
+#' @examples 
+#' x %>% prepare_report()
+
+prepare_report <- function(srv) {
+  
+  # Check class
+  if (!is.survey(srv)) {
+    stop("Argument 'srv' is not an object with the class 'survey'. See help(survey).", call. = FALSE)
+  }
+  
+  # Measurement model must be added first
+  if (!is.survey_mm(srv$mm) || !nrow(srv$mm)) {
+    stop("The measurement model must be added first. See help(add_mm).", call. = FALSE)
+  }
+  
+  # Lowercase names
+  nms <- names(srv$df)
+  srv <- rename_(srv, .dots = setNames(nms, stri_trans_tolower(nms)))
+  
+  if (nrow(srv$cd) && !is.null(names(srv$cd))) {
+    nms <- names(srv$cd)
+    srv$cd <- rename_(srv$cd, .dots = setNames(nms, stri_trans_tolower(nms)))
+  }
+  
+  if (nrow(srv$hd) && !is.null(names(srv$hd))) {
+    nms <- names(srv$hd)
+    srv$hd <- rename_(srv$hd, .dots = setNames(nms, stri_trans_tolower(nms)))
+  }
+  
+  # Replace mainentity
+  mainentity <- srv$mm$manifest[srv$mm$latent %in% "mainentity"]
+  if (length(mainentity)) {
+    if (mainentity %in% names(srv$df)) srv <- rename_(srv, .dots = setNames(list(mainentity), "mainentity"))
+    if (mainentity %in% names(srv$cd)) srv$cd <- rename_(cd, .dots = setNames(list(mainentity), "mainentity"))
+    if (mainentity %in% names(srv$hd)) srv$hd <- rename_(hd, .dots = setNames(list(mainentity), "mainentity"))
+  }
+  
+  # Replace subentity
+  subentity <- srv$mm$manifest[srv$mm$latent %in% "subentity"]
+  if (length(subentity)) {
+    if (subentity %in% names(srv$df)) srv <- rename_(srv, .dots = setNames(list(subentity), "subentity"))
+    if (subentity %in% names(srv$cd)) srv$cd <- rename_(srv$cd, .dots = setNames(list(subentity), "subentity"))
+    if (subentity %in% names(srv$hd)) srv$hd <- rename_(srv$hd, .dots = setNames(list(subentity), "subentity"))
+  }
+  
+  # Return
+  srv
   
 }
 
