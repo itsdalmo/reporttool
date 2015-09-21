@@ -94,12 +94,13 @@ prepare_data <- function(srv, type = "mean", cutoff = .3) {
 latents_mean <- function(srv, model, cutoff) {
 
   for (i in levels(model$latent)) {
-    score <- srv$df[srv$df$percent_missing <= cutoff, model$EM[model$latent %in% i], drop = FALSE]
-    score <- rowMeans(score, na.rm = TRUE)
-    
-    srv <- mutate_(srv, .dots = setNames(list(score), i))
+    x <- select(filter(srv$df, percent_missing <= cutoff), one_of(model$EM[model$latent %in% i]))
+    srv$df[srv$df$percent_missing <= cutoff, i] <- rowMeans(x, na.rm = TRUE)
   }
   
+  # Update measurement model
+  srv <- update_mm(srv, levels(model$latent))
+
   # Return
   srv
   
