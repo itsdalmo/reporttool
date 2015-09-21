@@ -38,7 +38,7 @@ from_labelled <- function(df) {
     sum(stri_detect(x, regex = default$pattern$detect_scale)) == 10L }, logical(1))
   
   # Check labelled scales for consistency and convert to factor
-  df[is_scale] <- lapply(df[is_scale], fix_labelled)
+  df[is_scale] <- Map(fix_labelled, df[is_scale], names(df)[is_scale])
   df[is_labelled] <- lapply(df[is_labelled], haven::as_factor, drop_na = FALSE, ordered = FALSE)
   
   # Insert variable type
@@ -108,22 +108,29 @@ to_labelled <- function(survey) {
 
 # Utilities --------------------------------------------------------------------
 
-fix_labelled <- function(x) {
+fix_labelled <- function(x, nm) {
   
   labels <- attr(x, "labels")
   values <- unique(x[!is.na(x)])
   differ <- setdiff(values, labels)
+  nm <- stri_c("In column ", nm, ": ")
   
   # If it has a 'do not know', fix
   if (length(differ)) {
-    if (!differ %in% c(11, 98)) 
-      warning("Assigned ", differ, " to label:\n", labels[length(labels)], call. = FALSE)
-    
-    # Set last value to 'do not know'
-    labels[length(labels)] <- differ
-    
-    # Assign the fixed labels
-    attr(x, "labels") <- labels
+    if (length(labels) > 10) {
+      if (!differ %in% c(11, 98)) {
+        warning(nm, "Assigned ", differ, " to label:\n", labels[length(labels)], call. = FALSE)
+      } 
+      # Set last value to 'do not know'
+      labels[length(labels)] <- differ
+      
+      # Assign the fixed labels
+      attr(x, "labels") <- labels
+      
+    } else {
+      warning(nm, differ, " has been set to NA.", call. = FALSE)
+      x[x %in% differ] <- NA
+    }
   }
   
   # Return
