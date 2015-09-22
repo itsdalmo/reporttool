@@ -127,7 +127,10 @@ print.survey <- function(x, width = getOption("width")) {
     stri_c(classes, dimensions, sep = "")
   })
   
-  cat(stri_c(stri_c("$", names(x), sep = ""), info, sep = "\t", collapse = "\n"))
+  # Adapt width
+  nms <- stri_c("$", names(x))
+  nms <- stri_pad_right(nms, width = max(stri_length(nms), n.rm = TRUE) + 4)
+  cat(stri_c(nms, info, collapse = "\n"))
   
 }
 
