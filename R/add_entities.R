@@ -160,24 +160,24 @@ print.survey_ents <- function(ents, width = getOption("width")) {
     cat("No columns\n"); return()
   } 
   
-  # Extract only entity, observations, valid and marketshare
+  # Get the entities summary
   ents <- select(ents, entity, n, valid, marketshare)
-  ents <- mutate_each(ents, funs(as.numeric(.)), n, valid, marketshare)
-  tot <- suppressWarnings(summarise_each(ents, funs(sum(as.numeric(.)))))
-  tot <- bind_cols(data_frame("entity" = "Total*"), tot)
-  ents <- bind_rows(ents, tot)
+  ents <- mutate_each(ents, funs(as.numeric(.)), -entity)
+  ents <- bind_rows(ents, data_frame(entity = "Total*", 
+                                     n = sum(ents$n, na.rm = TRUE), 
+                                     valid = sum(ents$valid, na.rm = TRUE),
+                                     marketshare = sum(ents$marketshare, na.rm = TRUE)))
   
   # Format the strings
   w_name <- max(stri_length(ents$entity), na.rm = TRUE) + 4
   w_n <- max(stri_length(ents$n), na.rm = TRUE) + 4
   
-  ents$entity <- vapply(ents$entity, stri_pad_right, width = w_name, character(1))
-  ents$n <- vapply(ents$n, stri_pad_right, width = w_n, character(1))
-  
-  ents$marketshare <- sprintf("%.2f%%", as.numeric(ents$marketshare)*100)
-  ents$valid <- sprintf("%.0f%%", (as.numeric(ents$valid)/as.numeric(ents$n))*100)
-  ents$valid <- vapply(ents$valid, stri_pad_right, width = 9, character(1))
-  
+  # Pad 
+  ents <- mutate(ents, valid = sprintf("%.0f%%", (valid/n)*100))
+  ents <- mutate(ents, marketshare = sprintf("%.2f%%", marketshare*100))
+  ents <- mutate(ents, entity = stri_pad_right(entity, width = w_name), n = stri_pad_right(n, width = w_n))
+  ents <- mutate(ents, valid = stri_pad_right(valid, width = 9))
+
   # Print headers for the table
   cat(stri_pad_right("Entity", width = w_name), 
       stri_pad_right("Obs", width = w_n),
