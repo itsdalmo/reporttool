@@ -4,12 +4,12 @@
 \alias{write_sharepoint}
 \title{Write input files}
 \usage{
-write_sharepoint(survey, file)
+write_sharepoint(srv, file)
 }
 \arguments{
-\item{lst}{A survey object.}
+\item{srv}{A survey object.}
 
-\item{dir}{The directory on sharepoint where you would like to write the input
+\item{file}{The directory on sharepoint where you would like to write the input
 files.}
 }
 \description{
