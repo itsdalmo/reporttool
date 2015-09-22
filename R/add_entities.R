@@ -66,7 +66,7 @@ add_entities <- function(srv, entities = NULL) {
   } else if (any(is.na(srv$df[[mainentity]]))) {
     warning("Removed rows in data where mainentity was NA.", call. = FALSE)
     filter_call <- lazyeval::interp(quote(!is.na(var)), var = as.name(mainentity))
-    srv <- filter_(srv, .dots = filter_call)
+    srv$df <- filter_(srv$df, .dots = filter_call)
   } 
   
   # Generate a new summary if none is given
