@@ -135,8 +135,9 @@ topline <- function(srv, other = NULL) {
     stop("Latents were not found in the data. See help(prepare_data).", call. = FALSE)
   }
   
-  # Find mainentity variable and scores
+  # Find mainentity variable and cutoff
   mainentity <- filter(srv$mm, stri_trans_tolower(latent) == "mainentity")[["manifest"]]
+  cutoff <- as.numeric(filter(srv$cfg, config == "cutoff")[["value"]])
 
   # Check mainentity + 'a' if 'other' is null
   if (is.null(other)) {
@@ -144,19 +145,21 @@ topline <- function(srv, other = NULL) {
     other <- filter(srv$mm, stri_detect(manifest, regex = stri_c("^", other), case_insensitive = TRUE))[["manifest"]]
   }
   
-  # Set names for data (merges)
+  # Set names for data (merges) and subset on percent missing
   names(srv$df)[names(srv$df) %in% mainentity] <- "entity"
   names(srv$df)[names(srv$df) %in% other] <- "other"
+
+  # Subset the data so it contains only valid observations. Then summarise.
+  df <- filter(srv$df, percent_missing <= cutoff)
+  df <- select(df, entity, one_of(default$latents))
+  df <- bind_rows(df, mutate(df, entity = "Total"))
+  df <- summarise_each(group_by(df, entity), funs(mean(., na.rm = TRUE)))
   
   # Get the entities summary
   ents <- select(srv$ents, entity, n, valid)
-  ents <- left_join(ents, summarise_each(group_by(select(srv$df, entity, one_of(default$latents)), entity), 
-                                         funs(mean(., na.rm = TRUE))), by = c("entity" = "entity"))
-  
-  total <- bind_cols(data_frame("entity" = "Total"), summarise_each(select(ents, n, valid), funs(sum(., na.rm = TRUE))))
-  total <- bind_cols(total, summarise_each(select(srv$df, one_of(default$latents)), funs(mean(., na.rm = TRUE))))
-  ents <- bind_rows(ents, total)
-  
+  ents <- bind_rows(ents, data_frame(entity = "Total", n = sum(ents$n, na.rm = TRUE), valid = sum(ents$valid, na.rm = TRUE)))
+  ents <- left_join(ents, df, by = c("entity" = "entity"))
+
   # Clean NaN's
   ents[default$latents] <- lapply(ents[default$latents], function(x) ifelse(is.nan(x), NA, x))
   
