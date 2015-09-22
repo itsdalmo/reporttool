@@ -112,7 +112,7 @@ filter_.survey <- function(srv, ..., .dots) {
   
   # Update entities if the association is set
   has_me <- any(stri_detect(srv$mm$latent, regex = "mainentity"), na.rm = TRUE)
-  if (has_me && mainentity %in% names(srv$df)) {
+  if (has_me) {
     srv <- add_entities(srv)
   } else {
     warning("Entities could not be updated.", call. = FALSE)
