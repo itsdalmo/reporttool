@@ -117,6 +117,9 @@ prepare_report <- function(srv) {
     if (subentity %in% names(srv$hd)) names(srv$hd) <- ordered_replace(names(srv$hd), setNames(subentity, "subentity"))
   }
   
+  # Set latent translations as "question"
+  srv$mm$question[srv$mm$manifest %in% default$latents] <- filter(srv$tr, original %in% default$latents)[["replacement"]]
+  
   # Return
   srv
   
