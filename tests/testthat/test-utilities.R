@@ -2,6 +2,54 @@
 path <- system.file("tests/testthat/xlsx.xlsx", package="reporttool")
 
 context("Utility functions")
+
+test_that("recode works with 'by'", {
+  
+  x <- c("a", "b", "c")
+  y <- c("d", "e", "f")
+  
+  z <- recode(x, "a" = "f", by = y)
+  expect_identical(z, c("a", "b", "a"))
+  
+})
+
+test_that("recode works for numeric", {
+  
+  x <- c(1, 2, 3)
+  y <- recode(x, "test" = 1:3)
+  expect_identical(y, rep("test", 3))
+  
+})
+
+test_that("recode works for character", {
+  
+  x <- c("a", "b", "c")
+  y <- recode(x, "a" = "c")
+  expect_identical(y, c("a", "b", "a"))
+  expect_identical(z, c("a", "b", "a"))
+  
+})
+
+test_that("recode works for factors", {
+  
+  x <- factor(c("a", "b", "c"))
+  y <- recode(x, "a" = "c", drop = FALSE)
+  expect_identical(as.character(y), c("a", "b", "a"))
+  expect_identical(levels(y), c("a", "b", "c"))
+  
+  # Drop works
+  y <- recode(x, "a" = "c", drop = TRUE)
+  expect_identical(as.character(y), c("a", "b", "a"))
+  expect_identical(levels(y), c("a", "b"))
+  
+  # But only if it is explicitly recoded
+  levels(x) <- c(levels(x), "d")
+  y <- recode(x, "a" = "c", drop = TRUE)
+  expect_identical(as.character(y), c("a", "b", "a"))
+  expect_identical(levels(y), c("a", "b", "d"))
+  
+})
+
 test_that("path cleaning", {
   
   expect_false(stri_detect(clean_path(paste0(path, "/")), regex = "/$"))
