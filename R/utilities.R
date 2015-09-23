@@ -79,13 +79,8 @@ recode <- function(x, ..., by = x, drop = TRUE) {
   
   # Drop levels that have been recoded 
   if (!is.null(removed)) {
-    
-    # Fix whitespaces
-    old <- stri_replace_all(levels(x), " ", regex = "\\s")
-    removed <- stri_replace_all(removed, " ", regex = "\\s")
-    
-    # Replace levles
-    new_levels <- setdiff(old, removed)
+    # Replace levels
+    new_levels <- setdiff(levels(x), as.character(removed))
     x <- factor(x, levels = new_levels)
   }
   
