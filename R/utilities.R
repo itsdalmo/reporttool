@@ -40,11 +40,13 @@
 
 recode <- function(x, ..., by = x, drop = TRUE) {
   
-  funs <- lazyeval::lazy_eval(lazyeval::lazy_dots(...))
+  dots <- lazyeval::lazy_dots(...)
+  funs <- lazyeval::lazy_eval(dots)
+  
+  # Check input
   is_logical <- vapply(funs, is.logical, logical(1))
   is_null <- vapply(funs, is.null, logical(1))
   
-  # Check input
   if (any(is_null)) {
     null <- names(funs)[is_null]
     stop("Some of the arguments evaluate to NULL:\n", stri_c(null, collapse = ", "), call. = FALSE)
@@ -60,28 +62,29 @@ recode <- function(x, ..., by = x, drop = TRUE) {
     stop("Argument 'by' is not logical, but one or more of the arguments are.", call. = FALSE)
   }
   
-  
   # Lowercase and recode
   by <- stri_trans_tolower(by)
   for (nm in names(funs)) {
     
-    # If drop is true, keep old values
+    by_subset <- by %in% stri_trans_tolower(funs[[nm]])
+    
+    # Store values that can be dropped
     if (drop && is.factor(x)) {
-      removed <- x[by %in% stri_trans_tolower(funs[[nm]])]
-      removed <- unique(removed)
+      removed <- x[by_subset]
+      removed <- unique(as.character(removed))
     } else {
       removed <- NULL
     }
     
     # Do the recode
-    x[by %in% stri_trans_tolower(funs[[nm]])] <- nm
-  }
-  
-  # Drop levels that have been recoded 
-  if (!is.null(removed)) {
-    # Replace levels
-    new_levels <- setdiff(levels(x), as.character(removed))
-    x <- factor(x, levels = new_levels)
+    x[by_subset] <- nm
+    
+    # Drop the recoded values
+    if (!is.null(removed)) {
+      new_levels <- setdiff(levels(x), removed)
+      x <- factor(x, levels = new_levels)
+    }
+    
   }
   
   # Return
