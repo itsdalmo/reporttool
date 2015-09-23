@@ -39,6 +39,7 @@
 #' get_default("palette")
 
 recode <- function(x, ..., by = x, drop = TRUE) {
+  
   funs <- lazyeval::lazy_eval(lazyeval::lazy_dots(...))
   is_logical <- vapply(funs, is.logical, logical(1))
   is_null <- vapply(funs, is.null, logical(1))
@@ -63,13 +64,26 @@ recode <- function(x, ..., by = x, drop = TRUE) {
   # Lowercase and recode
   by <- stri_trans_tolower(by)
   for (nm in names(funs)) {
+    
+    # If drop is true, keep old values
+    if (drop && is.factor(x)) {
+      removed <- x[by %in% stri_trans_tolower(funs[[nm]])]
+      removed <- unique(removed)
+    } else {
+      removed <- NULL
+    }
+    
+    # Do the recode
     x[by %in% stri_trans_tolower(funs[[nm]])] <- nm
   }
   
-  if (drop && is.factor(x)) {
-    x <- factor(x, levels = intersect(levels(x), x))
+  # Drop levels that have been recoded 
+  if (!is.null(removed)) {
+    new_levels <- setdiff(levels(x), removed)
+    x <- factor(x, levels = new_levels)
   }
   
+  # Return
   x
   
 }
