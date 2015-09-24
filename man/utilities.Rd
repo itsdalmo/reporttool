@@ -17,7 +17,7 @@ get_default(string)
 
 info_list(srv, entity)
 
-recode(x, ..., by = x)
+recode(x, ..., by = x, drop = TRUE)
 
 set_missing(df, na_strings = get_default("na_strings"))
 

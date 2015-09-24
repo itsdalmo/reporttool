@@ -26,7 +26,6 @@ test_that("recode works for character", {
   x <- c("a", "b", "c")
   y <- recode(x, "a" = "c")
   expect_identical(y, c("a", "b", "a"))
-  expect_identical(z, c("a", "b", "a"))
   
 })
 
