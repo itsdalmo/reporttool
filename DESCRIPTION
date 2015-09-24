@@ -11,6 +11,7 @@ Depends:
   R (>= 3.1),
   dplyr (>= 0.4.3)
 Imports: 
+  evaluate,
   ggplot2,
   grid,
   haven (>= 0.2.0.9000),
@@ -19,6 +20,7 @@ Imports:
   openxlsx (>= 3.0.0),
   readr (>= 0.1.1.9000),
   readxl (>= 0.1.0.9000),
+  ReporteRs,
   rmarkdown,
   scales,
   stringi (>= 0.5.5),

@@ -75,7 +75,7 @@ read_data <- function(file, ..., encoding = "UTF-8", decimal = ".") {
   dots <- list(...)
   
   # Pick input-function based on extension
-  switch(tolower(tools::file_ext(file)),
+  switch(stri_trans_tolower(tools::file_ext(file)),
          sav = read_spss(file),
          txt = read_flat(file, sep = "\t", loc, dots),
          tsv = read_flat(file, sep = "\t", loc, dots),

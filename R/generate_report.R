@@ -46,6 +46,7 @@ generate_report <- function(srv, report=NULL, entity=NULL, type="pdf") {
   # Make sure the Markdown and Reports directory exists
   dir.create(file.path(dir, "Reports"), showWarnings = FALSE)
   dir.create(file.path(dir, "Markdown"), showWarnings = FALSE)
+  dir.create(file.path(dir, "PPT"), showWarnings = FALSE)
   
   # Copy beamer theme files if they do not exist
   if (identical(tolower(type), "pdf")) {
@@ -58,7 +59,7 @@ generate_report <- function(srv, report=NULL, entity=NULL, type="pdf") {
   # Generate the wanted report-type
   switch(type,
          pdf = lapply(entity, generate_beamer, dir, srv_envir),
-         ppt = stop("Not yet supported.\n", call. = FALSE),
+         ppt = lapply(entity, generate_ppt, md, dir, srv_envir),
          stop("Please use a supported output format.\n", call. = FALSE))
   
   invisible()
