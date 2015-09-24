@@ -307,9 +307,7 @@ write_sharepoint <- function(srv, file) {
   }
   
   # Data must be prepared first
-  if (!all(default$latents %in% names(srv$df))) {
-    stop("Latents were not found in the data. See help(prepare_data).", call. = FALSE)
-  } else if (!"coderesp" %in% names(srv$df)) {
+  if (!"coderesp" %in% names(srv$df)) {
     stop("Column 'coderesp' was not found in the data. See help(prepare_data).", call. = FALSE)
   } else if (!"percent_missing" %in% names(srv$df)) {
     stop("Column 'percent_missing' was not found in the data. See help(prepare_data).", call. = FALSE)
