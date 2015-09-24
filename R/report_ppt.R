@@ -1,78 +1,3 @@
-#' Convert .Rmd to .R
-#'
-#' This function converts a \code{.Rmd} to a \code{.R} file (similar to \code{knitr::purl}) 
-#' by replacing chunk delimiters and putting \code{eval} chunk options inside \code{if}
-#' statements. Also comments out (\code{##+}) content that is not inside chunks, 
-#' and inserts a chunk number and line to distinguish chunks. 
-#'
-#' @param rmd Path to a rmarkdown file.
-#' @param encoding The encoding of both the input .Rmd file and the output.
-#' @author Kristian D. Olsen
-#' @return A .R file in the same directory and same name as the input .Rmd file.
-#' @note \code{UTF-8} is the recommended encoding for scripts and .Rmd files.
-#' @export
-#' @examples 
-#' rmd_to_r("Example report.Rmd", encoding = "latin1")
-
-rmd_to_r <- function(rmd, encoding = "UTF-8", write = TRUE) {
-  
-  # Assume strings are a path
-  if (is.string(rmd)) {
-    path <- clean_path(rmd)
-    
-    if (!stri_trans_tolower(tools::file_ext(rmd)) == "rmd") {
-      stop("This function only accepts a .Rmd file", call. = FALSE)
-    } else {
-      rmd <- readLines(path, encoding = encoding)
-    }
-  } else {
-    write <- FALSE
-  }
-  
-  # Get default patterns
-  pattern <- default$pattern$rmd
-  
-  # Identify chunks
-  chunk_start <- which(stri_detect(rmd, regex = pattern$chunk_start))
-  chunk_end <- which(stri_detect(rmd, regex = pattern$chunk_end))
-
-  if (length(chunk_start) == length(chunk_end)) {
-    chunk_index <- Map(':', chunk_start, chunk_end)   
-  } else {
-    stop("The .Rmd file contains unused chunk start/end indicators", call. = FALSE)
-  }
-  
-  # Get and comment out all lines with content that is not in a chunk
-  not_chunk <- setdiff(1:length(rmd), unlist(chunk_index))
-  not_chunk <- setdiff(not_chunk, which(rmd == ""))
-
-  rmd[not_chunk] <- stri_c("##+ ", rmd[not_chunk])
-  
-  # Comment out text, replace chunk delims and indicate chunknumber
-  n <- length(rmd)
-  
-  for (i in seq_along(chunk_index)) {
-    
-    # Update indices if the document has been extended
-    idx <- chunk_index[[i]]+(length(rmd)-n)
-    
-    # Piece together the chunk (w/delimiters) and the rest of the document
-    rmd <- c(rmd[1:(min(idx)-1)], replace_chunk_delim(rmd[idx]),
-             if (max(idx) < length(rmd)) rmd[(max(idx)+1):length(rmd)] else "")
-  }
-  
-  # Save or return the cleaned Rmd file
-  if (write) {
-    path <- file(stri_c(tools::file_path_sans_ext(path), ".R"), encoding = "UTF-8")
-    on.exit(close(path), add = TRUE)
-    writeLines(rmd, path)
-  } else {
-    return(rmd)
-  }
-  
-  
-}
-
 #' @export
 evaluate_rmd <- function(rmd, envir = parent.frame()) {
   
@@ -122,10 +47,94 @@ evaluate_rmd <- function(rmd, envir = parent.frame()) {
   
 }
 
+#' Convert .Rmd to .R
+#'
+#' This function converts a \code{.Rmd} to a \code{.R} file (similar to \code{knitr::purl}) 
+#' by replacing chunk delimiters and putting \code{eval} chunk options inside \code{if}
+#' statements. Also comments out (\code{##+}) content that is not inside chunks.
+#'
+#' @param rmd Path to a rmarkdown file.
+#' @param encoding The encoding of both the input .Rmd file and the output.
+#' @author Kristian D. Olsen
+#' @return A .R file in the same directory and same name as the input .Rmd file.
+#' @note \code{UTF-8} is the recommended encoding for scripts and .Rmd files.
+#' @export
+#' @examples 
+#' rmd_to_r("Example report.Rmd", encoding = "latin1")
+
+rmd_to_r <- function(rmd, encoding = "UTF-8", write = TRUE) {
+  
+  # Assume strings are a path
+  if (is.string(rmd)) {
+    path <- clean_path(rmd)
+    
+    if (!stri_trans_tolower(tools::file_ext(rmd)) == "rmd") {
+      stop("This function only accepts a .Rmd file", call. = FALSE)
+    } else {
+      rmd <- readLines(path, encoding = encoding)
+    }
+  } else {
+    write <- FALSE
+  }
+  
+  # Get default patterns
+  pattern <- default$pattern$rmd
+  
+  # Identify chunks
+  chunk_start <- which(stri_detect(rmd, regex = pattern$chunk_start))
+  chunk_end <- which(stri_detect(rmd, regex = pattern$chunk_end))
+  
+  if (length(chunk_start) == length(chunk_end)) {
+    chunk_index <- Map(':', chunk_start, chunk_end)   
+  } else {
+    stop("The .Rmd file contains unused chunk start/end indicators", call. = FALSE)
+  }
+  
+  # Get and comment out all lines with content that is not in a chunk
+  not_chunk <- setdiff(1:length(rmd), unlist(chunk_index))
+  not_chunk <- setdiff(not_chunk, which(rmd == ""))
+  
+  rmd[not_chunk] <- stri_c("##+ ", rmd[not_chunk])
+  
+  # Comment out text, replace chunk delims and indicate chunknumber
+  n <- length(rmd)
+  
+  for (i in seq_along(chunk_index)) {
+    
+    # Update indices if the document has been extended
+    idx <- chunk_index[[i]]+(length(rmd)-n)
+    chunk <- replace_chunk_delim(rmd[idx])
+    
+    # Piece together the chunk (w/delimiters) and the rest of the document
+    if (max(idx) < length(rmd)) {
+      last_line <- rmd[(max(idx)+1):length(rmd)]
+    } else if (chunk[length(chunk)] == "") {
+      last_line <- NULL
+    } else {
+      last_line <- ""
+    }
+    
+    rmd <- c(if (min(idx) > 1) { rmd[1:(min(idx)-1)] }, chunk, if (!is.null(last_line)) { last_line })
+    
+  }
+  
+  # Save or return the cleaned Rmd file
+  if (write) {
+    path <- file(stri_c(tools::file_path_sans_ext(path), ".R"), encoding = "UTF-8")
+    on.exit(close(path), add = TRUE)
+    writeLines(rmd, path)
+  } else {
+    return(rmd)
+  }
+  
+  
+}
+
 # Evaluate rmarkdown code  -----------------------------------------------------
 eval_lines <- function(lines, envir) {
   
-  lines <- unlist(lapply(lines, eval_inline, envir = envir))
+  
+  lines <- eval_inline(lines, envir = envir)
   
   # Remove ##+
   lines <- stri_replace(lines, "", regex = "^##\\+ ")
@@ -135,53 +144,31 @@ eval_lines <- function(lines, envir) {
   
 }
 
-eval_inline <- function(line, envir = parent.frame()) {
+
+eval_inline <- function(lines, envir = parent.frame()) {
   
   pattern <- default$pattern$rmd
-  is_inline <- stri_detect(line, regex = pattern$inline)
+  is_inline <- stri_detect(lines, regex = pattern$inline)
   
-  if (!is.na(is_inline) && isTRUE(is_inline)) {
-    inline <- unlist(stri_extract_all(line, regex = pattern$inline))
-    expr <- stri_replace_all(inline, "", regex = "`r\\s?|\\s?`")
-    for (i in seq_along(expr)) {
-      res <- as.character(eval(parse(text = expr[i]), envir))
-      if (length(res) > 0L && !is.na(res)) {
-        line <- sub(inline[i], stri_c(res, collapse = " "), line, fixed = TRUE)
-      } else {
-        line <- NULL
-      }
-    }
+  if (!any(is_inline, na.rm = TRUE)) return(lines)
+  
+  for (i in seq_along(lines)) {
+    
+    inline <- unlist(stri_extract_all(lines[i], regex = pattern$inline))
+    expres <- stri_replace_all(inline, "", regex = "`r\\s?|\\s?`")
+    results <- lapply(expres, function(x) as.character(eval(parse(text = x), envir)))
+    
+    lines[i] <- stri_replace_all_fixed(lines[i], 
+                                       pattern = inline, 
+                                       replacement = unlist(results), 
+                                       vectorize_all = FALSE)
     
   }
-#   
-#   inline <- unlist(stringr::str_extract_all(line, pattern))
-#   expr <- stringr::str_replace_all(inline, "`r\\s?|\\s?`", "")
-#   
-#   for (i in seq_along(expr)) {
-#     res <- as.character(eval(parse(text = expr[i]), envir))
-#     line <- sub(inline[i], paste(res, collapse = " "), line, fixed = TRUE)
-#   }
-#   
-#   
-#   pattern <- default$pattern$rmd
-#   is_inline <- stri_detect(lines, regex = pattern$inline)
-# 
-#   if (any(is_inline, na.rm = TRUE)) {
-#     
-#     inline <- stringi::stri_extract_all(lines[is_inline], regex = pattern$inline)
-#     expres <- stringi::stri_replace_all(inline, "", regex = "`r\\s?|\\s?`")
-#     
-#     for (i in seq_along(expres)) {
-#       result <- as.character(eval(parse(text = expres[i]), envir))
-#       lines[is_inline][i] <- stri_replace_all(lines[is_inline][i], stri_c(result, collapse = " "), fixed = inline[i])
-#     }
-#     
-  # }
-
-  # Return
-  line
+  
+  lines
   
 }
+
 
 # Replace chunk delims  --------------------------------------------------------
 replace_chunk_delim <- function(lines) {
@@ -206,7 +193,7 @@ replace_chunk_delim <- function(lines) {
     chunk_index <- unlist(Map(':', chunk_eval, chunk_end))
     
     content <- setdiff(chunk_index, c(chunk_eval, chunk_end))
-    lines[content] <- stri_pad_left(lines[content], width = 2)
+    lines[content] <- stri_c("  ", lines[content])
     
   }
   
