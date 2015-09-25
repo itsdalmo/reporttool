@@ -1,212 +1,107 @@
-#' @export
-evaluate_rmd <- function(rmd, envir = parent.frame()) {
-  
-  # Convert the rmd to "r" - easier to identify chunks/evaluate code
-  rmd <- rmd_to_r(rmd, write = FALSE)
-  
-  # Remove yaml
-  yaml <- which(stri_detect(rmd, regex = stri_c("^##\\+ ---")))
-  rmd <- rmd[-c(yaml[1]:yaml[2])]
-  rmd <- rmd[rmd != ""]
-  
-  # Get indexes
-  titles <- which(stri_detect(rmd, regex = "^##\\+ ##?[^#].*"))
-  inlines <- which(stri_detect(rmd, regex = "^##\\+.*"))
-  chunks <- which(!stri_detect(rmd, regex = "^##+.*"))
-  
-  avoid_inline <- c(titles, chunks)
-  avoid_chunks <- c(inlines, titles)
-  
-  results <- list()
-  n <- length(rmd)
-  index <- 0
-  
-  for (i in seq_along(rmd)) {
-    if (i > index) {
-      
-      is_inline <- stri_detect(rmd[i], regex = "^##\\+")
-      is_title <- stri_detect(rmd[i], regex = "^##\\+ ##?[^#].*")
-      
-      if (is_inline && !is_title) {
-        index <- min(avoid_inline[avoid_inline > i], na.rm = TRUE)
-        if (is.infinite(index)) index <- n + 1
-        
-        # Eval inline code and append to results
-        res <- eval_inline(rmd[i:(index-1)], envir = envir)
-        results <- c(results, list(res))
-        
-      } else if (is_title) {
-        index <- i
-        
-        # Eval titles and append to results
-        res <- eval_inline(rmd[i], envir = envir)
-        results <- c(results, res)
-        
-      } else {
-        index <- min(avoid_chunks[avoid_chunks > i], na.rm = TRUE)
-        if (is.infinite(index)) index <- n + 1
-        
-        # Eval chunks and append to results
-        res <- evaluate::evaluate(rmd[i:(index-1)], envir = envir)
-        results <- c(results, res)
-      }
-      
-    }
-    
-  }
-  
-  # Return
-  results
-  
-}
-
-# Evaluate rmarkdown code  -----------------------------------------------------
-eval_inline <- function(lines, envir = parent.frame()) {
-
-  pattern <- default$pattern$rmd
-
-  lines <- lapply(lines, function(x) {
-    
-    is_inline <- stri_detect(x, regex = pattern$inline)
-    if (length(is_inline) == 0L || !is_inline) return(x) # Return early if it does not contain inline
-    
-    inline <- unlist(stri_extract_all(x, regex = pattern$inline))
-    expres <- stri_replace_all(inline, "", regex = "`r\\s?|\\s?`")
-    results <- lapply(expres, function(x) as.character(eval(parse(text = x), envir)))
-    
-    for (i in seq_along(results)) {
-      res <- if(!is.na(results[i]) && length(results) > 0L) results[i] else ""
-      x <- stri_replace(x, replacement = res, fixed = inline[i])
-    }
-    
-    x
-    
-  })
-  
-  # Remove ##+ and empty strings
-  lines <- stri_replace(unlist(lines), "", regex = "^##\\+ ")
-  lines <- lines[lines != ""]
-  
-  lines
-  
-}
-
-#' Convert .Rmd to .R
+#' Powerpoint template
 #'
-#' This function converts a \code{.Rmd} to a \code{.R} file (similar to \code{knitr::purl}) 
-#' by replacing chunk delimiters and putting \code{eval} chunk options inside \code{if}
-#' statements. Also comments out (\code{##+}) content that is not inside chunks.
+#' This function uses \code{ReporteRs} and \code{evaluate} to generate powerpoint
+#' slides based on the same rmarkdown syntax that creates the pdf reports. I.e.
+#' it is a dumbed down version of normal rmarkdown, where only \code{#} and \code{##}
+#' are understood as being section titles and new frames/subtitles respectively.
 #'
-#' @param rmd Path to a rmarkdown file.
-#' @param encoding The encoding of both the input .Rmd file and the output.
+#' @param entity The name of the entity to create a report for.
+#' @param rmd A loaded (\code{readLines}) rmarkdown document to use as a template.
+#' @param dir The directory in which to place the PPT folder containing the reports.
+#' @param envir The environment in which to evaluate the rmarkdown code.
 #' @author Kristian D. Olsen
-#' @return A .R file in the same directory and same name as the input .Rmd file.
-#' @note \code{UTF-8} is the recommended encoding for scripts and .Rmd files.
+#' @note This function is used by \code{generate_report}.
 #' @export
 #' @examples 
-#' rmd_to_r("Example report.Rmd", encoding = "latin1")
+#' x <- survey(data.frame("test" = 1, stringsAsFactors = FALSE))
+#' x %>% add_mm()
 
-rmd_to_r <- function(rmd, encoding = "UTF-8", write = TRUE) {
+generate_ppt <- function(entity, rmd, dir, envir) {
   
-  # Assume strings are a path
-  if (is.string(rmd)) {
-    path <- clean_path(rmd)
-    
-    if (!stri_trans_tolower(tools::file_ext(rmd)) == "rmd") {
-      stop("This function only accepts a .Rmd file", call. = FALSE)
-    } else {
-      rmd <- readLines(path, encoding = encoding)
-    }
-  } else {
-    write <- FALSE
-  }
+  # Copy theme if it does not exist
+  dir.create(file.path(dir, "PPT"), showWarnings = FALSE)
+  copy_ppt_theme(dir = file.path(dir, "PPT"))
   
-  # Get default patterns
-  pattern <- default$pattern$rmd
+  # Evaluate the markdown
+  res <- evaluate_rmd(rmd, envir = envir)
   
-  # Identify chunks
-  chunk_start <- which(stri_detect(rmd, regex = pattern$chunk_start))
-  chunk_end <- which(stri_detect(rmd, regex = pattern$chunk_end))
+  # Create report
+  doc <- ReporteRs::pptx(template = file.path(dir, "PPT", "ppt_template.pptx"))
+  doc <- to_ppt(doc, res)
   
-  if (length(chunk_start) == length(chunk_end)) {
-    chunk_index <- Map(':', chunk_start, chunk_end)   
-  } else {
-    stop("The .Rmd file contains unused chunk start/end indicators", call. = FALSE)
-  }
-  
-  # Get and comment out all lines with content that is not in a chunk
-  not_chunk <- setdiff(1:length(rmd), unlist(chunk_index))
-  not_chunk <- setdiff(not_chunk, which(rmd == ""))
-  
-  rmd[not_chunk] <- stri_c("##+ ", rmd[not_chunk])
-  
-  # Comment out text, replace chunk delims and indicate chunknumber
-  n <- length(rmd)
-  
-  for (i in seq_along(chunk_index)) {
-    
-    # Update indices if the document has been extended
-    idx <- chunk_index[[i]]+(length(rmd)-n)
-    chunk <- replace_chunk_delim(rmd[idx])
-    
-    # Piece together the chunk (w/delimiters) and the rest of the document
-    if (max(idx) < length(rmd)) {
-      last_line <- rmd[(max(idx)+1):length(rmd)]
-    } else if (chunk[length(chunk)] == "") {
-      last_line <- NULL
-    } else {
-      last_line <- ""
-    }
-    
-    rmd <- c(if (min(idx) > 1) { rmd[1:(min(idx)-1)] }, chunk, if (!is.null(last_line)) { last_line })
-    
-  }
-  
-  # Save or return the cleaned Rmd file
-  if (write) {
-    path <- file(stri_c(tools::file_path_sans_ext(path), ".R"), encoding = "UTF-8")
-    on.exit(close(path), add = TRUE)
-    writeLines(rmd, path)
-  } else {
-    return(rmd)
-  }
-  
+  ReporteRs::writeDoc(doc, file = stri_c(file.path(dir, "PPT", stri_c(entity, ".pptx"))))
   
 }
 
-
-# Replace chunk delims  --------------------------------------------------------
-replace_chunk_delim <- function(lines) {
+#' @export
+to_ppt <- function(doc, res) {
   
-  # Get default pattern
-  pattern <- default$pattern$rmd
+  # Get the types of data in our results
+  type <- vapply(res, function(x) {
+    
+    if (length(x) == 0L || is.na(x)) return("unknown")
+    
+    if (is.character(x)) {
+      if (stri_detect(x, regex = "^# .*")) {
+        "title"
+      } else if (stri_detect(x, regex = "^## .*")) {
+        "subtitle"
+      } else if (stri_detect(x, regex = "begin\\{table\\}")) {
+        "table"
+      } else {
+        "markdown"
+      }
+      
+    } else if (inherits(x, "recordedplot")) {
+      "recordedplot"
+    } else {
+      "other"
+    }}, character(1))
+    
+  # Get the actual results
+  title <- " "; subtitle <- " "
   
-  # Identify which (if any) chunks contain eval options
-  chunk_eval <- which(stri_detect(lines, regex = pattern$chunk_eval)) 
-  chunk_end <- which(stri_detect(lines, regex = pattern$chunk_end))
-  
-  if (length(chunk_eval) > 0L) {
-    
-    # Find the correct chunk end for each chunk eval
-    chunk_end <- vapply(chunk_eval, function(x) chunk_end[chunk_end > x][1], numeric(1))
-    
-    # Replace chunk-delimiters with if-functions
-    lines[chunk_eval] <- stri_c("if (", stri_replace(lines[chunk_eval], "$1", regex = pattern$chunk_eval), ") {")
-    lines[chunk_end] <- "}"
-    
-    # Double indendt the content in if-functions
-    chunk_index <- unlist(Map(':', chunk_eval, chunk_end))
-    
-    content <- setdiff(chunk_index, c(chunk_eval, chunk_end))
-    lines[content] <- stri_c("  ", lines[content])
-    
+  for (i in seq_along(res)) {
+    print(res[[i]])
+    if (type[i] == "title") {
+      title <- stri_replace(res[[i]], "$1", regex = "^# (.*)")
+    } else if (type[i] == "subtitle") {
+      subtitle <- stri_replace(res[[i]], "$1", regex = "^## (.*)")
+    } else if (type[i] == "table") {
+      doc <- ReporteRs::addSlide(doc, slide.layout = 'tableslide')
+      doc <- ReporteRs::addTitle(doc, title)
+      # doc <- ReporteRs::addFlexTable(doc, ReporteRs::as.FlexTable(res[[i]]))
+      doc <- ReporteRs::addParagraph(doc, subtitle)
+    } else if (type[i] == "markdown") {
+      doc <- ReporteRs::addSlide(doc, slide.layout = 'standardslide')
+      doc <- ReporteRs::addTitle(doc, title)
+      doc <- ReporteRs::addMarkdown(doc, text = res[[i]])
+      doc <- ReporteRs::addParagraph(doc, subtitle)
+    } else if (type[i] == "recordedplot") {
+      doc <- ReporteRs::addSlide(doc, slide.layout = 'standardslide')
+      doc <- ReporteRs::addTitle(doc, title)
+      doc <- ReporteRs::addPlot(doc, fun = print, x = res[[i]])
+      doc <- ReporteRs::addParagraph(doc, subtitle)
+    } else if (type[i] == "other") {
+#       doc <- ReporteRs::addSlide(doc, slide.layout = 'textslide')
+#       doc <- ReporteRs::addTitle(doc, title)
+#       doc <- ReporteRs::addParagraph(doc, subtitle)
+#       doc <- ReporteRs::addParagraph(doc, res[[i]])
+    }
   }
+
+  return(doc)
   
-  # Remove chunk start/endings without eval options
-  lines <- stri_replace_all(lines, "", regex = stri_c(pattern$chunk_start, ".*"))
-  lines <- stri_replace_all(lines, "", regex = stri_c(pattern$chunk_end, ".*"))
+}
+
+copy_ppt_theme <- function(dir) {
   
-  # Return
-  lines
+  files <- system.file("ppt/ppt_template.pptx", package="reporttool")
+  
+  lapply(files, function(x, dir) { 
+    file.copy(x, file.path(dir, basename(x)), overwrite=FALSE) 
+  }, dir)
+  
+  invisible()
   
 }

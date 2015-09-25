@@ -1,11 +1,11 @@
 #' @export
-tbl_vars.survey <- function(srv) names(srv$df)
-
-#' @export
 group_by_.survey <- function(srv, ..., .dots, add = FALSE) {
   srv$df <- dplyr::group_by_(srv$df, ..., .dots = .dots, add = add)
   srv
 }
+
+#' @export
+tbl_vars.survey <- function(srv) names(srv$df)
 
 #' @export
 groups.survey <- function(x) NULL
