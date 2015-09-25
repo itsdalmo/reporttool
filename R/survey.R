@@ -48,6 +48,12 @@ survey <- function(x) {
   # New scaffolding
   srv <- new_survey()
   
+  # Replace hashtags in names
+  if (any(stri_detect(names(x), regex = "#"), na.rm = TRUE)) {
+    warning("Replaced hashtags in variable names with underscore.", call. = FALSE)
+    names(x) <- stri_replace_all(names(x), "_", regex = "#")
+  }
+  
   # Check input
   if (is.data.frame(x)) {
     if(is.spss(x)) { 
