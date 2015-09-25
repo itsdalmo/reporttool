@@ -102,6 +102,7 @@ format_xlsx <- function(df, wb, sheet, table_row, style = TRUE, values = TRUE) {
   if (isTRUE(values)) {
     
     # Get column indicies
+    fct_columns <- which(vapply(df, is.factor, logical(1)))
     chr_columns <- which(vapply(df, is.character, logical(1)))
     int_columns <- which(vapply(df, is.integer, logical(1)))
     pct_columns <- which(vapply(df, function(x) all(is.numeric(x) && x <= 1 && x >= 0), logical(1)))
@@ -128,8 +129,8 @@ format_xlsx <- function(df, wb, sheet, table_row, style = TRUE, values = TRUE) {
     }
     
     # Change the text orientation of character columns
-    if (length(chr_columns)) {
-      openxlsx::addStyle(wb, sheet, xlsx_character, rows = all_rows, cols = chr_columns, 
+    if (length(chr_columns) || length(fct_columns)) {
+      openxlsx::addStyle(wb, sheet, xlsx_character, rows = all_rows, cols = c(chr_columns, fct_columns), 
                          gridExpand = TRUE, stack = TRUE)
     }
 
