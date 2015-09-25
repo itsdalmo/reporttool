@@ -101,7 +101,7 @@ to_sheet <- function(df, wb, title = "Table", sheet = "analysis", row = 1L,
     # When styling the title must be written first (and convert df names to titles)
     if (isTRUE(format_style)) {
       openxlsx::writeData(wb, sheet, title, startRow = row)
-      names(df) <- stri_trans_totitle(names(df))
+      names(df) <- stri_trans_totitle(names(df), type = "sentence")
       table_row <- row + 1
     }
 
