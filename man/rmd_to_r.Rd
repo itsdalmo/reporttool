@@ -17,8 +17,7 @@ A .R file in the same directory and same name as the input .Rmd file.
 \description{
 This function converts a \code{.Rmd} to a \code{.R} file (similar to \code{knitr::purl})
 by replacing chunk delimiters and putting \code{eval} chunk options inside \code{if}
-statements. Also comments out (\code{##+}) content that is not inside chunks,
-and inserts a chunk number and line to distinguish chunks.
+statements. Also comments out (\code{##+}) content that is not inside chunks.
 }
 \note{
 \code{UTF-8} is the recommended encoding for scripts and .Rmd files.
