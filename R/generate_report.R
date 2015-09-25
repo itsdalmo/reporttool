@@ -30,12 +30,20 @@ generate_report <- function(srv, report=NULL, entity=NULL, type="pdf") {
   # Check if entity is specified, if not - use mainentity and generate a report each
   if (is.null(entity)) {
     message("No entity specified, creating report for all (main) entities.")
+    
+    # Mainentity must be specified in latents
+    if (!any(stri_detect(srv$mm$latent, regex = "mainentity"), na.rm = TRUE)) {
+      stop("'mainentity' is not specified in latents for the measurement model. 
+           See help(set_association).", call. = FALSE)
+    } else {
+      srv <- prepare_survey(srv)
+    }
     entity <- unique(srv$df$mainentity)
   }
   
   # Convert input to an environment to avoid loading data multiple times
   # when generating more than one report
-  srv_envir <- list2env(prepare_report(srv), parent = environment())
+  srv_envir <- list2env(srv, parent = environment())
   
   # Read in the report template
   md <- readLines(report, encoding = "UTF-8")
@@ -76,7 +84,7 @@ generate_report <- function(srv, report=NULL, entity=NULL, type="pdf") {
 #' @examples 
 #' x %>% prepare_report()
 
-prepare_report <- function(srv) {
+prepare_survey <- function(srv) {
   
   # Check class
   if (!is.survey(srv)) {
@@ -92,15 +100,15 @@ prepare_report <- function(srv) {
   nms <- names(srv$df)
   srv <- rename_(srv, .dots = setNames(nms, stri_trans_tolower(nms)))
   
-  if (nrow(srv$cd) && !is.null(names(srv$cd))) {
-    nms <- names(srv$cd)
-    srv$cd <- rename_(srv$cd, .dots = setNames(nms, stri_trans_tolower(nms)))
-  }
-  
-  if (nrow(srv$hd) && !is.null(names(srv$hd))) {
-    nms <- names(srv$hd)
-    srv$hd <- rename_(srv$hd, .dots = setNames(nms, stri_trans_tolower(nms)))
-  }
+#   if (nrow(srv$cd) && !is.null(names(srv$cd))) {
+#     nms <- names(srv$cd)
+#     srv$cd <- rename_(srv$cd, .dots = setNames(nms, stri_trans_tolower(nms)))
+#   }
+#   
+#   if (nrow(srv$hd) && !is.null(names(srv$hd))) {
+#     nms <- names(srv$hd)
+#     srv$hd <- rename_(srv$hd, .dots = setNames(nms, stri_trans_tolower(nms)))
+#   }
   
   # Replace mainentity
   mainentity <- srv$mm$manifest[srv$mm$latent %in% "mainentity"]
