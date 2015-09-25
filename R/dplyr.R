@@ -106,13 +106,14 @@ rename_.survey <- function(srv, ..., .dots) {
 #' @export
 filter_.survey <- function(srv, ..., .dots) {
   
+  n <- nrow(srv$df)
   # Gather dots and filter data
   dots <- lazyeval::all_dots(.dots, ...)
   srv$df <- dplyr::filter_(srv$df, .dots = dots)
   
-  # Update entities if the association is set
+  # Update entities if the association is set and rows have been dropped
   has_me <- any(stri_detect(srv$mm$latent, regex = "mainentity"), na.rm = TRUE)
-  if (has_me) {
+  if (has_me && nrow(srv$df) < n) {
     srv <- add_entities(srv)
   } else {
     warning("Entities could not be updated.", call. = FALSE)
