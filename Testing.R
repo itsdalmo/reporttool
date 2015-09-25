@@ -1,6 +1,10 @@
 library(devtools); test()
 library(stringi)
 
+
+# osrv from a report
+srv <- osrv
+srv$entity <- "Lyse ladestasjoner"
 srv %>% generate_report("../EPSI/Lyse ladestasjoner/Lyse ladestasjoner.Rmd", type = "ppt")
 
 # INPUT

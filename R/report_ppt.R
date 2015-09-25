@@ -10,8 +10,12 @@ evaluate_rmd <- function(rmd, envir = parent.frame()) {
   rmd <- rmd[rmd != ""]
   
   # Get indexes
-  inlines <- which(stri_detect(rmd, regex = "^##+.*"))
+  titles <- which(stri_detect(rmd, regex = "^##\\+ ##?[^#].*"))
+  inlines <- which(stri_detect(rmd, regex = "^##\\+.*"))
   chunks <- which(!stri_detect(rmd, regex = "^##+.*"))
+  
+  avoid_inline <- c(titles, chunks)
+  avoid_chunks <- c(inlines, titles)
   
   results <- list()
   n <- length(rmd)
@@ -20,17 +24,26 @@ evaluate_rmd <- function(rmd, envir = parent.frame()) {
   for (i in seq_along(rmd)) {
     if (i > index) {
       
-      is_inline <- stri_detect(rmd[i], regex = "^##+")
-      if (is_inline) {
-        index <- min(chunks[chunks > i], na.rm = TRUE)
+      is_inline <- stri_detect(rmd[i], regex = "^##\\+")
+      is_title <- stri_detect(rmd[i], regex = "^##\\+ ##?[^#].*")
+      
+      if (is_inline && !is_title) {
+        index <- min(avoid_inline[avoid_inline > i], na.rm = TRUE)
         if (is.infinite(index)) index <- n + 1
         
         # Eval inline code and append to results
-        res <- eval_lines(rmd[i:(index-1)], envir = envir)
+        res <- eval_inline(rmd[i:(index-1)], envir = envir)
+        results <- c(results, list(res))
+        
+      } else if (is_title) {
+        index <- i
+        
+        # Eval titles and append to results
+        res <- eval_inline(rmd[i], envir = envir)
         results <- c(results, res)
         
       } else {
-        index <- min(inlines[inlines > i], na.rm = TRUE)
+        index <- min(avoid_chunks[avoid_chunks > i], na.rm = TRUE)
         if (is.infinite(index)) index <- n + 1
         
         # Eval chunks and append to results
@@ -44,6 +57,37 @@ evaluate_rmd <- function(rmd, envir = parent.frame()) {
   
   # Return
   results
+  
+}
+
+# Evaluate rmarkdown code  -----------------------------------------------------
+eval_inline <- function(lines, envir = parent.frame()) {
+
+  pattern <- default$pattern$rmd
+
+  lines <- lapply(lines, function(x) {
+    
+    is_inline <- stri_detect(x, regex = pattern$inline)
+    if (length(is_inline) == 0L || !is_inline) return(x) # Return early if it does not contain inline
+    
+    inline <- unlist(stri_extract_all(x, regex = pattern$inline))
+    expres <- stri_replace_all(inline, "", regex = "`r\\s?|\\s?`")
+    results <- lapply(expres, function(x) as.character(eval(parse(text = x), envir)))
+    
+    for (i in seq_along(results)) {
+      res <- if(!is.na(results[i]) && length(results) > 0L) results[i] else ""
+      x <- stri_replace(x, replacement = res, fixed = inline[i])
+    }
+    
+    x
+    
+  })
+  
+  # Remove ##+ and empty strings
+  lines <- stri_replace(unlist(lines), "", regex = "^##\\+ ")
+  lines <- lines[lines != ""]
+  
+  lines
   
 }
 
@@ -130,45 +174,6 @@ rmd_to_r <- function(rmd, encoding = "UTF-8", write = TRUE) {
   
 }
 
-# Evaluate rmarkdown code  -----------------------------------------------------
-eval_lines <- function(lines, envir) {
-  
-  
-  lines <- eval_inline(lines, envir = envir)
-  
-  # Remove ##+
-  lines <- stri_replace(lines, "", regex = "^##\\+ ")
-  titles <- which(stri_detect(lines, regex = "^# |^## "))
-  
-  lines
-  
-}
-
-
-eval_inline <- function(lines, envir = parent.frame()) {
-  
-  pattern <- default$pattern$rmd
-  is_inline <- stri_detect(lines, regex = pattern$inline)
-  
-  if (!any(is_inline, na.rm = TRUE)) return(lines)
-  
-  for (i in seq_along(lines)) {
-    
-    inline <- unlist(stri_extract_all(lines[i], regex = pattern$inline))
-    expres <- stri_replace_all(inline, "", regex = "`r\\s?|\\s?`")
-    results <- lapply(expres, function(x) as.character(eval(parse(text = x), envir)))
-    
-    lines[i] <- stri_replace_all_fixed(lines[i], 
-                                       pattern = inline, 
-                                       replacement = unlist(results), 
-                                       vectorize_all = FALSE)
-    
-  }
-  
-  lines
-  
-}
-
 
 # Replace chunk delims  --------------------------------------------------------
 replace_chunk_delim <- function(lines) {
@@ -184,7 +189,7 @@ replace_chunk_delim <- function(lines) {
     
     # Find the correct chunk end for each chunk eval
     chunk_end <- vapply(chunk_eval, function(x) chunk_end[chunk_end > x][1], numeric(1))
-
+    
     # Replace chunk-delimiters with if-functions
     lines[chunk_eval] <- stri_c("if (", stri_replace(lines[chunk_eval], "$1", regex = pattern$chunk_eval), ") {")
     lines[chunk_end] <- "}"
