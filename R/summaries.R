@@ -22,7 +22,7 @@
 #' @rdname summaries
 #' @export
 #' @examples 
-#' get_default("palette")
+#' survey_info(srv)
 
 survey_info <- function(srv, entity) {
   
@@ -90,6 +90,7 @@ survey_info <- function(srv, entity) {
   
 }
 
+#' @rdname summaries
 #' @export
 survey_table <- function(srv, ..., entities = NULL, long_format = FALSE, questions = TRUE) {
   
