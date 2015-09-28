@@ -236,6 +236,17 @@ read_sharepoint <- function(file, mainentity = "q1", encoding = "latin1") {
     stop("There is more than one .sav file ending with \"EM\"\n", call. = FALSE)
   }
   
+  # Rename andel_missing
+  miss <- names(srv$df)[stri_trans_tolower(names(srv$df)) %in% "andel_missing"]
+  if (length(miss) && !"percent_missing" %in% names(srv$df)) {
+    srv <- rename_(srv, .dots = setNames(miss[1], "percent_missing"))
+  }
+  
+  # Set config (w/percent missing)
+  miss <- max(as.numeric(srv$df$percent_missing), na.rm = TRUE)
+  srv <- set_config(srv)
+  srv$cfg$value[srv$cfg$config %in% "cutoff"] <- miss
+  
   # Identify mainentity in manifest
   mainentity <- filter(srv$mm, stri_trans_tolower(manifest) == mainentity)[["manifest"]]
   if (!length(mainentity)) {
