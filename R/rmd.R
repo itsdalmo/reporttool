@@ -166,11 +166,11 @@ eval_inline <- function(lines, envir = parent.frame()) {
     if (length(is_inline) == 0L || !is_inline) return(x) # Return early if it does not contain inline
     
     inline <- unlist(stri_extract_all(x, regex = pattern$inline))
-    expres <- stri_replace_all(inline, "", regex = "`r\\s?|\\s?`")
-    results <- lapply(expres, function(x) as.character(eval(parse(text = x), envir)))
+    expr <- stri_replace_all(inline, "", regex = "`r\\s?|\\s?`")
     
-    for (i in seq_along(results)) {
-      res <- if(!is.na(results[i]) && length(results) > 0L) results[i] else ""
+    for (i in seq_along(expr)) {
+      res <- as.character(eval(parse(text = expr[i]), envir = envir))
+      res <- if (!is.na(res) && length(res) > 0L) stri_c(res, collapse = " ") else " "
       x <- stri_replace(x, replacement = res, fixed = inline[i])
     }
     
