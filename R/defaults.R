@@ -81,10 +81,8 @@ default <- list(
       "chunk_end" = "```$",
       "chunk_eval" = ".*eval\\s*=\\s*((.[^},]+|.[^}]+\\))),?.*",
       "inline" = "`r[ [:alnum:][:punct:]][^`]+`",
-      "chunk_section" = "^[`r]?(print|cat)\\s*\\(\\s*\"\\s*##[^#]",
-      "chunk_slide" = "^`r.*?(^print|^cat)\\s*\\(\\s*\"\\s*##[^#]",
-      "text_section" = "^#[^#]",
-      "text_slide" = "^##[^#]"),
+      "section" = "^#[^#]",
+      "slide" = "^##[^#]"),
     
     "code" = list(
       "chunk_start" = "^#\\sCHUNK\\s[0-9]+\\s[-]+$",

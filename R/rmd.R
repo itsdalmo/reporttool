@@ -12,8 +12,12 @@
 
 evaluate_rmd <- function(rmd, envir = parent.frame()) {
   
-  # Convert the rmd to "r" - easier to identify chunks/evaluate code
-  rmd <- rmd_to_r(rmd, write = FALSE)
+  pattern <- default$pattern$rmd
+  
+  # Convert the rmd to "r"
+  if (!any(stri_detect(rmd, regex = "##\\+"), na.rm = TRUE)) {
+    rmd <- rmd_to_r(rmd, write = FALSE)
+  }
   
   # Remove yaml
   yaml <- which(stri_detect(rmd, regex = stri_c("^##\\+ ---")))
@@ -21,8 +25,8 @@ evaluate_rmd <- function(rmd, envir = parent.frame()) {
   rmd <- rmd[rmd != ""]
   
   # Get indexes
-  titles <- which(stri_detect(rmd, regex = "^##\\+ ##?[^#].*"))
-  inlines <- which(stri_detect(rmd, regex = "^##\\+.*"))
+  titles <- which(stri_detect(rmd, regex = "^##\\+\\s*#{1,2}[^#]"))
+  inlines <- which(stri_detect(rmd, regex = pattern$inline))
   chunks <- which(!stri_detect(rmd, regex = "^##+.*"))
   
   avoid_inline <- c(titles, chunks)
@@ -35,16 +39,17 @@ evaluate_rmd <- function(rmd, envir = parent.frame()) {
   for (i in seq_along(rmd)) {
     if (i > index) {
       
-      is_inline <- stri_detect(rmd[i], regex = "^##\\+")
-      is_title <- stri_detect(rmd[i], regex = "^##\\+ ##?[^#].*")
-      
+      is_inline <- i %in% inlines
+      is_title <- i %in% titles
+
       if (is_inline && !is_title) {
         index <- min(avoid_inline[avoid_inline > i], na.rm = TRUE)
         if (is.infinite(index)) index <- n + 1
         
         # Eval inline code and append to results
         res <- eval_inline(rmd[i:(index-1)], envir = envir)
-        results <- c(results, list(res))
+        res <- stri_c(res[res != " "], collapse = "\n")
+        results <- c(results, as.list(res))
         
       } else if (is_title) {
         index <- i
@@ -68,6 +73,38 @@ evaluate_rmd <- function(rmd, envir = parent.frame()) {
   
   # Return
   results
+  
+}
+
+# Eval inline  -----------------------------------------------------------------
+
+eval_inline <- function(lines, envir = parent.frame()) {
+  
+  pattern <- default$pattern$rmd
+  
+  lines <- lapply(lines, function(x) {
+    
+    is_inline <- stri_detect(x, regex = pattern$inline)
+    if (length(is_inline) == 0L || !is_inline) return(x) # Return early if it does not contain inline
+    
+    inline <- unlist(stri_extract_all(x, regex = pattern$inline))
+    expr <- stri_replace_all(inline, "", regex = "`r\\s?|\\s?`")
+    
+    for (i in seq_along(expr)) {
+      res <- as.character(eval(parse(text = expr[i]), envir = envir))
+      res <- if (!is.na(res) && length(res) > 0L) stri_c(res, collapse = " ") else " "
+      x <- stri_replace(x, replacement = res, fixed = inline[i])
+    }
+    
+    x
+    
+  })
+  
+  # Remove ##+ and empty strings
+  lines <- stri_replace(unlist(lines), "", regex = "^##\\+ ")
+  lines <- lines[lines != ""]
+  
+  lines
   
 }
 
@@ -156,35 +193,6 @@ rmd_to_r <- function(rmd, encoding = "UTF-8", write = TRUE) {
 
 
 # Replace chunk delims  --------------------------------------------------------
-eval_inline <- function(lines, envir = parent.frame()) {
-  
-  pattern <- default$pattern$rmd
-  
-  lines <- lapply(lines, function(x) {
-    
-    is_inline <- stri_detect(x, regex = pattern$inline)
-    if (length(is_inline) == 0L || !is_inline) return(x) # Return early if it does not contain inline
-    
-    inline <- unlist(stri_extract_all(x, regex = pattern$inline))
-    expr <- stri_replace_all(inline, "", regex = "`r\\s?|\\s?`")
-    
-    for (i in seq_along(expr)) {
-      res <- as.character(eval(parse(text = expr[i]), envir = envir))
-      res <- if (!is.na(res) && length(res) > 0L) stri_c(res, collapse = " ") else " "
-      x <- stri_replace(x, replacement = res, fixed = inline[i])
-    }
-    
-    x
-    
-  })
-  
-  # Remove ##+ and empty strings
-  lines <- stri_replace(unlist(lines), "", regex = "^##\\+ ")
-  lines <- lines[lines != ""]
-  
-  lines
-  
-}
 
 replace_chunk_delim <- function(lines) {
   

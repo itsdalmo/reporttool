@@ -31,6 +31,8 @@ generate_ppt <- function(entity, rmd, dir, envir) {
   
   ReporteRs::writeDoc(doc, file = stri_c(file.path(dir, "PPT", stri_c(entity, ".pptx"))))
   
+  invisible()
+  
 }
 
 #' @export
@@ -42,16 +44,15 @@ to_ppt <- function(doc, res) {
     if (length(x) == 0L || is.na(x)) return("unknown")
     
     if (is.character(x)) {
-      if (stri_detect(x, regex = "^# .*")) {
+      if (stri_detect(x, regex = "^#[^#].*")) {
         "title"
-      } else if (stri_detect(x, regex = "^## .*")) {
+      } else if (stri_detect(x, regex = "^##[^#].*")) {
         "subtitle"
       } else if (stri_detect(x, regex = "begin\\{table\\}")) {
         "table"
       } else {
         "markdown"
       }
-      
     } else if (inherits(x, "recordedplot")) {
       "recordedplot"
     } else {
@@ -62,15 +63,14 @@ to_ppt <- function(doc, res) {
   title <- " "; subtitle <- " "
   
   for (i in seq_along(res)) {
-    print(res[[i]])
     if (type[i] == "title") {
-      title <- stri_replace(res[[i]], "$1", regex = "^# (.*)")
+      title <- stri_replace(res[[i]], "", regex = "^#[^#]\\s*")
     } else if (type[i] == "subtitle") {
-      subtitle <- stri_replace(res[[i]], "$1", regex = "^## (.*)")
+      subtitle <- stri_replace(res[[i]], "", regex = "^##[^#]\\s*")
     } else if (type[i] == "table") {
       doc <- ReporteRs::addSlide(doc, slide.layout = 'tableslide')
       doc <- ReporteRs::addTitle(doc, title)
-      # doc <- ReporteRs::addFlexTable(doc, ReporteRs::as.FlexTable(res[[i]]))
+      # doc <- ReporteRs::addFlexTable(doc, res[[i]])
       doc <- ReporteRs::addParagraph(doc, subtitle)
     } else if (type[i] == "markdown") {
       doc <- ReporteRs::addSlide(doc, slide.layout = 'standardslide')
@@ -83,10 +83,6 @@ to_ppt <- function(doc, res) {
       doc <- ReporteRs::addPlot(doc, fun = print, x = res[[i]])
       doc <- ReporteRs::addParagraph(doc, subtitle)
     } else if (type[i] == "other") {
-#       doc <- ReporteRs::addSlide(doc, slide.layout = 'textslide')
-#       doc <- ReporteRs::addTitle(doc, title)
-#       doc <- ReporteRs::addParagraph(doc, subtitle)
-#       doc <- ReporteRs::addParagraph(doc, res[[i]])
     }
   }
 
