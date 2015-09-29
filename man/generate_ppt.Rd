@@ -4,16 +4,16 @@
 \alias{generate_ppt}
 \title{Powerpoint template}
 \usage{
-generate_ppt(entity, rmd, dir, envir)
+generate_ppt(entity, dir, envir, font)
 }
 \arguments{
 \item{entity}{The name of the entity to create a report for.}
 
-\item{rmd}{A loaded (\code{readLines}) rmarkdown document to use as a template.}
-
 \item{dir}{The directory in which to place the PPT folder containing the reports.}
 
 \item{envir}{The environment in which to evaluate the rmarkdown code.}
+
+\item{rmd}{A loaded (\code{readLines}) rmarkdown document to use as a template.}
 }
 \description{
 This function uses \code{ReporteRs} and \code{evaluate} to generate powerpoint

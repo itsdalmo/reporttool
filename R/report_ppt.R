@@ -16,16 +16,23 @@
 #' x <- survey(data.frame("test" = 1, stringsAsFactors = FALSE))
 #' x %>% add_mm()
 
-generate_ppt <- function(entity, rmd, dir, envir, font = "Sisco Book") {
+generate_ppt <- function(entity, dir, envir, font) {
   
   # Set default font for ReporteRs
   ofont <- getOption("ReporteRs-default-font")
-  options("ReporteRs-default-font" = font)
   on.exit(options("ReporteRs-default-font" = ofont), add = TRUE)
   
-  # Copy theme if it does not exist
-  dir.create(file.path(dir, "PPT"), showWarnings = FALSE)
-  copy_ppt_theme(dir = file.path(dir, "PPT"))
+  if (is.null(font)) {
+    options("ReporteRs-default-font" = "Sisco Book")
+  } else {
+    options("ReporteRs-default-font" = font)
+  }
+
+
+  
+  # Read in the .Rmd file
+  rmd <- file.path(dir, "Markdown", stri_c(entity, ".Rmd"))
+  rmd <- readLines(rmd, encoding = "UTF-8")
   
   # Convert the rmd to "r"
   if (!any(stri_detect(rmd, regex = "##\\+"), na.rm = TRUE)) {
@@ -34,9 +41,12 @@ generate_ppt <- function(entity, rmd, dir, envir, font = "Sisco Book") {
   
   # Separate out YAML
   is_yaml <- which(stri_detect(rmd, regex = default$pattern$code$yaml))
-  if (!length(is_yaml)) stop("Could not find the YAML frontmatter.", call. = FALSE)
-  yaml <- extract_yaml(rmd)
-  rmd <- rmd[-c(is_yaml[1]:is_yaml[2])]
+  if (!length(is_yaml)) {
+    stop("Could not find the YAML frontmatter.", call. = FALSE)
+  } else {
+    yaml <- extract_yaml(rmd)
+    rmd <- rmd[-c(is_yaml[1]:is_yaml[2])]
+  }
   
   # Evaluate the markdown
   res <- evaluate_rmd(rmd, envir = envir)
@@ -52,7 +62,7 @@ generate_ppt <- function(entity, rmd, dir, envir, font = "Sisco Book") {
   # Add title etc
   doc <- to_ppt(doc, res)
   
-  ReporteRs::writeDoc(doc, file = stri_c(file.path(dir, "PPT", stri_c(entity, ".pptx"))))
+  ReporteRs::writeDoc(doc, file = file.path(dir, "PPT", stri_c(entity, ".pptx")))
   
   invisible()
   

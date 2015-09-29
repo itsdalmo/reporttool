@@ -5,6 +5,9 @@
 #' @param srv A survey object containing the data that is being reported.
 #' @param report Path to the report template (.Rmd) for the specific study.
 #' @param entity Optional: Name of a specific entity to create a report for.
+#' @param type The type of report. Either PPT or PDF.
+#' @param font Optional: For PPT reports only, you can switch the font used. Defaults 
+#' to Sisco Book.
 #' @return Nothing. A .Rmd file and desired output is created for each entity in
 #' the data, or as specified.
 #' @author Kristian D. Olsen
@@ -12,7 +15,7 @@
 #' @examples 
 #' generate_report(x, "/Internal/Internal_report_2014.Rmd", entity=c("EPSI", "SKI"))
  
-generate_report <- function(srv, report=NULL, entity=NULL, type="pdf") {
+generate_report <- function(srv, report=NULL, entity=NULL, type="pdf", font = NULL) {
   
   # Check the input
   if (!is.survey(srv)) {
@@ -49,7 +52,7 @@ generate_report <- function(srv, report=NULL, entity=NULL, type="pdf") {
   md <- readLines(report, encoding = "UTF-8")
   
   # Replace date with current date, and data with fixed path
-  md <- stringi::stri_replace(md, format(Sys.Date(), "%Y"), regex = "REPLACE_DATE")
+  md <- stringi::stri_replace_all(md, format(Sys.Date(), "%Y"), regex = "REPLACE_DATE")
   
   # Make sure the Markdown and Reports directory exists
   dir.create(file.path(dir, "Reports"), showWarnings = FALSE)
@@ -57,8 +60,10 @@ generate_report <- function(srv, report=NULL, entity=NULL, type="pdf") {
   dir.create(file.path(dir, "PPT"), showWarnings = FALSE)
   
   # Copy beamer theme files if they do not exist
-  if (identical(tolower(type), "pdf")) {
+  if (identical(stri_trans_tolower(type), "pdf")) {
     copy_beamer_theme(file.path(dir, "Markdown"))
+  } else if (identical(stri_trans_tolower(type), "ppt")) {
+    copy_ppt_theme(file.path(dir, "PPT"))
   }
   
   # Iterate over the entities and create their individual .Rmd files.
@@ -67,7 +72,7 @@ generate_report <- function(srv, report=NULL, entity=NULL, type="pdf") {
   # Generate the wanted report-type
   switch(type,
          pdf = lapply(entity, generate_beamer, dir, srv_envir),
-         ppt = lapply(entity, generate_ppt, md, dir, srv_envir),
+         ppt = lapply(entity, generate_ppt, dir, srv_envir, font),
          stop("Please use a supported output format.\n", call. = FALSE))
   
   invisible()
