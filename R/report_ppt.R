@@ -16,19 +16,7 @@
 #' x <- survey(data.frame("test" = 1, stringsAsFactors = FALSE))
 #' x %>% add_mm()
 
-generate_ppt <- function(entity, dir, envir, font) {
-  
-  # Set default font for ReporteRs
-  ofont <- getOption("ReporteRs-default-font")
-  on.exit(options("ReporteRs-default-font" = ofont), add = TRUE)
-  
-  if (is.null(font)) {
-    options("ReporteRs-default-font" = "Sisco Book")
-  } else {
-    options("ReporteRs-default-font" = font)
-  }
-
-
+generate_ppt <- function(entity, dir, envir) {
   
   # Read in the .Rmd file
   rmd <- file.path(dir, "Markdown", stri_c(entity, ".Rmd"))
@@ -87,6 +75,11 @@ to_ppt <- function(doc, res) {
       doc <- ReporteRs::addTitle(doc, title)
       doc <- ReporteRs::addFlexTable(doc, format_flextable(res[[i]]))
       doc <- ReporteRs::addParagraph(doc, subtitle)
+    } else if (type[i] == "flextable") {
+      doc <- ReporteRs::addSlide(doc, slide.layout = 'tableslide')
+      doc <- ReporteRs::addTitle(doc, title)
+      doc <- ReporteRs::addFlexTable(doc, res[[i]])
+      doc <- ReporteRs::addParagraph(doc, subtitle)
     } else if (type[i] == "markdown") {
       doc <- ReporteRs::addSlide(doc, slide.layout = 'standardslide')
       doc <- ReporteRs::addTitle(doc, title)
@@ -133,6 +126,8 @@ result_types <- function(res) {
       "source"
     } else if (inherits(x, "data.frame")) {
       "table"
+    } else if (inherits(x, "FlexTable")) {
+      "flextable"
     } else {
       "unknown"
     }}, character(1))
