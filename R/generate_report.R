@@ -6,8 +6,6 @@
 #' @param report Path to the report template (.Rmd) for the specific study.
 #' @param entity Optional: Name of a specific entity to create a report for.
 #' @param type The type of report. Either PPT or PDF.
-#' @param font Optional: For PPT reports only, you can switch the font used. Defaults 
-#' to Sisco Book.
 #' @return Nothing. A .Rmd file and desired output is created for each entity in
 #' the data, or as specified.
 #' @author Kristian D. Olsen
@@ -15,7 +13,7 @@
 #' @examples 
 #' generate_report(x, "/Internal/Internal_report_2014.Rmd", entity=c("EPSI", "SKI"))
  
-generate_report <- function(srv, report=NULL, entity=NULL, type="pdf", font = NULL) {
+generate_report <- function(srv, report=NULL, entity=NULL, type="pdf") {
   
   # Check the input
   if (!is.survey(srv)) {
@@ -72,7 +70,7 @@ generate_report <- function(srv, report=NULL, entity=NULL, type="pdf", font = NU
   # Generate the wanted report-type
   switch(type,
          pdf = lapply(entity, generate_beamer, dir, srv_envir),
-         ppt = lapply(entity, generate_ppt, dir, srv_envir, font),
+         ppt = lapply(entity, generate_ppt, dir, srv_envir),
          stop("Please use a supported output format.\n", call. = FALSE))
   
   invisible()
