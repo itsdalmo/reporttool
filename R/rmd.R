@@ -12,22 +12,25 @@
 
 evaluate_rmd <- function(rmd, envir = parent.frame()) {
   
-  pattern <- default$pattern$rmd
+  pattern <- default$pattern$code
   
   # Convert the rmd to "r"
   if (!any(stri_detect(rmd, regex = "##\\+"), na.rm = TRUE)) {
     rmd <- rmd_to_r(rmd, write = FALSE)
   }
   
-  # Remove yaml
-  yaml <- which(stri_detect(rmd, regex = stri_c("^##\\+ ---")))
-  rmd <- rmd[-c(yaml[1]:yaml[2])]
+  # Separate out YAML
+  yaml <- extract_yaml(rmd)
+
+  # Remove YAML before evaluating
+  is_yaml <- which(stri_detect(rmd, regex = pattern$yaml))
+  rmd <- rmd[-c(is_yaml[1]:is_yaml[2])]
   rmd <- rmd[rmd != ""]
   
   # Get indexes
-  titles <- which(stri_detect(rmd, regex = "^##\\+\\s*#{1,2}[^#]"))
+  titles <- which(stri_detect(rmd, regex = pattern$title))
   inlines <- which(stri_detect(rmd, regex = pattern$inline))
-  chunks <- which(!stri_detect(rmd, regex = "^##+.*"))
+  chunks <- which(!stri_detect(rmd, regex = pattern$text))
   
   avoid_inline <- c(titles, chunks)
   avoid_chunks <- c(inlines, titles)
@@ -37,13 +40,13 @@ evaluate_rmd <- function(rmd, envir = parent.frame()) {
   index <- 0
   
   for (i in seq_along(rmd)) {
-    if (i > index) {
+    if (i >= index) {
       
       is_inline <- i %in% inlines
       is_title <- i %in% titles
 
       if (is_inline && !is_title) {
-        index <- min(avoid_inline[avoid_inline > i], na.rm = TRUE)
+        index <- suppressWarnings(min(avoid_inline[avoid_inline > i], na.rm = TRUE))
         if (is.infinite(index)) index <- n + 1
         
         # Eval inline code and append to results
@@ -59,7 +62,7 @@ evaluate_rmd <- function(rmd, envir = parent.frame()) {
         results <- c(results, res)
         
       } else {
-        index <- min(avoid_chunks[avoid_chunks > i], na.rm = TRUE)
+        index <- suppressWarnings(min(avoid_chunks[avoid_chunks > i], na.rm = TRUE))
         if (is.infinite(index)) index <- n + 1
         
         # Eval chunks and append to results
@@ -72,7 +75,7 @@ evaluate_rmd <- function(rmd, envir = parent.frame()) {
   }
   
   # Return
-  results
+  c(yaml, code = list(results))
   
 }
 
@@ -105,6 +108,36 @@ eval_inline <- function(lines, envir = parent.frame()) {
   lines <- lines[lines != ""]
   
   lines
+  
+}
+
+extract_yaml <- function(rmd) {
+  
+  # Patterns
+  pattern <- default$pattern$code
+  
+  # Separate out YAML
+  yaml <- which(stri_detect(rmd, regex = pattern$yaml))
+  yaml <- yaml - c(-1, 1)
+  yaml <- rmd[yaml[1]:yaml[2]]
+  
+  # Create report and add the first slide
+  nms <- vapply(yaml, stri_replace, replacement = "$1", regex = "^##\\+ ([[:alnum:]]*):.*", character(1))
+  nms <- unname(nms[!stri_detect(nms, regex = "^##\\+")])
+  
+  yaml <- vapply(yaml, stri_replace, replacement = "$1", regex = "##\\+ [a-zA-Z]*:\\s*(.*)", character(1))
+  yaml <- unname(yaml[!stri_detect(yaml, regex = "^##\\+")])
+  yaml <- stri_replace_all(yaml, "", regex = "\"")
+
+  if (length(yaml) != length(nms)) {
+    stop("Problem parsing YAML frontmatter.", call. = FALSE)
+  }
+  
+  yaml <- setNames(yaml, nms)
+  yaml <- as.list(yaml)
+  
+  # Return
+  yaml
   
 }
 
