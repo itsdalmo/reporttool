@@ -7,13 +7,11 @@
 generate_ppt(entity, dir, envir)
 }
 \arguments{
-\item{entity}{The name of the entity to create a report for.}
+\item{entity}{Name of the entity.}
 
-\item{dir}{The directory in which to place the PPT folder containing the reports.}
+\item{dir}{Base directory (from .Rmd template)}
 
 \item{envir}{The environment in which to evaluate the rmarkdown code.}
-
-\item{rmd}{A loaded (\code{readLines}) rmarkdown document to use as a template.}
 }
 \description{
 This function uses \code{ReporteRs} and \code{evaluate} to generate powerpoint
@@ -23,10 +21,6 @@ are understood as being section titles and new frames/subtitles respectively.
 }
 \note{
 This function is used by \code{generate_report}.
-}
-\examples{
-x <- survey(data.frame("test" = 1, stringsAsFactors = FALSE))
-x \%>\% add_mm()
 }
 \author{
 Kristian D. Olsen

@@ -5,16 +5,11 @@
 #' it is a dumbed down version of normal rmarkdown, where only \code{#} and \code{##}
 #' are understood as being section titles and new frames/subtitles respectively.
 #'
-#' @param entity The name of the entity to create a report for.
-#' @param rmd A loaded (\code{readLines}) rmarkdown document to use as a template.
-#' @param dir The directory in which to place the PPT folder containing the reports.
+#' @param entity Name of the entity.
+#' @param dir Base directory (from .Rmd template)
 #' @param envir The environment in which to evaluate the rmarkdown code.
 #' @author Kristian D. Olsen
 #' @note This function is used by \code{generate_report}.
-#' @export
-#' @examples 
-#' x <- survey(data.frame("test" = 1, stringsAsFactors = FALSE))
-#' x %>% add_mm()
 
 generate_ppt <- function(entity, dir, envir) {
   
@@ -56,7 +51,6 @@ generate_ppt <- function(entity, dir, envir) {
   
 }
 
-#' @export
 to_ppt <- function(doc, res) {
   
   # Get the types of data in our results
