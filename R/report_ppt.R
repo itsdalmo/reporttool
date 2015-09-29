@@ -27,19 +27,30 @@ generate_ppt <- function(entity, rmd, dir, envir, font = "Sisco Book") {
   dir.create(file.path(dir, "PPT"), showWarnings = FALSE)
   copy_ppt_theme(dir = file.path(dir, "PPT"))
   
+  # Convert the rmd to "r"
+  if (!any(stri_detect(rmd, regex = "##\\+"), na.rm = TRUE)) {
+    rmd <- rmd_to_r(rmd, write = FALSE)
+  }
+  
+  # Separate out YAML
+  is_yaml <- which(stri_detect(rmd, regex = default$pattern$code$yaml))
+  if (!length(is_yaml)) stop("Could not find the YAML frontmatter.", call. = FALSE)
+  yaml <- extract_yaml(rmd)
+  rmd <- rmd[-c(is_yaml[1]:is_yaml[2])]
+  
   # Evaluate the markdown
   res <- evaluate_rmd(rmd, envir = envir)
   
   # Create report and add the first slide
   doc <- ReporteRs::pptx(template = file.path(dir, "PPT", "ppt_template.pptx"))
   doc <- ReporteRs::addSlide(doc, slide.layout = "titleslide")
-  doc <- ReporteRs::addTitle(doc, value = res$title)
-  doc <- ReporteRs::addParagraph(doc, value = res$date)
-  doc <- ReporteRs::addParagraph(doc, value = res$author)
-  doc <- ReporteRs::addParagraph(doc, value = res$subtitle)
+  doc <- ReporteRs::addTitle(doc, value = yaml$title)
+  doc <- ReporteRs::addParagraph(doc, value = yaml$date)
+  doc <- ReporteRs::addParagraph(doc, value = yaml$author)
+  doc <- ReporteRs::addParagraph(doc, value = yaml$subtitle)
   
   # Add title etc
-  doc <- to_ppt(doc, res$code)
+  doc <- to_ppt(doc, res)
   
   ReporteRs::writeDoc(doc, file = stri_c(file.path(dir, "PPT", stri_c(entity, ".pptx"))))
   

@@ -13,27 +13,18 @@
 evaluate_rmd <- function(rmd, envir = parent.frame()) {
   
   pattern <- default$pattern$code
-  
-  # Convert the rmd to "r"
-  if (!any(stri_detect(rmd, regex = "##\\+"), na.rm = TRUE)) {
-    rmd <- rmd_to_r(rmd, write = FALSE)
-  }
-  
-  # Separate out YAML
-  yaml <- extract_yaml(rmd)
 
-  # Remove YAML before evaluating
-  is_yaml <- which(stri_detect(rmd, regex = pattern$yaml))
-  rmd <- rmd[-c(is_yaml[1]:is_yaml[2])]
+  # Remove empty lines before evaluating
   rmd <- rmd[rmd != ""]
   
   # Get indexes
   titles <- which(stri_detect(rmd, regex = pattern$title))
   inlines <- which(stri_detect(rmd, regex = pattern$inline))
   chunks <- which(!stri_detect(rmd, regex = pattern$text))
+  text <- setdiff(1:length(rmd), c(titles, inlines, chunks))
   
   avoid_inline <- c(titles, chunks)
-  avoid_chunks <- c(inlines, titles)
+  avoid_chunks <- c(inlines, titles, text)
   
   results <- list()
   n <- length(rmd)
@@ -44,8 +35,9 @@ evaluate_rmd <- function(rmd, envir = parent.frame()) {
       
       is_inline <- i %in% inlines
       is_title <- i %in% titles
+      is_text <- i %in% text
 
-      if (is_inline && !is_title) {
+      if (is_inline || is_text && !is_title) {
         index <- suppressWarnings(min(avoid_inline[avoid_inline > i], na.rm = TRUE))
         if (is.infinite(index)) index <- n + 1
         
@@ -53,7 +45,7 @@ evaluate_rmd <- function(rmd, envir = parent.frame()) {
         res <- eval_inline(rmd[i:(index-1)], envir = envir)
         res <- stri_c(res[res != " "], collapse = "\n")
         results <- c(results, as.list(res))
-        
+      
       } else if (is_title) {
         index <- i
         
@@ -75,7 +67,7 @@ evaluate_rmd <- function(rmd, envir = parent.frame()) {
   }
   
   # Return
-  c(yaml, code = list(results))
+  results
   
 }
 
@@ -140,6 +132,49 @@ extract_yaml <- function(rmd) {
   yaml
   
 }
+# 
+# text_handler <- function(x) {
+# 
+#   x <- stri_split(x, regex = "\n")
+#   titles <- which(stri_detect(x, regex = "^#+.*"))
+#   
+#   results <- list()
+#   n <- length(rmd)
+#   index <- 0
+#   
+#   for (i in seq_along(x)) {
+#     if (i >= index) {
+#       
+#       is_title <- i %in% titles
+#       
+#       if (!is_title) {
+#         index <- suppressWarnings(min(titles[titles > i], na.rm = TRUE))
+#         if (is.infinite(index)) index <- n + 1
+#         
+#         # Eval inline code and append to results
+#         res <- rmd[i:(index-1)]
+#         res <- stri_c(res[res != " "], collapse = "\n")
+#         results <- c(results, as.list(res))
+#         
+#       } else if (is_title) {
+#         index <- i
+#         
+#         # Eval titles and append to results
+#         res <- rmd[i:(index-1)]
+#         results <- c(results, res)
+#         
+#       }
+#     }
+#     
+#   }
+#   
+#   results
+#   
+# }
+# 
+# 
+# ppt_handler <- evaluate::new_output_handler(text = text_handler)
+
 
 #' Convert .Rmd to .R
 #'
