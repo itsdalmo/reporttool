@@ -196,7 +196,7 @@ survey_table <- function(srv, ..., entities = NULL, long_format = FALSE, questio
 
 prop_table <- function(df, mm, dots, long, questions) {
   
-  nms <- setdiff(nms, c("mainentity", "w"))
+  nms <- setdiff(names(df), c("mainentity", "w"))
   
   if (length(nms) == 1L) {
     df$manifest <- nms
