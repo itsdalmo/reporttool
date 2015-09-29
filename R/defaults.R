@@ -85,8 +85,9 @@ default <- list(
       "slide" = "^##[^#]"),
     
     "code" = list(
-      "chunk_start" = "^#\\sCHUNK\\s[0-9]+\\s[-]+$",
-      "chunk_end" = "^#\\sCHUNK\\sEND\\s[-]+$",
-      "not_chunk" = "^##+\\s.*"))
+      "yaml" = "^##\\+ ---",
+      "inline" = "`r[ [:alnum:][:punct:]][^`]+`",
+      "title" = "^##\\+\\s*#{1,2}[^#]",
+      "text" = "^##\\+\\s.*"))
 
 )
