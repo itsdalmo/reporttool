@@ -1,4 +1,4 @@
-#' Convert .Rmd to .R
+#' Evaluate a .Rmd file (after converting with rmd_to_r)
 #'
 #' Evaluate a \code{.Rmd} file in a given environment and return the results,
 #' including text with inline code (e.g. \code{`r 1+1`} becomes 2).
@@ -58,7 +58,7 @@ evaluate_rmd <- function(rmd, envir = parent.frame()) {
         if (is.infinite(index)) index <- n + 1
         
         # Eval chunks and append to results
-        res <- evaluate::evaluate(rmd[i:(index-1)], envir = envir)
+        res <- evaluate::evaluate(rmd[i:(index-1)], envir = envir, output_handler = ppt_handler)
         results <- c(results, res)
       }
       
@@ -71,7 +71,7 @@ evaluate_rmd <- function(rmd, envir = parent.frame()) {
   
 }
 
-# Eval inline  -----------------------------------------------------------------
+# UTILITIES  -------------------------------------------------------------------
 
 eval_inline <- function(lines, envir = parent.frame()) {
   
@@ -103,77 +103,19 @@ eval_inline <- function(lines, envir = parent.frame()) {
   
 }
 
-extract_yaml <- function(rmd) {
+value_handler <- function(x, visible = TRUE) {
   
-  # Patterns
-  pattern <- default$pattern$code
+  if (!visible) return()
   
-  # Separate out YAML
-  yaml <- which(stri_detect(rmd, regex = pattern$yaml))
-  yaml <- yaml - c(-1, 1)
-  yaml <- rmd[yaml[1]:yaml[2]]
-  
-  # Create report and add the first slide
-  nms <- vapply(yaml, stri_replace, replacement = "$1", regex = "^##\\+ ([[:alnum:]]*):.*", character(1))
-  nms <- unname(nms[!stri_detect(nms, regex = "^##\\+")])
-  
-  yaml <- vapply(yaml, stri_replace, replacement = "$1", regex = "##\\+ [a-zA-Z]*:\\s*(.*)", character(1))
-  yaml <- unname(yaml[!stri_detect(yaml, regex = "^##\\+")])
-  yaml <- stri_replace_all(yaml, "", regex = "\"")
-
-  if (length(yaml) != length(nms)) {
-    stop("Problem parsing YAML frontmatter.", call. = FALSE)
+  if (inherits(x, "FlexTable") || is.data.frame(x)) {
+    x
+  } else {
+    print(x)
   }
   
-  yaml <- setNames(yaml, nms)
-  yaml <- as.list(yaml)
-  
-  # Return
-  yaml
-  
 }
-# 
-# text_handler <- function(x) {
-# 
-#   x <- stri_split(x, regex = "\n")
-#   titles <- which(stri_detect(x, regex = "^#+.*"))
-#   
-#   results <- list()
-#   n <- length(rmd)
-#   index <- 0
-#   
-#   for (i in seq_along(x)) {
-#     if (i >= index) {
-#       
-#       is_title <- i %in% titles
-#       
-#       if (!is_title) {
-#         index <- suppressWarnings(min(titles[titles > i], na.rm = TRUE))
-#         if (is.infinite(index)) index <- n + 1
-#         
-#         # Eval inline code and append to results
-#         res <- rmd[i:(index-1)]
-#         res <- stri_c(res[res != " "], collapse = "\n")
-#         results <- c(results, as.list(res))
-#         
-#       } else if (is_title) {
-#         index <- i
-#         
-#         # Eval titles and append to results
-#         res <- rmd[i:(index-1)]
-#         results <- c(results, res)
-#         
-#       }
-#     }
-#     
-#   }
-#   
-#   results
-#   
-# }
-# 
-# 
-# ppt_handler <- evaluate::new_output_handler(text = text_handler)
+
+ppt_handler <- evaluate::new_output_handler(value = value_handler)
 
 
 #' Convert .Rmd to .R
@@ -260,7 +202,7 @@ rmd_to_r <- function(rmd, encoding = "UTF-8", write = TRUE) {
 }
 
 
-# Replace chunk delims  --------------------------------------------------------
+# UTILITIES  -------------------------------------------------------------------
 
 replace_chunk_delim <- function(lines) {
   
@@ -294,5 +236,35 @@ replace_chunk_delim <- function(lines) {
   
   # Return
   lines
+  
+}
+
+extract_yaml <- function(rmd) {
+  
+  # Patterns
+  pattern <- default$pattern$code
+  
+  # Separate out YAML
+  yaml <- which(stri_detect(rmd, regex = pattern$yaml))
+  yaml <- yaml - c(-1, 1)
+  yaml <- rmd[yaml[1]:yaml[2]]
+  
+  # Create report and add the first slide
+  nms <- vapply(yaml, stri_replace, replacement = "$1", regex = "^##\\+ ([[:alnum:]]*):.*", character(1))
+  nms <- unname(nms[!stri_detect(nms, regex = "^##\\+")])
+  
+  yaml <- vapply(yaml, stri_replace, replacement = "$1", regex = "##\\+ [a-zA-Z]*:\\s*(.*)", character(1))
+  yaml <- unname(yaml[!stri_detect(yaml, regex = "^##\\+")])
+  yaml <- stri_replace_all(yaml, "", regex = "\"")
+  
+  if (length(yaml) != length(nms)) {
+    stop("Problem parsing YAML frontmatter.", call. = FALSE)
+  }
+  
+  yaml <- setNames(yaml, nms)
+  yaml <- as.list(yaml)
+  
+  # Return
+  yaml
   
 }
