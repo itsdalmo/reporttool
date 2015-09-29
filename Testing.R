@@ -11,13 +11,15 @@ srv <- osrv
 srv$entity <- "Lyse ladestasjoner"
 envir <- list2env(srv)
 
-md <- readLines(report, encoding = "UTF-8")
+md <- readLines(rmd, encoding = "UTF-8")
 md <- stringi::stri_replace(md, format(Sys.Date(), "%Y"), regex = "REPLACE_DATE")
 
 
 # ------------------------------------------------------------------------------
 
 ev <- evaluate_rmd(md, envir = envir)
+test <- ev
+ev <- test$code
 
 ev[sapply(ev, class) == "recordedplot"]
 ev[sapply(ev, class) == "character"]
