@@ -4,8 +4,7 @@
 \alias{generate_report}
 \title{Generate report}
 \usage{
-generate_report(srv, report = NULL, entity = NULL, type = "pdf",
-  font = NULL)
+generate_report(srv, report = NULL, entity = NULL, type = "pdf")
 }
 \arguments{
 \item{srv}{A survey object containing the data that is being reported.}
@@ -15,9 +14,6 @@ generate_report(srv, report = NULL, entity = NULL, type = "pdf",
 \item{entity}{Optional: Name of a specific entity to create a report for.}
 
 \item{type}{The type of report. Either PPT or PDF.}
-
-\item{font}{Optional: For PPT reports only, you can switch the font used. Defaults
-to Sisco Book.}
 }
 \value{
 Nothing. A .Rmd file and desired output is created for each entity in

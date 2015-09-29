@@ -2,7 +2,7 @@
 % Please edit documentation in R/rmd.R
 \name{evaluate_rmd}
 \alias{evaluate_rmd}
-\title{Convert .Rmd to .R}
+\title{Evaluate a .Rmd file (after converting with rmd_to_r)}
 \usage{
 evaluate_rmd(rmd, envir = parent.frame())
 }

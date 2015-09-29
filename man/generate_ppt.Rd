@@ -4,7 +4,7 @@
 \alias{generate_ppt}
 \title{Powerpoint template}
 \usage{
-generate_ppt(entity, dir, envir, font)
+generate_ppt(entity, dir, envir)
 }
 \arguments{
 \item{entity}{The name of the entity to create a report for.}
