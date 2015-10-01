@@ -48,9 +48,13 @@ default <- list(
                    "mainentity", "subentity", "manifest", "difference", "question",
                    "contrast_average", "average", "study_average", "spring", "fall"),
     "norwegian" = c("Image/inntrykk", "Forventninger", "Produktkvalitet", "Servicekvalitet",
-                    "Verdi for pengene", "Kundetilfredshet", "Lojalitet", "Barnehage", 
+                    "Verdi for pengene", "Kundetilfredshet", "Lojalitet", "Bank", 
                     "Avdeling", "Kode", "Diff", "Spørsmål", "Snitt nasjonal", "Snitt",
-                    "Snitt webstudien", "Vår", "Høst")),
+                    "Snitt webstudien", "Vår", "Høst"),
+    "danish" = c("Image", "Forventninger", "Produktkvalitet", "Servicekvalitet",
+                 "Værdi for pengene", "Kundetilfredshed", "Loyalitet", "Bank",
+                 "Afdeling", "Kode", "Diff", "Spørsmål", "Snitt national", "Snitt", 
+                 "Snitt webstudien", "Forår", "Efterår")),
   
   "config" = list(
     "setting" = c("reporttool", "study", "segment", "year", "period", "method",
