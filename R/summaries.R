@@ -92,7 +92,8 @@ survey_info <- function(srv, entity) {
 
 #' @rdname summaries
 #' @export
-survey_table <- function(srv, ..., entities = NULL, long_format = FALSE, questions = TRUE) {
+
+survey_table <- function(srv, ..., wide = TRUE, weighted = TRUE, questions = TRUE) {
   
   dots <- lazyeval::lazy_dots(...)
   if(!length(dots)) stop("No variables specified.", call. = FALSE)
@@ -101,6 +102,10 @@ survey_table <- function(srv, ..., entities = NULL, long_format = FALSE, questio
   if (!is.survey(srv)) {
     stop("Argument 'survey' is not an object with the class 'survey'. See help(survey).", call. = FALSE)
   }
+  
+  # Extract groups and ungroup
+  groups <- groups(srv)
+  srv <- ungroup(srv)
   
   # Mainentity must be specified in latents
   if (!any(stri_detect(srv$mm$latent, regex = "mainentity"), na.rm = TRUE)) {
@@ -117,138 +122,107 @@ survey_table <- function(srv, ..., entities = NULL, long_format = FALSE, questio
   # w and percent missing
   if (!all(c("w", "percent_missing") %in% names(srv$df))) {
     stop("Weight (w) and percent_missing was not found in the data. See help(prepare_data).", call. = FALSE)
-  } 
-  
-  # Cutoff
-  cutoff <- as.numeric(filter(srv$cfg, config %in% "cutoff")[["value"]])
-  if (is.na(cutoff)) {
-    stop("Cutoff was not found. See help(prepare_data).", call. = FALSE)
   } else {
+    cutoff <- as.numeric(get_config(srv, "cutoff"))
     srv <- suppressWarnings(filter(srv, percent_missing <= cutoff))
+  }
+  
+  # Get the entities
+  if (is.factor(srv$df$mainentity)) {
+    entities <- levels(srv$df$mainentity)
+  } else {
+    entities <- unique(as.character(srv$df$mainentity))
   }
   
   # 2x length dataset to produce average as well
   if (is.data.frame(srv$cd) && nrow(srv$cd)) {
-    tr <- filter(srv$tr, original == "contrast_average")[["replacement"]]
+    tr <- get_translation(srv, "contrast_average")
     df <- bind_rows(srv$df, mutate(srv$cd, mainentity = tr))
   } else {
-    tr <- filter(srv$tr, original == "study_average")[["replacement"]]
+    tr <- get_translation(srv, "study_average")
     df <- bind_rows(srv$df, mutate(srv$df, mainentity = tr))
   }
   
-  # Subset data if entities are specified
-  if (is.null(entities)) {
-    if (is.factor(srv$df$mainentity)) {
-      entities <- levels(srv$df$mainentity)
-    } else {
-      entities <- unique(as.character(srv$df$mainentity))
-    }
-  } else {
-    df <- filter(df, mainentity %in% c(entities, tr))
-  }
-  
-  # Mainentity should be a factor variable
+  # Mainentity should be a (ordered) factor variable
   entities <- entities[stri_order(entities)]
-  df <- mutate(df, mainentity = factor(mainentity, levels = c(entities, tr)))
+  df <- mutate(df, mainentity = factor(mainentity, levels = c(entities, tr), ordered = TRUE))
   
   # Set w to 1 for all rows but the average
-  df <- mutate(df, w = as.numeric(w))
-  df <- mutate(df, w = ifelse(mainentity == tr, w, 1L))
+  if (weighted) {
+    df <- mutate(df, w = as.numeric(w))
+    df <- mutate(df, w = ifelse(mainentity == tr, w, 1L))
+  } else {
+    df <- mutate(df, w = 1L)
+  }
+  
+  # Subset the data
+  df <- select_(df, .dots = c("mainentity", as.character(groups), "w", dots))
 
-  # Select relevant columns and figure out their types
-  df <- select_(df, .dots = c(dots, "mainentity", "w"))
-
+  # Remove character vectors
   is_character <- names(df)[vapply(df, is.character, logical(1))]
   if (length(is_character)) {
+    df <- select(df, -one_of(is_character))
     warning("The following columns are character vectors and will not be included:\n",
             stri_c(is_character, collapse = ", "), call. = FALSE)
-    df <- select(df, -one_of(is_character))
   }
   
   # Either factor or numeric
-  is_factor <- vapply(df[, !names(df) %in% c("mainentity", "w")], is.factor, logical(1))
-  is_numeric <- vapply(df[, !names(df) %in% c("mainentity", "w")], is.numeric, logical(1))
+  vars <- setdiff(names(df), c("mainentity", "w", as.character(groups)))
+  
+  is_factor <- all(vapply(df[vars], is.factor, logical(1)))
+  is_numeric <- all(vapply(df[vars], is.numeric, logical(1)))
   
   if (!all(is_factor) && !all(is_numeric)) {
     stop("All selected columns must either be factor or numeric. Mixing does not work.", call. = FALSE)
   } else if (all(is_factor)) {
-    equal_levels <- lapply(df[!names(df) %in% c("mainentity", "w")], levels)
-    equal_levels <- vapply(equal_levels, identical, y = equal_levels[[1]], logical(1))
-    if (!all(equal_levels)) {
-      stop("All factor variables should have equal levels (possible values).", call. = FALSE)
+    identical_levels <- lapply(df[vars], levels)
+    identical_levels <- vapply(identical_levels, identical, y = identical_levels[[1]], logical(1))
+    if (!all(identical_levels)) {
+      stop("All factor variables must have identical levels (possible values).", call. = FALSE)
     }
   }
   
-  # Create tables
-  if (all(is_factor)) {
-    df <- prop_table(df, srv$mm, long = long_format, questions = questions)
-  } else if (all(is_numeric)) {
-    df <- score_table(df, srv$mm, long = long_format, questions = questions)
-  }
-  
-  names(df) <- ordered_replace(names(df), setNames(srv$mm$manifest, srv$mm$question))
-  names(df) <- ordered_replace(names(df), setNames(srv$tr$original, srv$tr$replacement))
-  
-  # Return
-  df
-  
-}
-
-prop_table <- function(df, mm, dots, long, questions) {
-  
-  nms <- setdiff(names(df), c("mainentity", "w"))
-  
-  if (length(nms) == 1L) {
-    df$manifest <- nms
-    df$answer <- df[[nms]]
-    df <- select(df, mainentity, w, manifest, answer)
+  # Gather all variables to a single column
+  vars <- select_vars_(names(df), args = dots)
+  if (length(vars) == 1L) {
+    df <- mutate_(df, .dots = lazyeval::lazy_dots(manifest = vars))
+    df <- rename_(df, .dots = setNames(vars, "answer"))
   } else {
-    df <- tidyr::gather(df, manifest, answer, -mainentity, -w)
-  }
-
-  df <- filter(df, !is.na(answer))
-  df <- count(df, mainentity, manifest, answer, wt = w)
-  df <- mutate(df, prop = prop.table(n))
-  
-  if (questions) {
-    df <- suppressWarnings(left_join(df, mm, by = c("manifest" = "manifest")))
-    df <- select(df, mainentity, question, answer, n, prop)
+    df <- tidyr::gather_(df, "manifest", "answer", vars)
   }
   
-  if (!long) {
-    df <- mutate(df, n = sum(n))
-    df <- tidyr::spread(df, answer, prop, fill = 0, drop = TRUE)
-    df <- arrange(df, manifest, mainentity)
-  } else {
-    df <- arrange(df, manifest, mainentity)
+  # Filter missing
+  df <- filter_(df, .dots = lazyeval::lazy_dots(!is.na(answer)))
+  
+  # Update groups and group_by_
+  groups <- c("mainentity", as.character(groups))
+  if (is_numeric) {
+    df <- group_by_(df, .dots = c(groups, "manifest"))
+    df <- summarise_each_(df, funs(weighted.mean(., w = w, na.rm = TRUE)), vars = "answer")
+  } else if (is_factor) {
+    df <- count_(df, vars = c(groups, "manifest", "answer"), wt = lazyeval::lazy(w))
+    df <- mutate_(df, .dots = lazyeval::lazy_dots(proportion = prop.table(n), n = sum(n)))
   }
   
-  # Return
-  df
+  # Spread if desired
+  if (is_factor && wide) {
+    df <- tidyr::spread_(df, "answer", "proportion", fill = 0)  
+  } else if (wide) {
+    df <- tidyr::spread_(df, "manifest", "answer", fill = NA)
+  }
   
-}
-
-score_table <- function(df, mm, long, questions) {
-  
-  # Subset and summarise
-  df <- mutate_each(df, funs(as.numeric(.)), -mainentity)
-  df <- group_by(df, mainentity)
-  df <- summarise_each(df, funs(weighted.mean(., w = w, na.rm = TRUE)), -w)
-  
-  # If long format
-  if (long) {
-    df <- tidyr::gather(df, manifest, score, -mainentity)
-    df <- mutate(df, manifest = as.character(manifest))
-    df <- left_join(df, mm, by = c("manifest" = "manifest"))
-    df <- mutate(df, question = factor(question, levels = unique(question), ordered = TRUE))
-    df <- select(df, mainentity, manifest, question, score)
-    df <- arrange(df, question, mainentity)
+  # Add questions/translate if desired
+  if (questions && is_numeric && wide) {
+    var_names <- filter(srv$mm, manifest %in% vars)[c("manifest", "question")]
+    new_names <- setNames(var_names$manifest, var_names$question)
+    names(df) <- ordered_replace(names(df), new_names)
   } else if (questions) {
-    mm <- filter(mm, manifest %in% names(df))
-    df <- arrange(df, mainentity)
+    df <- left_join(df, select(srv$mm, manifest, question), by = c("manifest" = "manifest"))
+    df <- select(df, mainentity, manifest, question, everything())
   }
   
   # Return
   df
   
 }
+
