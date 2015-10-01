@@ -6,7 +6,11 @@
 #' 
 #' \describe{
 #' 
-#'    \item{\code{recode}}{Recode variables.} 
+#'    \item{\code{recode}}{Recode variables without nested ifelse statements. Uses
+#'    \code{\%in\%} to create a logical vector when recoding. I.e. you can recode one
+#'    vector based on matches in another vector of the same length. For factors,
+#'    the function only allows recoding to an existing level, but you can set 
+#'    \code{drop = TRUE} to drop levels that you are recoding (away) from.} 
 #' 
 #'    \item{\code{intranet_link}}{Converts any http(s) link with a .se domain
 #'    to a link for a network drive (sharepoint) on windows.}  
@@ -90,19 +94,6 @@ recode <- function(x, ..., by = x, drop = TRUE) {
   # Return
   x
   
-}
-
-#' @rdname utilities
-#' @export
-set_missing <- function(df, na_strings = get_default("na_strings")) {
-  
-  if (inherits(df, "matrix")) df <- as_data_frame(df)
-  
-  if (all(!is.null(df), nrow(df) > 0L)) {
-    df <- mutate_each(df, funs(ifelse(. %in% na_strings, NA, .)))
-  }
-  
-  df
 }
 
 #' @rdname utilities

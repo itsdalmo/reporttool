@@ -50,7 +50,6 @@ beamer_template <- function(dev = "cairo_pdf", toc = TRUE, keep_tex = FALSE, sli
 }
 
 #' @rdname beamer_template
-
 copy_beamer_theme <- function(dir=NULL) {
   
   # Specify directory
@@ -67,7 +66,6 @@ copy_beamer_theme <- function(dir=NULL) {
 }
 
 #' @rdname beamer_template
-
 generate_beamer <- function(entity, dir, envir) {
   
   # Create the directory for the reports (if it does not exist) and

@@ -8,14 +8,11 @@
 \alias{ordered_replace}
 \alias{recode}
 \alias{rescale_score}
-\alias{set_missing}
 \title{Utilities}
 \usage{
 get_default(string)
 
 recode(x, ..., by = x, drop = TRUE)
-
-set_missing(df, na_strings = get_default("na_strings"))
 
 clean_score(var)
 
@@ -33,7 +30,11 @@ A few wrappers to make a common tasks less verbose.
 
 \describe{
 
-   \item{\code{recode}}{Recode variables.}
+   \item{\code{recode}}{Recode variables without nested ifelse statements. Uses
+   \code{\%in\%} to create a logical vector when recoding. I.e. you can recode one
+   vector based on matches in another vector of the same length. For factors,
+   the function only allows recoding to an existing level, but you can set
+   \code{drop = TRUE} to drop levels that you are recoding (away) from.}
 
    \item{\code{intranet_link}}{Converts any http(s) link with a .se domain
    to a link for a network drive (sharepoint) on windows.}
