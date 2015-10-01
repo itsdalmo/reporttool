@@ -28,17 +28,18 @@ generate_report <- function(srv, report=NULL, entity=NULL, type="pdf") {
     stop("File not found:\n", report, call. = FALSE)
   }
   
+  # Rename and prepare for reporting
+  # Mainentity must be specified in latents
+  if (!any(stri_detect(srv$mm$latent, regex = "mainentity"), na.rm = TRUE)) {
+    stop("'mainentity' is not specified in latents for the measurement model. 
+         See help(set_association).", call. = FALSE)
+  } else {
+    srv <- prepare_survey(srv)
+  }
+  
   # Check if entity is specified, if not - use mainentity and generate a report each
   if (is.null(entity)) {
     message("No entity specified, creating report for all (main) entities.")
-    
-    # Mainentity must be specified in latents
-    if (!any(stri_detect(srv$mm$latent, regex = "mainentity"), na.rm = TRUE)) {
-      stop("'mainentity' is not specified in latents for the measurement model. 
-           See help(set_association).", call. = FALSE)
-    } else {
-      srv <- prepare_survey(srv)
-    }
     entity <- unique(srv$df$mainentity)
   }
   
