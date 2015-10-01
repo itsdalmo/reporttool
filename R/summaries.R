@@ -93,7 +93,7 @@ survey_info <- function(srv, entity) {
 #' @rdname summaries
 #' @export
 
-survey_table <- function(srv, ..., wide = TRUE, weighted = TRUE, questions = TRUE) {
+survey_table <- function(srv, ..., drop = FALSE, wide = TRUE, weighted = TRUE, questions = TRUE) {
   
   dots <- lazyeval::lazy_dots(...)
   if(!length(dots)) stop("No variables specified.", call. = FALSE)
@@ -104,7 +104,7 @@ survey_table <- function(srv, ..., wide = TRUE, weighted = TRUE, questions = TRU
   }
   
   # Extract groups and ungroup
-  groups <- groups(srv)
+  grouping <- groups(srv)
   srv <- ungroup(srv)
   
   # Mainentity must be specified in latents
@@ -156,7 +156,7 @@ survey_table <- function(srv, ..., wide = TRUE, weighted = TRUE, questions = TRU
   }
   
   # Subset the data
-  df <- select_(df, .dots = c("mainentity", as.character(groups), "w", dots))
+  df <- select_(df, .dots = c("mainentity", as.character(grouping), "w", dots))
 
   # Remove character vectors
   is_character <- names(df)[vapply(df, is.character, logical(1))]
@@ -167,7 +167,7 @@ survey_table <- function(srv, ..., wide = TRUE, weighted = TRUE, questions = TRU
   }
   
   # Either factor or numeric
-  vars <- setdiff(names(df), c("mainentity", "w", as.character(groups)))
+  vars <- setdiff(names(df), c("mainentity", "w", as.character(grouping)))
   
   is_factor <- all(vapply(df[vars], is.factor, logical(1)))
   is_numeric <- all(vapply(df[vars], is.numeric, logical(1)))
@@ -195,29 +195,39 @@ survey_table <- function(srv, ..., wide = TRUE, weighted = TRUE, questions = TRU
   df <- filter_(df, .dots = lazyeval::lazy_dots(!is.na(answer)))
   
   # Update groups and group_by_
-  groups <- c("mainentity", as.character(groups))
+  grouping <- as.character(grouping)
   if (is_numeric) {
-    df <- group_by_(df, .dots = c(groups, "manifest"))
+    df <- group_by_(df, .dots = c("mainentity", grouping, "manifest"))
     df <- summarise_each_(df, funs(weighted.mean(., w = w, na.rm = TRUE)), vars = "answer")
   } else if (is_factor) {
-    df <- count_(df, vars = c(groups, "manifest", "answer"), wt = lazyeval::lazy(w))
+    df <- count_(df, vars = c("mainentity", grouping, "manifest", "answer"), wt = lazyeval::lazy(w))
     df <- mutate_(df, .dots = lazyeval::lazy_dots(proportion = prop.table(n), n = sum(n)))
   }
   
   # Spread if desired
   if (is_factor && wide) {
-    df <- tidyr::spread_(df, "answer", "proportion", fill = 0)  
+    n <- distinct_(ungroup(df), .dots = c("mainentity", grouping))
+    n <- select_(n, .dots = c("mainentity", grouping, "n"))
+    df <- select_(ungroup(df), .dots = setdiff(names(df), "n"))
+    df <- tidyr::spread_(df, "answer", "proportion", fill = 0, drop = drop)
+    df <- suppressWarnings(left_join(df, n))
+    df <- select(df, mainentity, manifest, one_of(grouping), n, everything())
   } else if (wide) {
-    df <- tidyr::spread_(df, "manifest", "answer", fill = NA)
+    df <- tidyr::spread_(ungroup(df), "manifest", "answer", fill = NA, drop = drop)
   }
   
   # Add questions/translate if desired
   if (questions && is_numeric && wide) {
-    var_names <- filter(srv$mm, manifest %in% vars)[c("manifest", "question")]
+    var_names <- filter(select(srv$mm, manifest, question), manifest %in% vars, !question %in% c("", " "))
+    missing <- setdiff(vars, var_names$manifest)
+    if (length(missing)) {
+      warning("The following variables had empty 'questions' and have not been replaced:\n",
+              stri_c(missing, collapse = ", "), call. = FALSE)
+    }
     new_names <- setNames(var_names$manifest, var_names$question)
     names(df) <- ordered_replace(names(df), new_names)
   } else if (questions) {
-    df <- left_join(df, select(srv$mm, manifest, question), by = c("manifest" = "manifest"))
+    df <- suppressWarnings(left_join(df, select(srv$mm, manifest, question), by = c("manifest" = "manifest")))
     df <- select(df, mainentity, manifest, question, everything())
   }
   
