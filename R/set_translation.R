@@ -19,6 +19,7 @@ set_translation <- function(srv, ..., language = "norwegian") {
   
   # Gather dots
   args <- list(...)
+  language <- stri_trans_tolower(language)
   
   # Always create a new scaffold
   tr <- new_scaffold(default$structure$tr, size = length(default$translation$required))
@@ -26,7 +27,7 @@ set_translation <- function(srv, ..., language = "norwegian") {
   
   # Add a default language if wanted
   if (!is.null(language)) {
-    if (!stri_trans_tolower(language) %in% names(default$translation)) stop("Language not found.", call. = FALSE)
+    if (!language %in% names(default$translation)) stop("Language not found.", call. = FALSE)
     tr$replacement <- stri_encode(default$translation[[language]], from = "UTF-8")
   }
   
