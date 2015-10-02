@@ -21,3 +21,10 @@ get_config <- function(srv, cfg) {
 }
 
 get_data <- function(srv) srv$df
+
+#' @export
+get_question <- function(srv, str) {
+  
+  filter(srv$mm, manifest %in% str)[["question"]]
+  
+}
