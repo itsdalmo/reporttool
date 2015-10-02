@@ -1,29 +1,4 @@
-#' Summaries
-#'
-#' A few wrappers to make a common tasks less verbose.
-#' 
-#' @section List of summaries:
-#' 
-#' \describe{
-#' 
-#'    \item{\code{survey_info}}{Returns a list of information about the survey
-#'    and entity, including respondents, dates of first and last response etc.}
-#'    
-#'    \item{\code{survey_table}}{Creates a table based on survey data, in either
-#'    wide or long format. The function filters missing_percentage based on cutoff,
-#'    and includes a weighted average as the last row in the table. It also
-#'    replaces columnnames with the question text and/or the specified translations.
-#'    Note: The function suppresses warnings on left_join and filter.}
-#'
-#' }
-#' 
-#' @name Summaries
-#' @author Kristian D. Olsen
-#' @rdname summaries
 #' @export
-#' @examples 
-#' survey_info(srv)
-
 survey_info <- function(srv, entity) {
   
   # Check the input
@@ -90,8 +65,28 @@ survey_info <- function(srv, entity) {
   
 }
 
-#' @rdname summaries
+#' Create tables from surveys
+#'
+#' Function for creating summary tables of factors and numeric columns in a survey.
+#' This function will always group by the mainentity in a survey, and always add
+#' the average for the study. You can also group the survey by other variables
+#' before passing it to \code{survey_table} to get scores/proportions of an
+#' arbitrary variable, grouped gender in addition to company for instance.
+#' 
+#' @param srv A survey object.
+#' @param ... Columns to summarise. All columns must be of the same type, and not
+#' text columns. If they are several factor variables, they must have the same levels.
+#' @param drop Default is \code{FALSE}, which means unused factor levels will be
+#' kept in the data and filled with \code{0} for factors, or \code{NA} for numeric.
+#' @param wide If this is \code{TRUE} (the default), the output will be a wide
+#' \code{data.frame}. 
+#' @param weighted When \code{TRUE}, the average will be weighted.
+#' @param questions When \code{TRUE}, the question text specified in the measurement
+#' model will be included in the table (if they are not empty strings). 
+#' @author Kristian D. Olsen
 #' @export
+#' @examples 
+#' x %>% group_by(q7_service) %>% survey_table(image:loyal)
 
 survey_table <- function(srv, ..., drop = FALSE, wide = TRUE, weighted = TRUE, questions = TRUE) {
   
