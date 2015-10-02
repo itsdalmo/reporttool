@@ -1,6 +1,28 @@
 library(devtools); test()
 library(stringi)
 
+
+
+# Numeric
+srv <- ungroup(srv)
+srv %>% survey_table(q7saem:q7scem)
+
+# Grouped numeric
+srv <- srv %>% group_by(q7_service)
+srv %>% survey_table(q7saem:q7scem) # Get counts also?
+
+# Factor
+srv <- ungroup(srv)
+srv %>% survey_table(q22a:q22c) %>% select(-question)
+
+# Grouped factor
+srv <- srv %>% group_by(q7_service)
+srv %>% survey_table(q22a:q22c) %>% select(-question)
+
+# ------------------------------------------------------------------------------
+
+
+
 srv <- prepare_survey(srv)
 entities <- levels(srv$df$mainentity)[1]
 rmd <- "c:/Github/EPSI/Kontorstudien PM 2015/Kontorstudien PM 2015.Rmd"
