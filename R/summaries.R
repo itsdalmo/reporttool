@@ -210,7 +210,7 @@ survey_table <- function(srv, ..., drop = FALSE, wide = TRUE, weighted = TRUE, q
     n <- select_(n, .dots = c("mainentity", grouping, "n"))
     df <- select_(ungroup(df), .dots = setdiff(names(df), "n"))
     df <- tidyr::spread_(df, "answer", "proportion", fill = 0, drop = drop)
-    df <- suppressWarnings(left_join(df, n))
+    df <- suppressMessages(left_join(df, n))
     df <- select(df, mainentity, manifest, one_of(grouping), n, everything())
   } else if (wide) {
     df <- tidyr::spread_(ungroup(df), "manifest", "answer", fill = NA, drop = drop)
