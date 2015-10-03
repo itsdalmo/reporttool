@@ -42,53 +42,76 @@
 #' @examples 
 #' get_default("palette")
 
-recode <- function(x, ..., by = x, drop = TRUE) {
+recode <- function(x, ..., by = x, ignore.case = TRUE, drop = TRUE) {
   
   dots <- lazyeval::lazy_dots(...)
-  funs <- lazyeval::lazy_eval(dots)
   
-  # Check input
-  is_logical <- vapply(funs, is.logical, logical(1))
-  is_null <- vapply(funs, is.null, logical(1))
-  
-  if (any(is_null)) {
-    null <- names(funs)[is_null]
-    stop("Some of the arguments evaluate to NULL:\n", stri_c(null, collapse = ", "), call. = FALSE)
-  } else if (length(x) != length(by)) {
+  # x and by must be same length
+  if (length(x) != length(by)) {
     stop("Arguments 'x' and 'by' must be the same length.", call. = FALSE)
-  } else if (is.factor(x)) {
-    missing <- setdiff(names(funs), levels(x))
-    if (length(missing)) {
-      stop("Some named arguments do not match levels in the factor:\n",
-           stri_c(missing, ", "), call. = FALSE)
-    }
-  } else if (any(is_logical) && !is.logical(by)) {
-    stop("Argument 'by' is not logical, but one or more of the arguments are.", call. = FALSE)
   }
   
-  # Lowercase and recode
-  by <- stri_trans_tolower(by)
-  for (nm in names(funs)) {
+  if (ignore.case && !is.numeric(by)) {
+    by <- stri_trans_tolower(by)
+  }
     
-    by_subset <- by %in% stri_trans_tolower(funs[[nm]])
+  # Replace . with by and evaluate subsets
+  subsets <- lapply(dots, lazyeval::interp, .values = list(. = by))
+  subsets <- lapply(subsets, lazyeval::lazy_eval)
+  stopifnot(all(lengths(subsets) == length(x)))
+  
+  # Check the arguments
+  is_null <- vapply(subsets, is.null, logical(1))
+  if (any(is_null)) {
+    null <- names(subsets)[is_null]
+    stop("Some of the arguments evaluate to NULL:\n", 
+         stri_c(null, collapse = ", "), call. = FALSE)
+  }
+  
+  # Must be logical
+  is_logical <- vapply(subsets, is.logical, logical(1))
+  if (any(!is_logical)) {
+    not_logical <- names(subsets)[!is_logical]
+    stop("Some of the arguments are not boolean (TRUE/FALSE):\n", 
+         stri_c(not_logical, collapse = ", "), call. = FALSE)
+  }
+  
+  # For factors, names must match the levels
+  if (is.factor(x)) {
+    missing <- setdiff(names(subsets), levels(x))
+    if (length(missing)) {
+      stop("Some named arguments do not match existing factor levels:\n",
+           stri_c(missing, ", "), call. = FALSE)
+    }
+  } 
+  
+  # Warn if the recodes overlap
+  overlap <- unlist(lapply(subsets, which))
+  if (length(overlap) != length(unique(overlap))) {
+    warning("Values are being recoded multiple times. Check results.", call. = FALSE)
+  }
+  
+  dropped <- NULL
+  
+  # Recode
+  for (nm in names(subsets)) {
+    
+    by_subset <- subsets[[nm]]
     
     # Store values that can be dropped
     if (drop && is.factor(x)) {
-      removed <- x[by_subset]
-      removed <- unique(as.character(removed))
-    } else {
-      removed <- NULL
+      dropped <- c(dropped, as.character(x)[by_subset])
     }
     
     # Do the recode
     x[by_subset] <- nm
     
-    # Drop the recoded values
-    if (!is.null(removed)) {
-      new_levels <- setdiff(levels(x), removed)
-      x <- factor(x, levels = new_levels)
-    }
-    
+  }
+  
+  # Drop the recoded values
+  if (!is.null(dropped)) {
+    new_levels <- setdiff(levels(x), dropped)
+    x <- factor(x, levels = new_levels)
   }
   
   # Return

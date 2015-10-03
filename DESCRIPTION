@@ -1,7 +1,7 @@
 Package: reporttool
 Type: Package
 Title: Tools for reporting
-Version: 1.3
+Version: 1.4
 Date: 2015-04-07
 Author: Kristian D. Olsen
 Maintainer: Kristian D. Olsen <kristian@doingit.no>

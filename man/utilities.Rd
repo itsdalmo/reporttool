@@ -12,7 +12,7 @@
 \usage{
 get_default(string)
 
-recode(x, ..., by = x, drop = TRUE)
+recode(x, ..., by = x, ignore.case = TRUE, drop = TRUE)
 
 clean_score(var)
 
