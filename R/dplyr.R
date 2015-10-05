@@ -116,7 +116,9 @@ filter_.survey <- function(srv, ..., .dots) {
   
   # Update entities if the association is set and rows have been dropped
   has_me <- any(stri_detect(srv$mm$latent, regex = "mainentity"), na.rm = TRUE)
-  if (has_me && nrow(srv$df) < n && nrow(srv$df) > 0L) {
+  if (has_me && n == nrow(srv$df)) {
+    warning("No change in entities after filter().", call. = FALSE)
+  } else if (has_me && nrow(srv$df) < n && nrow(srv$df) > 0L) {
     srv <- add_entities(srv)
   } else {
     warning("Entities could not be updated.", call. = FALSE)

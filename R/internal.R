@@ -236,14 +236,18 @@ read_sharepoint <- function(file, mainentity = "q1", encoding = "latin1") {
     stop("There is more than one .sav file ending with \"EM\"\n", call. = FALSE)
   }
   
-  # Rename andel_missing
+  # Rename andel_missing and set to numeric
   miss <- names(srv$df)[stri_trans_tolower(names(srv$df)) %in% "andel_missing"]
   if (length(miss) && !"percent_missing" %in% names(srv$df)) {
     srv <- rename_(srv, .dots = setNames(miss[1], "percent_missing"))
   }
+  srv <- mutate(srv, percent_missing = as.numeric(percent_missing))
   
   # Set config (w/percent missing)
-  miss <- max(as.numeric(srv$df$percent_missing), na.rm = TRUE)
+  miss <- max(srv$df$percent_missing, na.rm = TRUE)
+  miss <- ceiling(miss*10)/10 # Nearest 10%
+  warning("Setting cutoff to ", miss*100, "%.", call. = FALSE)
+  
   srv <- set_config(srv)
   srv$cfg$value[srv$cfg$config %in% "cutoff"] <- miss
   
