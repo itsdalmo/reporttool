@@ -1,5 +1,5 @@
 #' @export
-survey_info <- function(srv, entity) {
+survey_info <- function(srv, ent) {
   
   # Check the input
   if (!is.survey(srv)) {
@@ -27,16 +27,16 @@ survey_info <- function(srv, entity) {
   if (any(srv$mm$type == "Date", na.rm = TRUE)) {
     
     # If more than one datevariables - use the first one
-    var <- filter(mm, type == "Date")[["manifest"]][1]
-    var <- filter(srv$df, mainentity == entity)[[var]]
+    var <- filter(srv$mm, type == "Date")[["manifest"]][1]
+    var <- filter(srv$df, mainentity == ent)[[var]]
     
     if (!inherits(var, "Date")) stop("Date variable is not actually of type Date.", call. = FALSE)
     
     dates <- data_frame(start = min(var, na.rm = TRUE), end = max(var, na.rm = TRUE))
-    dates <- mutate(info$dates, month = format(start, "%m"),
-                                year = format(start, "%Y"),
-                                start = format(start, "%e. %b. %Y"),
-                                end = format(end, "%e. %b. %Y"))
+    dates <- mutate(dates, month = format(start, "%m"),
+                           year = format(start, "%Y"),
+                           start = format(start, "%e. %b. %Y"),
+                           end = format(end, "%e. %b. %Y"))
   } else {
     dates <- NULL
   }
@@ -44,7 +44,7 @@ survey_info <- function(srv, entity) {
   # Add subentities if specified
   if ("subentity" %in% names(srv$df)) {
     cutoff <- as.numeric(filter(srv$cfg, config == "cutoff")[[value]])
-    sub <- filter(srv$df, mainentity == entity, percent_missing <= cutoff)
+    sub <- filter(srv$df, mainentity == ent, percent_missing <= cutoff)
     sub <- group_by(sub, subentity)
     sub <- summarise(sub, valid = n())
     sub <- mutate(valid = stri_c(subentity, valid, sep = " "))
@@ -53,12 +53,12 @@ survey_info <- function(srv, entity) {
   }
   
   # Response information
-  resp <- filter(srv$ents, entity == entity)
+  resp <- filter(srv$ents, entity %in% ent)
   resp <- select(resp, n, valid)
   resp <- mutate(resp, valid_percent = valid/n)
   
   # Model questions
-  questions <- nrow(filter(mm, stri_trans_tolower(latent) %in% default$latents))
+  questions <- nrow(filter(srv$mm, stri_trans_tolower(latent) %in% default$latents))
   
   # Return
   list(respondents = resp, questions = questions, dates = dates, subentities = sub)
@@ -83,12 +83,14 @@ survey_info <- function(srv, entity) {
 #' @param weighted When \code{TRUE}, the average will be weighted.
 #' @param questions When \code{TRUE}, the question text specified in the measurement
 #' model will be included in the table (if they are not empty strings). 
+#' @param contrast Set to false if a contrast exist but you want to use the study
+#' average instead.
 #' @author Kristian D. Olsen
 #' @export
 #' @examples 
 #' x %>% group_by(q7_service) %>% survey_table(image:loyal)
 
-survey_table <- function(srv, ..., drop = FALSE, wide = TRUE, weighted = TRUE, questions = TRUE) {
+survey_table <- function(srv, ..., drop = FALSE, wide = TRUE, weighted = TRUE, questions = TRUE, contrast = TRUE) {
   
   dots <- lazyeval::lazy_dots(...)
   if(!length(dots)) stop("No variables specified.", call. = FALSE)
@@ -130,7 +132,8 @@ survey_table <- function(srv, ..., drop = FALSE, wide = TRUE, weighted = TRUE, q
   }
   
   # 2x length dataset to produce average as well
-  if (is.data.frame(srv$cd) && nrow(srv$cd)) {
+  vars <- select_vars_(names(srv$df), dots)
+  if (contrast && is.data.frame(srv$cd) && nrow(srv$cd) && all(vars %in% names(srv$cd))) {
     tr <- get_translation(srv, "contrast_average")
     df <- bind_rows(srv$df, mutate(srv$cd, mainentity = tr))
   } else {
@@ -186,11 +189,14 @@ survey_table <- function(srv, ..., drop = FALSE, wide = TRUE, weighted = TRUE, q
     df <- tidyr::gather_(df, "manifest", "answer", vars)
   }
   
-  # Filter missing
-  df <- filter_(df, .dots = lazyeval::lazy_dots(!is.na(answer)))
+  # Filter missing (also for grouping variables)
+  grouping <- as.character(grouping)
+  
+  groups_na <- c(grouping, "answer")
+  groups_na <- lapply(groups_na, function(x) { lazyeval::interp(quote(!is.na(y)), "y" = as.name(x)) } )
+  df <- filter_(df, .dots = groups_na)
   
   # Update groups and group_by_
-  grouping <- as.character(grouping)
   if (is_numeric) {
     df <- group_by_(df, .dots = c("mainentity", grouping, "manifest"))
     df <- summarise_each_(df, funs(weighted.mean(., w = w, na.rm = TRUE)), vars = "answer")
