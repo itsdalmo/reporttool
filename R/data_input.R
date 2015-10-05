@@ -81,6 +81,7 @@ read_data <- function(file, ..., encoding = "UTF-8", decimal = ".") {
          tsv = read_flat(file, sep = "\t", loc, dots),
          csv = read_flat(file, sep = ",", loc, dots),
          xlsx = read_xlsx(file, dots),
+         xls = read_xlsx(file, dots),
          rdata = read_rdata(file),
          stop("Unrecognized input format in:\n", file, call. = FALSE))
 }
