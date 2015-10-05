@@ -5,7 +5,7 @@
 \title{Create tables from surveys}
 \usage{
 survey_table(srv, ..., drop = FALSE, wide = TRUE, weighted = TRUE,
-  questions = TRUE)
+  questions = TRUE, contrast = TRUE)
 }
 \arguments{
 \item{srv}{A survey object.}
@@ -23,6 +23,9 @@ kept in the data and filled with \code{0} for factors, or \code{NA} for numeric.
 
 \item{questions}{When \code{TRUE}, the question text specified in the measurement
 model will be included in the table (if they are not empty strings).}
+
+\item{contrast}{Set to false if a contrast exist but you want to use the study
+average instead.}
 }
 \description{
 Function for creating summary tables of factors and numeric columns in a survey.
