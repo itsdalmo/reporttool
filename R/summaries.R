@@ -65,32 +65,9 @@ survey_info <- function(srv, ent) {
   
 }
 
-#' Create tables from surveys
-#'
-#' Function for creating summary tables of factors and numeric columns in a survey.
-#' This function will always group by the mainentity in a survey, and always add
-#' the average for the study. You can also group the survey by other variables
-#' before passing it to \code{survey_table} to get scores/proportions of an
-#' arbitrary variable, grouped gender in addition to company for instance.
-#' 
-#' @param srv A survey object.
-#' @param ... Columns to summarise. All columns must be of the same type, and not
-#' text columns. If they are several factor variables, they must have the same levels.
-#' @param drop Default is \code{FALSE}, which means unused factor levels will be
-#' kept in the data and filled with \code{0} for factors, or \code{NA} for numeric.
-#' @param wide If this is \code{TRUE} (the default), the output will be a wide
-#' \code{data.frame}. 
-#' @param weighted When \code{TRUE}, the average will be weighted.
-#' @param questions When \code{TRUE}, the question text specified in the measurement
-#' model will be included in the table (if they are not empty strings). 
-#' @param contrast Set to false if a contrast exist but you want to use the study
-#' average instead.
-#' @author Kristian D. Olsen
-#' @export
-#' @examples 
-#' x %>% group_by(q7_service) %>% survey_table(image:loyal)
 
-survey_table <- function(srv, ..., drop = FALSE, wide = TRUE, weighted = TRUE, questions = TRUE, contrast = TRUE) {
+#' @export
+survey_table_org <- function(srv, ..., drop = FALSE, wide = TRUE, weighted = TRUE, questions = TRUE, contrast = TRUE) {
   
   dots <- lazyeval::lazy_dots(...)
   if(!length(dots)) stop("No variables specified.", call. = FALSE)
