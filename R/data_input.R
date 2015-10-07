@@ -64,6 +64,7 @@ from_clipboard <- function(sep = "\t", header = TRUE) {
 
 read_data <- function(file, ..., encoding = "UTF-8", decimal = ".") {
   
+  dots <- list(...)
   file <- clean_path(file)
   
   if (!file.exists(file)) {
@@ -72,7 +73,6 @@ read_data <- function(file, ..., encoding = "UTF-8", decimal = ".") {
   
   # Locale and dots
   loc <- readr::locale(encoding = encoding, decimal_mark = decimal)
-  dots <- list(...)
   
   # Pick input-function based on extension
   switch(stri_trans_tolower(tools::file_ext(file)),
@@ -136,13 +136,15 @@ read_xlsx <- function(file, dots) {
     } else if (is.numeric(sheet) || is.integer(sheet)) {
       sheet <- wb[sheet]
     }
+    dots <- dots[!names(dots) %in% "sheet"]
   } else {
     sheet <- wb
   }
   
   # Read data to list
   data <- lapply(sheet, function(x) {
-    x <- try(readxl::read_excel(file, x), silent = TRUE) 
+    a <- list(path = file, sheet = x); a <- append(a, dots)
+    x <- try(do.call(readxl::read_excel, a), silent = TRUE) 
     if (inherits(x, "try-error")) data_frame() else x })
 
   # Set names
