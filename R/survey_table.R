@@ -9,8 +9,6 @@
 #' @param srv A survey object.
 #' @param ... Columns to summarise. All columns must be of the same type, and not
 #' text columns. If they are several factor variables, they must have the same levels.
-#' @param drop Default is \code{FALSE}, which means unused factor levels will be
-#' kept in the data and filled with \code{0} for factors, or \code{NA} for numeric.
 #' @param wide If this is \code{TRUE} (the default), the output will be a wide
 #' \code{data.frame}. 
 #' @param weighted When \code{TRUE}, the average will be weighted.
@@ -23,7 +21,7 @@
 #' @examples 
 #' x %>% group_by(q7_service) %>% survey_table(image:loyal)
 
-survey_table <- function(srv, ..., drop = FALSE, wide = TRUE, weighted = TRUE, questions = TRUE, contrast = TRUE) {
+survey_table <- function(srv, ..., wide = TRUE, weighted = TRUE, questions = TRUE, contrast = TRUE) {
   
   dots <- lazyeval::lazy_dots(...)
   if(!length(dots)) stop("No variables specified.", call. = FALSE)
@@ -165,7 +163,6 @@ survey_table <- function(srv, ..., drop = FALSE, wide = TRUE, weighted = TRUE, q
   
   # Spread 
   if (wide) {
-    
     df <- group_by_(df, .dots = by_group)
     df <- mutate(df, n = sum(n))
     
@@ -173,10 +170,12 @@ survey_table <- function(srv, ..., drop = FALSE, wide = TRUE, weighted = TRUE, q
       if (questions) {
         df <- select(ungroup(df), -manifest)
       }
+      df <- mutate(df, question = factor(question, levels = unique(question), ordered = TRUE))
       df <- tidyr::spread_(ungroup(df), key_col = "question", value_col = "answer", drop = TRUE)
     } else {
       df <- tidyr::spread_(ungroup(df), key_col = "answer", value_col = "proportion", drop = TRUE)
     }
+    
   }
   
   # Return
