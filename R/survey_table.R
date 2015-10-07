@@ -165,13 +165,15 @@ survey_table <- function(srv, ..., wide = TRUE, weighted = TRUE, questions = TRU
   if (wide) {
     df <- group_by_(df, .dots = by_group)
     df <- mutate(df, n = sum(n))
-    
+
     if (is_numeric) {
       if (questions) {
         df <- select(ungroup(df), -manifest)
+        df <- mutate(df, question = factor(question, levels = unique(question), ordered = TRUE))
+        df <- tidyr::spread_(df, key_col = "question", value_col = "answer", drop = TRUE)
+      } else {
+        df <- tidyr::spread_(ungroup(df), key_col = "manifest", value_col = "answer", drop = TRUE)
       }
-      df <- mutate(df, question = factor(question, levels = unique(question), ordered = TRUE))
-      df <- tidyr::spread_(ungroup(df), key_col = "question", value_col = "answer", drop = TRUE)
     } else {
       df <- tidyr::spread_(ungroup(df), key_col = "answer", value_col = "proportion", drop = TRUE)
     }
@@ -179,7 +181,7 @@ survey_table <- function(srv, ..., wide = TRUE, weighted = TRUE, questions = TRU
   }
   
   # Return
-  df
+  group_by_(df, .dots = "mainentity")
   
 }
 
