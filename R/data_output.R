@@ -142,6 +142,9 @@ to_sheet <- function(df, wb, title = "Table", sheet = "analysis", row = 1L,
 
 write_data <- function(x, file, ...) {
   
+  # Gather dots
+  dots <- list(...)
+  
   # Get file information
   file <- clean_path(file)
   ext <- tools::file_ext(file)
@@ -162,7 +165,7 @@ write_data <- function(x, file, ...) {
     }
   } else if (is.data.frame(x)) {
     if (ext %in% c("xlsx", "rdata")) {
-      x <- setNames(list(x), name)
+      x <- if ("sheet" %in% names(dots)) setNames(list(x), dots[["sheet"]]) else setNames(list(x), name)
     }
   } else if (!is.list(x)) {
     stop("This function expects a matrix, data.frame, list or survey.", call. = FALSE)
@@ -171,11 +174,8 @@ write_data <- function(x, file, ...) {
   # Only xlsx and rdata supports a list of output
   supports_list <- ext %in% c("xlsx", "rdata")
   if (is.list2(x) && !supports_list) {
-      stop("Use lapply to write lists that are not survey objects and output is not xlsx.", call. = FALSE) 
+      stop("Use lapply to write lists that are not survey objects when output is not xlsx.", call. = FALSE) 
   }
-  
-  # Gather dots
-  dots <- list(...)
   
   # Use extension to write correct format
   switch(ext,
@@ -230,7 +230,7 @@ write_xlsx <- function(data, file, dots) {
   
   # Update standard args
   args <- list(row = 1L, format_style = FALSE, format_values = FALSE, append = FALSE)
-  args <- append(dots, args[!names(args) %in% names(dots)])
+  args <- append(dots[!names(dots) %in% "sheet"], args[!names(args) %in% names(dots)])
   
   lapply(names(data), function(nm, x, wb) {
     a <- list(df = x[[nm]], wb = wb, sheet = nm); a <- append(a, args)
