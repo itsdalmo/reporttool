@@ -123,55 +123,34 @@ topline <- function(srv, other = NULL) {
   # Check the input
   if (!is.survey(srv)) {
     stop("Argument 'srv' is not an object with the class 'survey'. See help(survey).", call. = FALSE)
-  }
-  
-  # Config and translations must be set beforehand.
-  if (!is.survey_tr(srv$tr) || !nrow(srv$tr)) {
-    stop("Translations must be set first. See help(set_translation).", call. = FALSE)
+  } else {
+    mainentity <- get_association(srv, "mainentity")
   }
   
   # Data must be prepared first
-  if (!all(default$latents %in% names(srv$df))) {
+  latents <- filter(srv$mm, stri_trans_tolower(manifest) %in% default$latents)[["manifest"]]
+  if (!length(latents)) {
     stop("Latents were not found in the data. See help(prepare_data).", call. = FALSE)
-  }
+  } 
   
-  # Find mainentity variable and cutoff
-  mainentity <- filter(srv$mm, stri_trans_tolower(latent) == "mainentity")[["manifest"]]
-  cutoff <- as.numeric(filter(srv$cfg, config == "cutoff")[["value"]])
+  # Get total n in addition to valid observations from survey_table
+  tots <- survey_table_(srv, dots = mainentity, contrast = FALSE, weight = FALSE, filter_missing = FALSE)
+  ents <- survey_table_(srv, dots = latents, contrast = FALSE, weight = FALSE)
+  ents <- rename_(ents, .dots = c("valid" = "n"))
+  ents <- left_join(tots, ents, by = setNames(mainentity, mainentity))
 
   # Check mainentity + 'a' if 'other' is null
   if (is.null(other)) {
     other <- stri_c(mainentity, "a")
     other <- filter(srv$mm, stri_detect(manifest, regex = stri_c("^", other), case_insensitive = TRUE))[["manifest"]]
   }
-  
-  # Set names for data (merges) and subset on percent missing
-  names(srv$df)[names(srv$df) %in% mainentity] <- "entity"
-  names(srv$df)[names(srv$df) %in% other] <- "other"
 
-  # Subset the data so it contains only valid observations. Then summarise.
-  df <- filter(srv$df, percent_missing <= cutoff)
-  df <- select(df, entity, one_of(default$latents))
-  df <- bind_rows(df, mutate(df, entity = "Total"))
-  df <- summarise_each(group_by(df, entity), funs(mean(., na.rm = TRUE)))
-  
-  # Get the entities summary
-  ents <- select(srv$ents, entity, n, valid)
-  ents <- bind_rows(ents, data_frame(entity = "Total", n = sum(ents$n, na.rm = TRUE), valid = sum(ents$valid, na.rm = TRUE)))
-  ents <- left_join(ents, df, by = c("entity" = "entity"))
-
-  # Clean NaN's
-  ents[default$latents] <- lapply(ents[default$latents], function(x) ifelse(is.nan(x), NA, x))
-  
-  # Rename columns
-  tr <- filter(select(srv$tr, replacement, original), original %in% default$latents)
-  names(ents) <- ordered_replace(names(ents), setNames(tr$original, tr$replacement))
-  
   lst <- list("entities" = ents)
   
   # Make a table for 'other' if the variable is found
   if (length(other)) {
-    other <- filter(select(srv$df, other), !is.na(other), other != "")
+    other <- select_(srv$df, .dots = setNames(other, "other"))
+    other <- filter(other, !is.na(other), !other %in% c("", " "))
     other <- mutate(other, other = stri_trans_tolower(other))
     other <- summarise(group_by(other, other), n = n())
     other <- arrange(other, desc(n))
@@ -179,8 +158,8 @@ topline <- function(srv, other = NULL) {
   } else {
     warning("A column corresponding to 'other' was not found in the data.", call. = FALSE)
   }
-
-  return(lst)
+  
+  lst
   
 }
 
