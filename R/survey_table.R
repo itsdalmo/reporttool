@@ -27,6 +27,11 @@
 #'    explicit missing values. When this is the case, counts will be 0 and
 #'    the aggregated values will be \code{NA} (unless it is a factor and one of the
 #'    other proportions are not NA, in this case, the proportions are set to 0 instead.)}
+#'    
+#'    \item{\code{spread}}{When \code{wide} is set to \code{TRUE}, the function 
+#'    spreads the results to a wide format. For numeric, the variables are put in
+#'    separate columns. For factor variables, the proportions are
+#'    spread by their respective levels (e.g. "Yes", "No" etc become columns.))}
 #'
 #' }
 #' 
@@ -171,7 +176,7 @@ survey_table_ <- function(srv, ..., .dots, wide = TRUE, weight = TRUE, question 
     df <- summarise_each_(df, funs(weighted.mean(., w = w, na.rm = TRUE)), vars = "answer")
     df <- suppressMessages(left_join(df_count, df))
   } else if (is_factor) {
-    df <- count_(df, vars = c(by_group, "answer"), wt = quote(w))
+    df <- count_(df, vars = c(by_group), wt = quote(w))
     df <- mutate_(df, .dots = lazyeval::lazy_dots(proportion = prop.table(n), n = sum(n)))
     df <- select_(df, .dots = lazyeval::lazy_dots(-n))
     df <- suppressMessages(left_join(df_count, df))
@@ -186,12 +191,15 @@ survey_table_ <- function(srv, ..., .dots, wide = TRUE, weight = TRUE, question 
   
   # Spread 
   if (wide) {
+    # Sum counts so rows can be dropped in tidyr::spread
+    by_group <- setdiff(by_group, "answer")
     df <- group_by_(df, .dots = by_group)
     df <- mutate(df, n = sum(n))
-
+    
+    # Remove manifest from groups when data is numeric
     if (is_numeric) {
+      by_group <- setdiff(by_group, "manifest")
       if (question) {
-        by_group <- setdiff(by_group, "manifest")
         df <- select_(ungroup(df), .dots = lazyeval::lazy_dots(-manifest))
         mt <- lazyeval::lazy_dots(question = factor(question, levels = unique(question), ordered = TRUE))
         df <- mutate_(df, .dots = mt)

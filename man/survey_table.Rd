@@ -58,6 +58,11 @@ The function does the following:
    the aggregated values will be \code{NA} (unless it is a factor and one of the
    other proportions are not NA, in this case, the proportions are set to 0 instead.)}
 
+\item{\code{spread}}{When \code{wide} is set to \code{TRUE}, the function
+   spreads the results to a wide format. For numeric, the variables are put in
+   separate columns. For factor variables, the proportions are
+   spread by their respective levels (e.g. "Yes", "No" etc become columns.))}
+
 }
 }
 \examples{
