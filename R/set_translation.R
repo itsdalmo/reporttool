@@ -80,6 +80,22 @@ get_translation <- function(srv, trans) {
   
 }
 
+use_latent_translation <- function(srv) {
+
+    # Check class
+    if (!is.survey(srv)) {
+      stop("Argument 'srv' is not an object with the class 'survey'. See help(survey).", call. = FALSE)
+    }
+    
+    # Set latent translations as "question"
+    cols <- stri_trans_tolower(srv$mm$manifest) %in% default$latents
+    srv$mm$question[cols] <- get_translation(srv, default$latents)
+    
+    # Return
+    srv
+    
+}
+
 # Utilities --------------------------------------------------------------------
 
 is.survey_tr <- function(x) inherits(x, "survey_tr")
