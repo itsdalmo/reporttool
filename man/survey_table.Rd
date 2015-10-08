@@ -38,7 +38,7 @@ The function does the following:
 
 \describe{
 
-\item{\code{average} Produces an average for the tables, which is always the
+\item{\code{average}}{Produces an average for the tables, which is always the
    average for the first group (as set by \code{group_by}),
    and it is appropriately grouped for the remaining groups.}
 

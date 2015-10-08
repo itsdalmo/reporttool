@@ -8,9 +8,9 @@
 #' 
 #' \describe{
 #' 
-#'    \item{\code{average} Produces an average for the tables, which is always the 
+#'    \item{\code{average}}{Produces an average for the tables, which is always the 
 #'    average for the first group (as set by \code{group_by}),
-#'    and it is appropriately grouped for the remaining groups.} 
+#'    and it is appropriately grouped for the remaining groups.}
 #' 
 #'    \item{\code{weight}}{Unless otherwise specified, this function will always
 #'    weight the results for the average. This also means that the function requires
@@ -80,11 +80,8 @@ survey_table_ <- function(srv, ..., .dots, wide = TRUE, weight = TRUE, question 
   srv <- select_(srv, .dots = c(grouping, "w", dots))
   
   # Get the grouping variable
-  if (is.factor(srv$df$mainentity)) {
-    entities <- levels(srv$df[[mainentity]])
-  } else {
-    entities <- unique(as.character(srv$df[[mainentity]]))
-  }
+  entities <- srv$df[[mainentity]]
+  entities <- if (is.factor(entities)) levels(entities) else unique(as.character(entities))
   
   # 2x length dataset to produce average as well
   vars <- select_vars_(names(srv$df), c(grouping, dots))
@@ -147,7 +144,7 @@ survey_table_ <- function(srv, ..., .dots, wide = TRUE, weight = TRUE, question 
   by_group <- if (is_factor) c(by_group, "answer") else by_group
 
   # Filter missing for grouping variables
-  nas <- lapply(by_group, function(x) { lazyeval::interp(quote(!is.na(y)), "y" = as.name(x)) } )
+  nas <- lapply(by_group, function(x) { lazyeval::interp(~!is.na(y), "y" = as.name(x)) } )
   df <- filter_(df, .dots = nas)
   
   # Expand data and get count for groups
