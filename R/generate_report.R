@@ -95,11 +95,6 @@ prepare_survey <- function(srv) {
     stop("Argument 'srv' is not an object with the class 'survey'. See help(survey).", call. = FALSE)
   }
   
-  # Measurement model must be added first
-  if (!is.survey_mm(srv$mm) || !nrow(srv$mm)) {
-    stop("The measurement model must be added first. See help(add_mm).", call. = FALSE)
-  }
-  
   # Lowercase names
   nms <- names(srv$df)
   srv <- rename_(srv, .dots = setNames(nms, stri_trans_tolower(nms)))
@@ -130,8 +125,7 @@ prepare_survey <- function(srv) {
     if (subentity %in% names(srv$hd)) names(srv$hd) <- ordered_replace(names(srv$hd), setNames(subentity, "subentity"))
   }
   
-  # Set latent translations as "question"
-  srv$mm$question[srv$mm$manifest %in% default$latents] <- get_translation(srv, default$latents)
+  srv <- use_latent_translation(srv)
   
   # Return
   srv
