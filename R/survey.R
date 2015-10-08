@@ -101,6 +101,10 @@ survey <- function(x) {
   
 }
 
+#' @export
+get_data <- function(srv) srv$df
+
+
 # Methods ----------------------------------------------------------------------
 
 #' @rdname survey

@@ -63,6 +63,20 @@ set_config <- function(srv, ...) {
   
 }
 
+#' @export
+get_config <- function(srv, cfg) {
+  
+  cfg <- stri_trans_tolower(cfg)
+  
+  # Measurement model must be added first
+  if (!is.survey_cfg(srv$cfg) || !nrow(srv$cfg)) {
+    stop("The config must be added first. See help(set_config).", call. = FALSE)
+  }
+  
+  filter(srv$cfg, stri_trans_tolower(config) %in% cfg)[["value"]]
+  
+}
+
 # Utilities --------------------------------------------------------------------
 
 is.survey_cfg <- function(x) inherits(x, "survey_cfg")

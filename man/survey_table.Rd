@@ -2,37 +2,63 @@
 % Please edit documentation in R/survey_table.R
 \name{survey_table}
 \alias{survey_table}
+\alias{survey_table_}
 \title{Create tables from surveys}
 \usage{
-survey_table(srv, ..., drop = FALSE, wide = TRUE, weighted = TRUE,
-  questions = TRUE, contrast = TRUE)
+survey_table(srv, ..., wide = TRUE, weight = TRUE, question = TRUE,
+  contrast = TRUE)
+
+survey_table_(srv, ..., .dots, wide = TRUE, weight = TRUE,
+  question = TRUE, contrast = TRUE)
 }
 \arguments{
 \item{srv}{A survey object.}
 
-\item{...}{Columns to summarise. All columns must be of the same type, and not
-text columns. If they are several factor variables, they must have the same levels.}
+\item{...}{Columns to summarise. Accepts either numeric or factors, and a
+warning will be issued if it encounters text etc. When creating a table for
+factors, they must all have identical factor levels.}
 
-\item{drop}{Default is \code{FALSE}, which means unused factor levels will be
-kept in the data and filled with \code{0} for factors, or \code{NA} for numeric.}
+\item{wide}{If this is \code{TRUE} (the default), the output will be in a wide format.}
 
-\item{wide}{If this is \code{TRUE} (the default), the output will be a wide
-\code{data.frame}.}
+\item{weight}{When \code{TRUE}, the average will be weighted (assumes weights are in column 'w').}
 
-\item{weighted}{When \code{TRUE}, the average will be weighted.}
+\item{question}{When \code{TRUE}, the question text specified in the measurement
+model will be included in the table (provided they are not empty strings).}
 
-\item{questions}{When \code{TRUE}, the question text specified in the measurement
-model will be included in the table (if they are not empty strings).}
-
-\item{contrast}{Set to false if a contrast exist but you want to use the study
+\item{contrast}{Set to \code{FALSE} if a contrast exist but you want to use the study
 average instead.}
 }
 \description{
 Function for creating summary tables of factors and numeric columns in a survey.
-This function will always group by the mainentity in a survey, and always add
-the average for the study. You can also group the survey by other variables
-before passing it to \code{survey_table} to get scores/proportions of an
-arbitrary variable, grouped gender in addition to company for instance.
+You can also group the survey by other variables before passing it to \code{survey_table}
+to get scores/proportions by one or more variables.
+}
+\details{
+The function does the following:
+
+\describe{
+
+\item{\code{average} Produces an average for the tables, which is always the
+   average for the first group (as set by \code{group_by}),
+   and it is appropriately grouped for the remaining groups.}
+
+\item{\code{weight}}{Unless otherwise specified, this function will always
+   weight the results for the average. This also means that the function requires
+   that the weight column (\code{w}) is present in the data.}
+
+\item{\code{filter}}{Always filters missing values \code{NA}
+   for all groups and the variables that go into the table, as well as
+   \code{percent_missing} which exceeds the cutoff in the surveys config.}
+
+\item{\code{count}}{For both numeric and factor variables, this function always
+   provides a count for the number of valid observations (after filtering) in each group.}
+
+\item{\code{missing}}{Turns implicit missing values into
+   explicit missing values. When this is the case, counts will be 0 and
+   the aggregated values will be \code{NA} (unless it is a factor and one of the
+   other proportions are not NA, in this case, the proportions are set to 0 instead.)}
+
+}
 }
 \examples{
 x \%>\% group_by(q7_service) \%>\% survey_table(image:loyal)

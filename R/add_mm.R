@@ -75,6 +75,20 @@ add_mm <- function(srv, mm = NULL) {
   
 }
 
+#' @export
+get_question <- function(srv, vars) {
+  
+  vars <- stri_trans_tolower(vars)
+  
+  # Measurement model must be added first
+  if (!is.survey_mm(srv$mm) || !nrow(srv$mm)) {
+    stop("The measurement model must be added first. See help(add_mm).", call. = FALSE)
+  }
+  
+  filter(srv$mm, stri_trans_tolower(manifest) %in% vars)[["question"]]
+  
+}
+
 # Utilities --------------------------------------------------------------------
 
 is.survey_mm <- function(x) inherits(x, "survey_mm")

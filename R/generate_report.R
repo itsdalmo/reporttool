@@ -104,18 +104,18 @@ prepare_survey <- function(srv) {
   nms <- names(srv$df)
   srv <- rename_(srv, .dots = setNames(nms, stri_trans_tolower(nms)))
   
-#   if (nrow(srv$cd) && !is.null(names(srv$cd))) {
-#     nms <- names(srv$cd)
-#     srv$cd <- rename_(srv$cd, .dots = setNames(nms, stri_trans_tolower(nms)))
-#   }
-#   
-#   if (nrow(srv$hd) && !is.null(names(srv$hd))) {
-#     nms <- names(srv$hd)
-#     srv$hd <- rename_(srv$hd, .dots = setNames(nms, stri_trans_tolower(nms)))
-#   }
+  if (nrow(srv$cd)) {
+    nms <- names(srv$cd)
+    srv$cd <- rename_(srv$cd, .dots = setNames(nms, stri_trans_tolower(nms)))
+  }
+  
+  if (nrow(srv$hd)) {
+    nms <- names(srv$hd)
+    srv$hd <- rename_(srv$hd, .dots = setNames(nms, stri_trans_tolower(nms)))
+  }
   
   # Replace mainentity
-  mainentity <- srv$mm$manifest[srv$mm$latent %in% "mainentity"]
+  mainentity <- get_association(srv, "mainentity")
   if (length(mainentity)) {
     if (mainentity %in% names(srv$df)) srv <- rename_(srv, .dots = setNames(list(mainentity), "mainentity"))
     if (mainentity %in% names(srv$cd)) names(srv$cd) <- ordered_replace(names(srv$cd), setNames(mainentity, "mainentity"))
@@ -123,7 +123,7 @@ prepare_survey <- function(srv) {
   }
   
   # Replace subentity
-  subentity <- srv$mm$manifest[srv$mm$latent %in% "subentity"]
+  subentity <- get_association(srv, "subentity")
   if (length(subentity)) {
     if (subentity %in% names(srv$df)) srv <- rename_(srv, .dots = setNames(list(subentity), "subentity"))
     if (subentity %in% names(srv$cd)) names(srv$cd) <- ordered_replace(names(srv$cd), setNames(subentity, "subentity"))
@@ -131,7 +131,7 @@ prepare_survey <- function(srv) {
   }
   
   # Set latent translations as "question"
-  srv$mm$question[srv$mm$manifest %in% default$latents] <- filter(srv$tr, original %in% default$latents)[["replacement"]]
+  srv$mm$question[srv$mm$manifest %in% default$latents] <- get_translation(srv, default$latents)
   
   # Return
   srv
