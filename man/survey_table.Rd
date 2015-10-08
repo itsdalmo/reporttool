@@ -6,10 +6,10 @@
 \title{Create tables from surveys}
 \usage{
 survey_table(srv, ..., wide = TRUE, weight = TRUE, question = TRUE,
-  contrast = TRUE)
+  filter_missing = TRUE, contrast = TRUE)
 
-survey_table_(srv, ..., .dots, wide = TRUE, weight = TRUE,
-  question = TRUE, contrast = TRUE)
+survey_table_(srv, ..., dots, wide = TRUE, weight = TRUE, question = TRUE,
+  filter_missing = TRUE, contrast = TRUE)
 }
 \arguments{
 \item{srv}{A survey object.}
@@ -24,6 +24,9 @@ factors, they must all have identical factor levels.}
 
 \item{question}{When \code{TRUE}, the question text specified in the measurement
 model will be included in the table (provided they are not empty strings).}
+
+\item{filter_missing}{Set to \code{FALSE} to NOT remove observations with \code{percent_missing}
+above the cutoff that is set in config.}
 
 \item{contrast}{Set to \code{FALSE} if a contrast exist but you want to use the study
 average instead.}
@@ -46,9 +49,10 @@ The function does the following:
    weight the results for the average. This also means that the function requires
    that the weight column (\code{w}) is present in the data.}
 
-\item{\code{filter}}{Always filters missing values \code{NA}
+\item{\code{filter}}{Filters missing values \code{NA}
    for all groups and the variables that go into the table, as well as
-   \code{percent_missing} which exceeds the cutoff in the surveys config.}
+   \code{percent_missing} which exceeds the cutoff in the surveys config. Setting
+   \code{filter_missing} to \code{FALSE} overrides the filtering of \code{percent_missing}.}
 
 \item{\code{count}}{For both numeric and factor variables, this function always
    provides a count for the number of valid observations (after filtering) in each group.}
