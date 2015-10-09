@@ -64,6 +64,7 @@ set_association <- function(survey, ..., common = FALSE) {
   
 }
 
+#' @rdname set_association
 #' @export
 get_association <- function(srv, assoc) {
   

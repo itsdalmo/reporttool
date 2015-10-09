@@ -63,6 +63,7 @@ set_config <- function(srv, ...) {
   
 }
 
+#' @rdname set_config
 #' @export
 get_config <- function(srv, cfg) {
   

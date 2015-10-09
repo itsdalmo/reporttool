@@ -2,10 +2,13 @@
 % Please edit documentation in R/add_mm.R
 \name{add_mm}
 \alias{add_mm}
+\alias{get_question}
 \alias{print.survey_mm}
 \title{Add measurement model to a survey}
 \usage{
 add_mm(srv, mm = NULL)
+
+get_question(srv, vars)
 
 \method{print}{survey_mm}(mm, width = getOption("width"))
 }

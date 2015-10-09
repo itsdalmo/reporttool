@@ -75,6 +75,7 @@ add_mm <- function(srv, mm = NULL) {
   
 }
 
+#' @rdname add_mm
 #' @export
 get_question <- function(srv, vars) {
   
