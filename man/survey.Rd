@@ -4,12 +4,18 @@
 \alias{as.survey}
 \alias{as.survey.default}
 \alias{as.survey.survey}
+\alias{get_data}
 \alias{is.survey}
+\alias{lowercase_names}
 \alias{print.survey}
 \alias{survey}
 \title{Create a survey object}
 \usage{
 survey(x)
+
+get_data(srv)
+
+lowercase_names(srv)
 
 is.survey(x)
 
