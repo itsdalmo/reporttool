@@ -202,7 +202,7 @@ survey_table_ <- function(srv, ..., dots, wide = TRUE, weight = TRUE, question =
     df <- tidyr::replace_na(df, replace = list("proportion" = 0))
     
     # Patchwork
-    df <- group_by_(df, .dots = by_group)
+    df <- group_by_(df, .dots = setdiff(by_group, "answer"))
     mt <- lazyeval::lazy_dots(total = sum(n), proportion = ifelse(total == 0, NA_real_, proportion))
     df <- mutate_(df, .dots = mt)
     df <- select_(df, .dots = lazyeval::lazy_dots(-total))
