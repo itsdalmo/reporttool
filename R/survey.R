@@ -128,6 +128,8 @@ lowercase_names <- function(srv) {
     srv$hd <- rename_(srv$hd, .dots = setNames(nms, stri_trans_tolower(nms)))
   }
   
+  srv
+  
 }
 
 # Methods ----------------------------------------------------------------------
