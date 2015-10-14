@@ -95,7 +95,7 @@ use_latent_translation <- function(srv) {
   
   # Set latent translations as "question"
   cols <- stri_trans_tolower(srv$mm$manifest) %in% default$latents
-  srv$mm$question[cols] <- get_translation(srv, default$latents)
+  srv$mm$question[cols] <- get_translation(srv, stri_trans_tolower(srv$mm$manifest[cols]))
   
   # Return
   srv
