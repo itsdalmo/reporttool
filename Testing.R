@@ -1,70 +1,41 @@
-library(devtools); test()
+library(devtools); load_all()
 library(stringi)
-
-
-
-# Numeric
-srv <- ungroup(srv)
-srv %>% survey_table(q7saem:q7scem)
-
-# Grouped numeric
-srv <- srv %>% group_by(q7_service)
-srv %>% survey_table(q7saem:q7scem) # Get counts also?
-
-# Factor
-srv <- ungroup(srv)
-srv %>% survey_table(q22a:q22c) %>% select(-question)
-
-# Grouped factor
-srv <- srv %>% group_by(q7_service)
-srv %>% survey_table(q22a:q22c) %>% select(-question)
 
 # ------------------------------------------------------------------------------
 
+lnk <- "../EPSI/Kronjylland BM H2015"
+x <- read_data(file.path(lnk, "Data", "Data Sparekassen Kronjylland B2B 2015.sav"))
 
 
-srv <- prepare_survey(srv)
-entities <- levels(srv$df$mainentity)[1]
-rmd <- "c:/Github/EPSI/Kontorstudien PM 2015/Kontorstudien PM 2015.Rmd"
-options("ReporteRs-default-font" = "Arial")
+# Ready the survey with associations etc
+srv <- survey(x) %>%
+  rename(percent_missing = Andel_Missing, q1_org = q1, q1 = Afdeling) %>%
+  set_translation(study_average = "SK afdelingsstudie", language = "Danish") %>%
+  set_config(study = "Kronjylland BM") %>%
+  set_association(complaint = "qc17",
+                  open_complaint = "qc17a",
+                  prodq = stri_c("qp7", c("f", "g", "h")),
+                  servq = stri_c("qs7", c("a", "b", "c", "d", "e")),
+                  oa_positive = stri_c("q30a", c("", stri_c(".OpenText", c(2, 3)))),
+                  oa_negative = stri_c("q30b", c("", stri_c(".OpenText", c(2, 3)))),
+                  common = TRUE) %>%
+  add_entities() %>%
+  lowercase_names()
 
-report = rmd
-entity = entities
-type = "ppt"
-font = "Arial"
+# ------------------------------------------------------------------------------
+srv <- ungroup(srv)
 
-# generate_report(report = rmd, entity = entities, type = "ppt")
-report <- clean_path(report)
-dir <- dirname(report)
-srv_envir <- list2env(srv, parent = environment())
+srv %>% group_by(q1) %>% 
+  survey_table(loj1, wide = TRUE) %>%
+  select(-question, -manifest)
 
-md <- readLines(report, encoding = "UTF-8")
-md <- stringi::stri_replace_all(md, format(Sys.Date(), "%Y"), regex = "REPLACE_DATE")
-dir.create(file.path(dir, "PPT"), showWarnings = FALSE)
-copy_ppt_theme(file.path(dir, "PPT"))
-lapply(entity, generate_rmd, md, dir)
+srv %>% group_by(q1) %>% 
+  survey_table(kon1, kon2, wide = TRUE)
 
+srv %>% group_by(q1) %>% 
+  survey_table(one_of(get_default("latents")), wide = TRUE) 
 
-# lapply(entity, generate_ppt, dir, srv_envir)
-rmd <- file.path(dir, "Markdown", stri_c(entity, ".Rmd"))
-rmd <- readLines(rmd, encoding = "UTF-8")
-
-if (!any(stri_detect(rmd, regex = "##\\+"), na.rm = TRUE)) {
-  rmd <- rmd_to_r(rmd, write = FALSE)
-}
-
-# Separate out YAML
-envir = srv_envir
-
-is_yaml <- which(stri_detect(rmd, regex = default$pattern$code$yaml))
-if (!length(is_yaml)) {
-  stop("Could not find the YAML frontmatter.", call. = FALSE)
-} else {
-  yaml <- extract_yaml(rmd)
-  rmd <- rmd[-c(is_yaml[1]:is_yaml[2])]
-}
-
-# Evaluate the markdown
-res <- evaluate_rmd(rmd, envir = envir)
-
-res[sapply(res, class) == "recordedplot"]
+srv %>%  
+  mutate_each(funs(rescale_score(clean_score(.))), q3:q4a) %>%
+  group_by(q1) %>%
+  survey_table(q3, q4a, wide = TRUE) 
