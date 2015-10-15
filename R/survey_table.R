@@ -60,7 +60,9 @@ survey_table <- function(srv, ..., wide = TRUE, weight = TRUE, question = TRUE, 
 
 #' @export
 #' @rdname survey_table
-survey_table_ <- function(srv, ..., dots, wide = TRUE, weight = TRUE, question = TRUE, filter_missing = TRUE, contrast = TRUE) {
+survey_table_ <- function(srv, dots, wide = TRUE, weight = TRUE, question = TRUE, filter_missing = TRUE, contrast = TRUE) {
+  
+  if(!length(dots)) stop("No variables specified.", call. = FALSE)
   
   # Check the input
   if (!is.survey(srv)) {
@@ -69,9 +71,6 @@ survey_table_ <- function(srv, ..., dots, wide = TRUE, weight = TRUE, question =
     mainentity <- get_association(srv, "mainentity")
     cutoff <- as.numeric(get_config(srv, "cutoff"))
   }
-  
-  dots <- lazyeval::all_dots(dots, ...)
-  if(!length(dots)) stop("No variables specified.", call. = FALSE)
   
   # Extract groups and ungroup
   grouping <- as.character(groups(srv))
@@ -89,20 +88,24 @@ survey_table_ <- function(srv, ..., dots, wide = TRUE, weight = TRUE, question =
     srv <- suppressWarnings(filter_(srv, .dots = mt))
   }
   
+  # Add weight if it does not exist
   if (!"w" %in% names(srv$df)) {
     srv <- mutate(srv, w = 1L)
   }
   
   # Subset columns
-  srv <- suppressWarnings(select_(srv, .dots = c(grouping, "w", dots)))
-
+  vars <- select_vars_(names(srv$df), c(grouping, dots))
+  if (length(setdiff(vars, mainentity)) == 0L && vars != mainentity) {
+    stop("No variables found.", call. = FALSE)
+  } else {
+    srv <- suppressWarnings(select_(srv, .dots = c(as.character(vars), "w")))
+  }
+  
   # Get the grouping variable
   entities <- srv$df[[mainentity]]
   entities <- if (is.factor(entities)) levels(entities) else unique(as.character(entities))
-
+  
   # 2x length dataset to produce average as well
-  vars <- select_vars_(names(srv$df), c(grouping, dots))
-
   if (contrast && is.data.frame(srv$cd) && nrow(srv$cd) && all(vars %in% names(srv$cd))) {
     tr <- get_translation(srv, "contrast_average")
     mt <- lazyeval::interp(~x, x = tr)
@@ -112,11 +115,11 @@ survey_table_ <- function(srv, ..., dots, wide = TRUE, weight = TRUE, question =
     mt <- lazyeval::interp(~x, x = tr)
     df <- bind_rows(srv$df, mutate_(srv$df, .dots = setNames(list(mt), mainentity)))
   }
-
+  
   # Mainentity should be a (ordered) factor variable
   mt <- lazyeval::interp(~factor(x, levels = y, ordered = TRUE), x = as.name(mainentity), y = c(entities, tr))
   df <- mutate_(df, .dots = setNames(list(mt), mainentity))
-
+  
   # Set w to 1 for all rows but the average
   if (weight) {
     df <- mutate_(df, .dots = lazyeval::lazy_dots(w = as.numeric(w)))
@@ -125,36 +128,29 @@ survey_table_ <- function(srv, ..., dots, wide = TRUE, weight = TRUE, question =
   } else {
     df <- mutate_(df, .dots = lazyeval::lazy_dots(w = 1L))
   }
-
-  # Remove character vectors
-  is_character <- names(df)[vapply(df, is.character, logical(1))]
-  if (length(is_character)) {
-    df <- select(df, .dots = lazyeval::lazy_dots(-one_of(is_character)))
-    warning("The following columns are character vectors and will not be included:\n",
-            stri_c(is_character, collapse = ", "), call. = FALSE)
-  }
-
-  # Either factor or numeric
+  
+  df <- drop_character_columns(df)
+  
+  # Get variables and return early if only the mainentity is specified
   vars <- select_vars_(names(df), args = dots)
-
   if (identical(unname(vars), mainentity)) {
-    # Return early if only mainentity is specified
     return(count_(df, vars = vars, wt = quote(w)))
   }
-
-  is_factor <- all(vapply(df[vars], is.factor, logical(1)))
-  is_numeric <- all(vapply(df[vars], is.numeric, logical(1)))
-
-  if (!all(is_factor) && !all(is_numeric)) {
+  
+  # Make sure only factor or numeric cols were selected
+  all_factor <- all(vapply(df[vars], is.factor, logical(1)))
+  all_numeric <- all(vapply(df[vars], is.numeric, logical(1)))
+  
+  if (!all_factor && !all_numeric) {
     stop("All selected columns must either be factor or numeric (no mixing).", call. = FALSE)
-  } else if (all(is_factor)) {
+  } else if (all_factor) {
     identical_levels <- lapply(df[vars], levels)
     identical_levels <- vapply(identical_levels, identical, y = identical_levels[[1]], logical(1))
     if (!all(identical_levels)) {
       stop("All factor levels must be identical.", call. = FALSE)
     }
   }
-
+  
   # Gather all variables to a single column
   if (length(vars) == 1L) {
     df <- mutate_(df, .dots = lazyeval::lazy_dots(manifest = vars))
@@ -164,76 +160,143 @@ survey_table_ <- function(srv, ..., dots, wide = TRUE, weight = TRUE, question =
   }
   
   by_group <- c(grouping, "manifest")
-  by_group <- if (is_factor) c(by_group, "answer") else by_group
-
+  if (all_factor) by_group <- c(by_group, "answer")
+  
   # Filter missing for grouping variables
   nas <- lapply(by_group, function(x) { lazyeval::interp(~!is.na(y), "y" = as.name(x)) } )
   df <- filter_(df, .dots = nas)
   
   # Expand data and get count for groups
-  df_count <- select_(df, .dots = by_group)
-  df_count <- ungroup(count_(ungroup(df_count), vars = names(df_count)))
-  df_count <- tidyr::complete_(df_count, cols = setdiff(names(df_count), "n"), fill = list("n" = 0))
-
+  df_count <- complete_count(df, by_group)
+  
   # Join questions if desired
   if (question) {
-    srv <- use_latent_translation(srv)
-    var_names <- filter(select(srv$mm, manifest, question), manifest %in% df_count$manifest, !question %in% c("", " "))
-    missing <- setdiff(vars, var_names$manifest)
-    if (length(missing)) {
-      warning("The following variables had empty 'questions' and have not been replaced:\n",
-              stri_c(missing, collapse = ", "), call. = FALSE)
-    }
-    df_count <- suppressWarnings(left_join(df_count, select(srv$mm, manifest, question), by = c("manifest" = "manifest")))
-    df_count <- select_(df_count, .dots = c(by_group, "question", if (is_factor) "answer" else NULL, "n"))
-    df_count <- mutate(df_count, question = ifelse(question %in% c("", " "), manifest, question))
+    df_count <- add_question_column(df_count, srv)
   }
-
+  
   # Summarise the data and join with df_count
-  if (is_numeric) {
+  if (all_numeric) {
     df <- group_by_(df, .dots = by_group)
     df <- summarise_each_(df, funs(weighted.mean(., w = w, na.rm = TRUE)), vars = "answer")
     df <- suppressWarnings(suppressMessages(left_join(df_count, df)))
-  } else if (is_factor) {
-    df <- count_(df, vars = c(by_group), wt = quote(w))
-    df <- mutate_(df, .dots = lazyeval::lazy_dots(proportion = prop.table(n), n = sum(n)))
+  } else if (all_factor) {
+    df <- count_(df, vars = by_group, wt = quote(w))
+    df <- mutate_(df, .dots = lazyeval::lazy_dots(proportion = prop.table(n)))
     df <- select_(df, .dots = lazyeval::lazy_dots(-n))
     df <- suppressWarnings(suppressMessages(left_join(df_count, df)))
     df <- tidyr::replace_na(df, replace = list("proportion" = 0))
-    
-    # Patchwork
-    df <- group_by_(df, .dots = setdiff(by_group, "answer"))
-    mt <- lazyeval::lazy_dots(total = sum(n), proportion = ifelse(total == 0, NA_real_, proportion))
-    df <- mutate_(df, .dots = mt)
-    df <- select_(df, .dots = lazyeval::lazy_dots(-total))
   }
   
   # Spread 
-  if (wide) {
-    # Sum counts so rows can be dropped in tidyr::spread
-    by_group <- setdiff(by_group, "answer")
-    df <- group_by_(df, .dots = by_group)
-    df <- mutate(df, n = sum(n))
-    
-    # Remove manifest from groups when data is numeric
-    if (is_numeric) {
-      by_group <- setdiff(by_group, "manifest")
-      if (question) {
-        df <- select_(ungroup(df), .dots = lazyeval::lazy_dots(-manifest))
-        mt <- lazyeval::lazy_dots(question = factor(question, levels = unique(question), ordered = TRUE))
-        df <- mutate_(df, .dots = mt)
-        df <- tidyr::spread_(df, key_col = "question", value_col = "answer", drop = TRUE)
-      } else {
-        df <- tidyr::spread_(ungroup(df), key_col = "manifest", value_col = "answer", drop = TRUE)
-      }
-    } else {
-      df <- tidyr::spread_(ungroup(df), key_col = "answer", value_col = "proportion", drop = TRUE)
-    }
-    
+  if (wide && all_numeric) {
+    df <- spread_numeric(df, by_group, drop = TRUE)
+  } else if (wide) {
+    df <- spread_factor(df, by_group, drop = TRUE)
   }
   
   # Return
-  group_by_(df, .dots = by_group)
+  df
   
 }
 
+# Utilities --------------------------------------------------------------------
+
+spread_numeric <- function(df, grouping, drop = TRUE) {
+  
+  # disallow grouping by answer
+  grouping <- setdiff(grouping, "answer")
+  
+  # Figure out the variable to spread by
+  if (length(grouping) > 1L && length(unique(df$manifest)) == 1L) {
+    # Spread by last group if > 1 group and only 1 numeric
+    spread_by <- setdiff(grouping, "manifest")[-1]
+    grouping <- setdiff(grouping, spread_by)
+  } else {
+    spread_by <- "manifest"
+  }
+  
+  # Merge manifest and question (if it exists) when spreading by manifest
+  if (spread_by == "manifest" && "question" %in% names(df)) {
+    df <- mutate_(df, .dots = lazyeval::lazy_dots(manifest = question))
+    df <- select_(df, .dots = lazyeval::lazy_dots(-question))
+  } else if (spread_by != "manifest") {
+    mt <- lazyeval::lazy_dots(manifest = stri_c(spread_by, " (", manifest, ")"))
+    df <- suppressWarnings(mutate_(df, .dots = mt))
+  }
+  
+  # Sum counts
+  df <- group_by_(df, .dots = grouping)
+  df <- mutate_(df, .dots = lazyeval::lazy_dots(n = sum(n)))
+  
+  # Convert to factor before spreading
+  mt <- lazyeval::lazy_dots(manifest = factor(manifest, levels = unique(manifest), ordered = TRUE))
+  df <- mutate_(ungroup(df), .dots = mt)
+  
+  tidyr::spread_(ungroup(df), key_col = spread_by, value_col = "answer", drop = drop)
+  
+}
+
+spread_factor <- function(df, grouping, drop = TRUE) {
+  
+  # Sum counts
+  grouping <- setdiff(grouping, "answer")
+  df <- group_by_(df, .dots = grouping)
+  df <- mutate_(df, .dots = lazyeval::lazy_dots(n = sum(n)))
+  
+  tidyr::spread_(ungroup(df), key_col = "answer", value_col = "proportion", drop = TRUE)
+  
+}
+
+complete_count <- function(df, grouping) {
+  
+  df <- select_(df, .dots = grouping)
+  
+  # Count and create the completed dataset
+  df_count <- count_(df, vars = names(df))
+  df_compl <- lapply(df, function(x) { if (is.factor(x)) levels(x) else unique(x) })
+  df_compl <- as_data_frame(expand.grid(df_compl))
+  
+  # Join and clean counts
+  df_count <- suppressWarnings(suppressMessages(left_join(df_compl, df_count)))
+  df_count <- tidyr::replace_na(df_count, list(n = 0))
+  df_count <- arrange_(df_count, .dots = grouping)
+  
+  # Return
+  df_count
+  
+}
+
+drop_character_columns <- function(df) {
+  
+  # Remove character vectors
+  is_character <- names(df)[vapply(df, is.character, logical(1))]
+  if (length(is_character)) {
+    df <- select(df, .dots = lazyeval::lazy_dots(-one_of(is_character)))
+    warning("The following columns are character vectors and will not be included:\n",
+            stri_c(is_character, collapse = ", "), call. = FALSE)
+  }
+  
+  # Return
+  df
+  
+}
+
+add_question_column <- function(df, srv) {
+  
+  # Use translations for latents
+  srv <- use_latent_translation(srv)
+  
+  first <- names(df)[1:(which(names(df) == "manifest"))]
+  last <- setdiff(names(df), first)
+  mm <- select(srv$mm, manifest, question)
+  
+  # Join and reorder
+  df <- suppressWarnings(left_join(df, mm, by = c("manifest" = "manifest")))
+  mt <- lazyeval::lazy_dots(question = ifelse(question %in% c(NA, "", " "), manifest, question))
+  df <- select_(mutate_(df, .dots = mt), .dots = c(first, "question", last))
+  
+  # Make manifest a factor and return - converting to factor caused crashes...
+  # df <- mutate_(df, .dots = lazyeval::lazy_dots(manifest = as.factor(manifest)))
+  df
+  
+}
