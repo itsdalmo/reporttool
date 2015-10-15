@@ -26,16 +26,15 @@ srv <- survey(x) %>%
 srv <- ungroup(srv)
 
 srv %>% group_by(q1) %>% 
-  survey_table(loj1, wide = TRUE) %>%
-  select(-question, -manifest)
+  survey_table(loj1, wide = TRUE)
 
 srv %>% group_by(q1) %>% 
   survey_table(kon1, kon2, wide = TRUE)
 
-srv %>% group_by(q1) %>% 
-  survey_table(one_of(get_default("latents")), wide = TRUE) 
+srv %>% group_by(q1, q7_kon) %>% 
+  survey_table(image, wide = TRUE) 
 
 srv %>%  
   mutate_each(funs(rescale_score(clean_score(.))), q3:q4a) %>%
   group_by(q1) %>%
-  survey_table(q3, q4a, wide = TRUE) 
+  survey_table(q3, q4a, wide = TRUE)
