@@ -42,24 +42,22 @@
 #' @examples 
 #' get_default("palette")
 
-recode <- function(x, ..., by = x, ignore.case = TRUE, drop = TRUE) {
+recode <- function(x, ..., by = x, drop = TRUE) {
   
   dots <- lazyeval::lazy_dots(...)
   
   # x and by must be same length
   if (length(x) != length(by)) {
     stop("Arguments 'x' and 'by' must be the same length.", call. = FALSE)
-  }
-  
-  if (ignore.case && !is.numeric(by)) {
-    by <- stri_trans_tolower(by)
+  } else if (!identical(x, by)) {
+    # Don't drop levels when recoding by another variable
+    drop <- FALSE
   }
     
   # Replace . with by and evaluate subsets
   subsets <- lapply(dots, lazyeval::interp, .values = list(. = by))
   subsets <- lapply(subsets, lazyeval::lazy_eval)
-  stopifnot(all(lengths(subsets) == length(x)))
-  
+
   # Check the arguments
   is_null <- vapply(subsets, is.null, logical(1))
   if (any(is_null)) {
@@ -67,7 +65,10 @@ recode <- function(x, ..., by = x, ignore.case = TRUE, drop = TRUE) {
     stop("Some of the arguments evaluate to NULL:\n", 
          stri_c(null, collapse = ", "), call. = FALSE)
   }
-  
+
+  # Check which vectors do not evaluate to logical, and %in% them.
+  subsets <- lapply(subsets, function(x) if (is.character(x) || is.numeric(x)) by %in% x else x)
+
   # Must be logical
   is_logical <- vapply(subsets, is.logical, logical(1))
   if (any(!is_logical)) {
