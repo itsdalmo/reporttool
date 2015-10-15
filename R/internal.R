@@ -35,7 +35,7 @@ write_questionnaire <- function(quest, file, study = "Banking", segment = "B2C",
   is_scale <- stri_trans_tolower(quest$type) == "scale"
   quest$values[is_scale] <-  vapply(quest$values[is_scale], function(x) {
     x <- split_scale(x); stri_c(x[1], "...", x[10], if (length(x) > 10) x[11] else "", sep = "\n")
-    }, character(1))
+  }, character(1))
   
   # Replace {XX} with whatever value is specified
   if (!is.null(entity)) {
@@ -134,17 +134,17 @@ topline <- function(srv, other = NULL) {
   } 
   
   # Get total n in addition to valid observations from survey_table
-  tots <- survey_table_(srv, dots = mainentity, contrast = FALSE, weight = FALSE, filter_missing = FALSE)
-  ents <- survey_table_(srv, dots = latents, contrast = FALSE, weight = FALSE)
+  tots <- suppressWarnings(survey_table_(srv, dots = mainentity, contrast = FALSE, weight = FALSE, filter_missing = FALSE))
+  ents <- suppressWarnings(survey_table_(srv, dots = latents, contrast = FALSE, weight = FALSE))
   ents <- rename_(ents, .dots = c("valid" = "n"))
   ents <- left_join(tots, ents, by = setNames(mainentity, mainentity))
-
+  
   # Check mainentity + 'a' if 'other' is null
   if (is.null(other)) {
     other <- stri_c(mainentity, "a")
     other <- filter(srv$mm, stri_detect(manifest, regex = stri_c("^", other), case_insensitive = TRUE))[["manifest"]]
   }
-
+  
   lst <- list("entities" = ents)
   
   # Make a table for 'other' if the variable is found
@@ -230,6 +230,9 @@ read_sharepoint <- function(file, mainentity = "q1", encoding = "latin1") {
   srv <- set_config(srv)
   srv$cfg$value[srv$cfg$config %in% "cutoff"] <- miss
   
+  # Assume that marketshares have been set.
+  srv$cfg$value[srv$cfg$config %in% "marketshares"] <- "yes"
+  
   # Identify mainentity in manifest
   mainentity <- filter(srv$mm, stri_trans_tolower(manifest) == mainentity)[["manifest"]]
   if (!length(mainentity)) {
@@ -247,32 +250,26 @@ read_sharepoint <- function(file, mainentity = "q1", encoding = "latin1") {
   }
   
   cols_mm <- list("Manifest" = readr::col_character())
-  input <- list("cf" = read_data(input_files["cf"], 
-                                 encoding = encoding, 
-                                 decimal = ",", 
-                                 col_names = FALSE),
-                "mm" = read_data(input_files["mm"], 
-                                 encoding = encoding, 
-                                 decimal = ",", 
-                                 col_names = TRUE, 
-                                 col_types = cols_mm))
+  mm <- read_data(input_files["mm"], encoding = encoding, decimal = ",", col_names = TRUE, col_types = cols_mm)
+  cf <- read_data(input_files["cf"], encoding = encoding, decimal = ",", col_names = FALSE)
   
   # Lowercase for referencing
-  input <- lapply(input, function(x) { names(x) <- stri_trans_tolower(names(x)); x })
+  names(mm) <- stri_trans_tolower(names(mm))
+  names(cf) <- stri_trans_tolower(names(cf))
   
   # Convert to a supported format and extract latent association
-  input$mm <- unlist(lapply(input$mm[-1], function(x, manifest) {manifest[x == -1, 1]}, input$mm[1]))
-  input$mm <- data_frame("latent" = names(input$mm), "manifest" = input$mm)
-  input$mm$latent <- stri_replace_all(input$mm$latent, "$1", regex = "([a-z]+).manifest.*")
+  mm <- unlist(lapply(mm[-1], function(x, manifest) {manifest[x == -1, 1]}, mm[1]))
+  mm <- data_frame("latent" = names(mm), "manifest" = mm)
+  mm$latent <- stri_replace_all(mm$latent, "$1", regex = "([a-z]+).manifest.*")
   
   # Assign latent association to the measurement model (use match in case order differs)
-  srv$mm$latent[match(stri_trans_tolower(input$mm$manifest), stri_trans_tolower(srv$mm$manifest))] <- input$mm$latent
+  srv$mm$latent[match(stri_trans_tolower(mm$manifest), stri_trans_tolower(srv$mm$manifest))] <- mm$latent
   
   # Add entities based on the data and update with marketshares
   srv <- set_association(srv, mainentity = mainentity)
   srv <- add_entities(srv)
-  srv$ents$marketshare <- stri_replace(input$cf[[4]][match(srv$ents$entity, input$cf[[2]])], ".", regex = ",")
-
+  srv$ents$marketshare <- stri_replace(cf[[4]][match(srv$ents$entity, cf[[2]])], ".", regex = ",")
+  
   # Return
   srv
   
@@ -322,7 +319,7 @@ write_sharepoint <- function(srv, file) {
   # Get the measurement model and the cutoff
   model <- filter(srv$mm, stri_trans_tolower(latent) %in% default$latents)
   cutoff <- as.numeric(filter(srv$cfg, config == "cutoff")[["value"]])
-
+  
   # Locate or create required directories
   req_folders <- c("Data", "Input")
   dir_folders <- list.files(file)
@@ -343,7 +340,7 @@ write_sharepoint <- function(srv, file) {
   # Update and create file directories
   is_required <- stri_trans_tolower(dir_folders) %in% stri_trans_tolower(req_folders)
   file_dirs <- setNames(file.path(file, dir_folders[is_required]), stri_trans_tolower(req_folders))
-
+  
   # Write data
   data_file <- filter(srv$cfg, config %in% c("study", "segment", "year"))[["value"]]
   data_file <- stri_c(stri_trans_totitle(data_file[1]), stri_trans_toupper(data_file[2]), data_file[3], sep = " ")
@@ -376,7 +373,7 @@ write_sharepoint <- function(srv, file) {
   em_data <- arrange_(em_data, eval(mainentity))
   em_data <- mutate_each(em_data, funs(clean_score(.)), one_of(model$manifest))
   em_data <- mutate_each(em_data, funs(ifelse(is.na(.), 98, .)), one_of(model$manifest))
-
+  
   do.call(write.table, args = append(list(
     x = em_data,
     file = file.path(file_dirs["input"], "em_data.txt")),
@@ -400,8 +397,8 @@ write_sharepoint <- function(srv, file) {
   do.call(write.table, args = append(list(
     x = stri_replace(model$question, replacement = "", regex = "^[ -]*"),
     file = file.path(file_dirs["input"], "qtext.txt")),
-  args))
-
+    args))
+  
   # Create measurement model
   mm <- new_scaffold(c("Manifest", default$latents), size = nrow(model))
   mm$Manifest <- model$manifest
@@ -418,7 +415,7 @@ write_sharepoint <- function(srv, file) {
     x = mm,
     file = file.path(file_dirs["input"], "measurement model.txt")),
     args))
-
+  
   # Make sure nothing is printed
   invisible()
   
