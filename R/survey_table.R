@@ -184,7 +184,7 @@ survey_table_ <- function(srv, dots, wide = TRUE, weight = TRUE, question = TRUE
     df <- mutate_(df, .dots = lazyeval::lazy_dots(proportion = prop.table(n)))
     df <- select_(df, .dots = lazyeval::lazy_dots(-n))
     df <- suppressWarnings(suppressMessages(left_join(df_count, df)))
-    df <- tidyr::replace_na(df, replace = list("proportion" = 0))
+    df <- tidyr::replace_na(df, replace = list("proportion" = 0L))
   }
 
   # Spread 
@@ -258,7 +258,7 @@ complete_count <- function(df, grouping) {
   
   # Join and clean counts
   df_count <- suppressWarnings(suppressMessages(left_join(df_compl, df_count)))
-  df_count <- tidyr::replace_na(df_count, list(n = 0))
+  df_count <- tidyr::replace_na(df_count, list(n = 0L))
   df_count <- arrange_(df_count, .dots = grouping)
   
   # Return
