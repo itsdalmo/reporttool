@@ -19,10 +19,13 @@
 #'    \item{\code{filter}}{Filters missing values \code{NA}
 #'    for all groups and the variables that go into the table, as well as 
 #'    \code{percent_missing} which exceeds the cutoff in the surveys config. Setting
-#'    \code{filter_missing} to \code{FALSE} overrides the filtering of \code{percent_missing}.}
+#'    \code{filter_missing} to \code{FALSE} overrides the filtering of \code{percent_missing},
+#'    while setting \code{filter_response} to \code{FALSE} does the same for filtering of
+#'    response variables.}
 #'
 #'    \item{\code{count}}{For both numeric and factor variables, this function always
-#'    provides a count for the number of valid observations (after filtering) in each group.}
+#'    provides a count for the number of valid observations (after filtering) in each group.
+#'    This count is not weighted. (Only the proportions themselves.)}
 #'    
 #'    \item{\code{missing}}{Turns implicit missing values into
 #'    explicit missing values. When this is the case, counts will be 0 and
@@ -32,7 +35,9 @@
 #'    \item{\code{spread}}{When \code{wide} is set to \code{TRUE}, the function 
 #'    spreads the results to a wide format. For numeric, the variables are put in
 #'    separate columns. For factor variables, the proportions are
-#'    spread by their respective levels (e.g. "Yes", "No" etc become columns.))}
+#'    spread by their respective levels (e.g. "Yes", "No" etc become columns.) 
+#'    An exception is made when grouping by several variables and there is only
+#'    one response variable (numeric).)}
 #'
 #' }
 #' 
