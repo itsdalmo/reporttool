@@ -148,21 +148,19 @@ write_data <- function(x, file, ...) {
   # Get file information
   file <- clean_path(file)
   ext <- tools::file_ext(file)
-  name <- stri_replace(basename(file), "$1", regex = stri_c("(.*)\\.", ext, "$"))
+  name <- filename_no_ext(file)
   ext <- stri_trans_tolower(ext)
   
   # Convert matrix to data.frame
   if (is.matrix(x)) x <- as_data_frame(x)
   
   # Check if it is a survey and convert depending on output format
-  if (is.survey(x)) {
-    if (ext == "sav") {
+  if (is.survey(x) && ext == "sav") {
       x <- to_labelled(x)$df
-    } else if (ext == "xlsx") {
-      is_date <- vapply(x$df, inherits, what = "Date", logical(1))
-      x$df[is_date] <- lapply(x$df[is_date], as.character)
-      names(x) <- ordered_replace(names(x), default$structure$survey, default$structure$sheet) 
-    }
+  } else if (is.survey(x) && ext == "xlsx") {
+    is_date <- vapply(x$df, inherits, what = "Date", logical(1))
+    x$df[is_date] <- lapply(x$df[is_date], as.character)
+    names(x) <- ordered_replace(names(x), default$structure$survey, default$structure$sheet) 
   } else if (is.data.frame(x)) {
     if (ext %in% c("xlsx", "rdata")) {
       x <- if ("sheet" %in% names(dots)) setNames(list(x), dots[["sheet"]]) else setNames(list(x), name)
@@ -196,6 +194,28 @@ write_spss <- function(data, file) {
   
   if (!is.spss(data)) {
     warning("No labelled variables found.", call. = FALSE)
+  }
+  
+  # BUG in ReadStat (long strings, > 256 characters) 
+  is_character <- vapply(data, is.character, logical(1))
+  
+  if (any(is_character)) {
+    strings <- vapply(data[is_character], function(x) max(stri_length(x), na.rm = TRUE) > 250, logical(1))
+    strings <- names(strings[strings])
+    
+    if (length(strings)) {
+      name <- filename_no_ext(file)
+      spath <- file.path(dirname(file), stri_c(name, " (long strings).Rdata"))
+      
+      # Add stringID to data
+      data$stringID <- 1:nrow(data)
+      
+      # Write strings separately and shorten in original data
+      write_rdata(list("x" = data[c(strings, "stringID")]), spath)
+      data[strings] <- lapply(data[strings], stri_sub, to = 250)
+      warning("Found long strings (> 250) in data. Writing as separate Rdata.", call. = FALSE)
+    }
+    
   }
   
   haven::write_sav(data, path = file)

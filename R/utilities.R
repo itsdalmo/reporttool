@@ -206,6 +206,10 @@ clean_path <- function(path) {
   
 }
 
+filename_no_ext <- function(file)  {
+  stri_replace(basename(file), "$1", regex = stri_c("(.*)\\.", tools::file_ext(file), "$"))
+}
+
 isFALSE <- function(x) identical(x, FALSE)
 is.string <- function(x) is.character(x) && length(x) == 1
 is.spss <- function(x) any(vapply(x, inherits, what = "labelled", logical(1)))

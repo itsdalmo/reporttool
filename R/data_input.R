@@ -91,7 +91,23 @@ read_data <- function(file, ..., encoding = "UTF-8", decimal = ".") {
 
 read_spss <- function(file) {
   
-  haven::read_sav(file)
+  x <- haven::read_sav(file)
+  
+  # BUG in ReadStat (long strings, > 256 characters) 
+  name <- filename_no_ext(file)
+  strings <- file.path(dirname(file), stri_c(name, " (long strings).Rdata"))
+
+  if (file.exists(strings)) {
+    strings <- as.data.frame(read_data(strings))
+    strings2 <- strings[match(strings$stringID, x$stringID), ]
+    vars <- names(x) %in% names(strings)
+
+    x[vars] <- strings[names(strings) %in% names(x)]
+    warning("Found Rdata with long strings in same directory. Joined with data.", call. = FALSE)
+  }
+  
+  # Return
+  x
   
 }
 
