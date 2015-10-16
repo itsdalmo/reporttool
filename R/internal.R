@@ -195,21 +195,21 @@ read_sharepoint <- function(file, mainentity = "q1", encoding = "latin1") {
   dir_folders <- list.files(file)
   
   # Create paths for each of the expected folders
-  file_dirs <- file.path(file, dir_folders[stri_trans_tolower(dir_folders) %in% req_folders])
+  output_dir <- file.path(file, dir_folders[stri_trans_tolower(dir_folders) %in% req_folders])
   
-  if (length(file_dirs) == length(req_folders)) {
-    file_dirs <- setNames(file_dirs, req_folders)
+  if (length(output_dir) == length(req_folders)) {
+    output_dir <- setNames(output_dir, req_folders)
   } else {
     mis_dirs <- setdiff(req_folders, stri_trans_tolower(dir_folders))
     stop("The required (model related) folders were not found in the directory:\n", stri_c(mis_dirs, collapse = ", "), call. = FALSE)
   }
   
   # Read in the dataset if it has been converted to .xlsx
-  data_dir <- list.files(file_dirs["data"])
+  data_dir <- list.files(output_dir["data"])
   data_files <- data_dir[stri_detect(stri_trans_tolower(data_dir), regex = ".*em\\.sav$")]
   
   if (length(data_files) == 1L) {
-    srv <- read_data(file.path(file_dirs["data"], data_files))
+    srv <- read_data(file.path(output_dir["data"], data_files))
     srv <- if(is.spss(srv)) survey(srv) else add_mm(survey(srv))
   } else {
     msg <- if (length(data_files) > 1L) "There is more than one" else "There is no"
@@ -241,11 +241,11 @@ read_sharepoint <- function(file, mainentity = "q1", encoding = "latin1") {
   } 
   
   # Find and read in the input files
-  input_dir <- list.files(file_dirs["input"])
+  input_dir <- list.files(output_dir["input"])
   input_files <- input_dir[stri_detect(stri_trans_tolower(input_dir), regex = ".*(config|measurement model).*\\.txt$")]
   
   if (length(input_files) == 2L) {
-    input_files <- setNames(file.path(file_dirs["input"], input_files), c("cf", "mm"))
+    input_files <- setNames(file.path(output_dir["input"], input_files), c("cf", "mm"))
   } else {
     stop("The required files were not found in the input directory:\n Measurement model.txt and config.txt.", call. = FALSE)
   }
@@ -294,8 +294,6 @@ write_sharepoint <- function(srv, file) {
   # Check the input
   if (!is.survey(srv)) {
     stop("Argument 'sv' is not an object with the class 'survey'. See help(survey).", call. = FALSE)
-  } else if (!is.survey_ents(srv$ents)) {
-    stop("Entities must be added first. See help(add_entities).", call. = FALSE)
   }
   
   # Data must be prepared first
@@ -313,13 +311,6 @@ write_sharepoint <- function(srv, file) {
       stop("The specified directory does not exist:\n", file, call. = FALSE)
     }
   }
-  
-  # Get mainentity
-  mainentity <- filter(srv$mm, stri_trans_tolower(latent) == "mainentity")[["manifest"]]
-  
-  # Get the measurement model and the cutoff
-  model <- filter(srv$mm, stri_trans_tolower(latent) %in% default$latents)
-  cutoff <- as.numeric(filter(srv$cfg, config == "cutoff")[["value"]])
   
   # Locate or create required directories
   req_folders <- c("Data", "Input")
@@ -340,15 +331,46 @@ write_sharepoint <- function(srv, file) {
   
   # Update and create file directories
   is_required <- stri_trans_tolower(dir_folders) %in% stri_trans_tolower(req_folders)
-  file_dirs <- setNames(file.path(file, dir_folders[is_required]), stri_trans_tolower(req_folders))
+  
+  # Get output directories
+  output_dir <- file.path(file, dir_folders[is_required])
+  output_dir <- setNames(output_dir, stri_trans_tolower(req_folders))
   
   # Write data
-  data_file <- filter(srv$cfg, config %in% c("study", "segment", "year"))[["value"]]
-  data_file <- stri_c(stri_trans_totitle(data_file[1]), stri_trans_toupper(data_file[2]), data_file[3], sep = " ")
-  data_file <- file.path(file_dirs["data"], stri_c(data_file, "EM", ".sav"))
-  data_file <- stri_replace_all(data_file, " ", regex = "\\s\\s")
+  write_em_data(srv, output_dir["data"])
+  write_em_input(srv, output_dir["input"])
   
-  write_data(srv, file = data_file)
+  # Make sure nothing is printed
+  invisible()
+  
+}
+
+# Utilities --------------------------------------------------------------------
+
+write_em_data <- function(srv, path) {
+  
+  file_name <- get_config(srv, c("study", "segment", "year"))
+  file_name <- stri_c(stri_trans_totitle(file_name[1]), stri_trans_toupper(file_name[2]), file_name[3], sep = " ")
+  file_name <- file.path(path, stri_c(file_name, "EM", ".sav"))
+  file_name <- stri_replace_all(file_name, " ", regex = "\\s\\s")
+  
+  write_data(srv, file = file_name)
+  
+}
+
+write_em_input <- function(srv, dir) {
+  
+  # Entities must be added
+  if (!is.survey_ents(srv$ents)) {
+    stop("Entities must be added first. See help(add_entities).", call. = FALSE)
+  }
+  
+  # Get mainentity and cutoff
+  mainentity <- get_association(srv, "mainentity")
+  cutoff <- get_config(srv, "cutoff")
+  
+  # Get the measurement model
+  model <- filter(srv$mm, stri_trans_tolower(latent) %in% default$latents)
   
   # Input files
   args <- list(sep = "\t", na = "", dec = ",", fileEncoding = "latin1", 
@@ -377,27 +399,27 @@ write_sharepoint <- function(srv, file) {
   
   do.call(write.table, args = append(list(
     x = em_data,
-    file = file.path(file_dirs["input"], "em_data.txt")),
+    file = file.path(dir, "em_data.txt")),
     args))
   
   # Write config
   args$col.names <- FALSE; args$row.names <- TRUE
   do.call(write.table, args = append(list(
     x = srv$ents[, c("entity", "valid", "marketshare")],
-    file = file.path(file_dirs["input"], "config.txt")),
+    file = file.path(dir, "config.txt")),
     args))
   
   # Q1 names
   args$row.names <- FALSE
   do.call(write.table, args = append(list(
     x = srv$ents$entity,
-    file = file.path(file_dirs["input"], "q1names.txt")),
+    file = file.path(dir, "q1names.txt")),
     args))
   
   # Write question text
   do.call(write.table, args = append(list(
     x = stri_replace(model$question, replacement = "", regex = "^[ -]*"),
-    file = file.path(file_dirs["input"], "qtext.txt")),
+    file = file.path(dir, "qtext.txt")),
     args))
   
   # Create measurement model
@@ -414,10 +436,11 @@ write_sharepoint <- function(srv, file) {
   args$col.names <- TRUE
   do.call(write.table, args = append(list(
     x = mm,
-    file = file.path(file_dirs["input"], "measurement model.txt")),
+    file = file.path(dir, "measurement model.txt")),
     args))
   
   # Make sure nothing is printed
   invisible()
   
 }
+
