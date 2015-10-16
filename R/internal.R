@@ -212,7 +212,8 @@ read_sharepoint <- function(file, mainentity = "q1", encoding = "latin1") {
     srv <- read_data(file.path(file_dirs["data"], data_files))
     srv <- if(is.spss(srv)) survey(srv) else add_mm(survey(srv))
   } else {
-    stop("There is more than one .sav file ending with \"EM\"\n", call. = FALSE)
+    msg <- if (length(data_files) > 1L) "There is more than one" else "There is no"
+    stop(stri_c(msg, " .sav file ending with \"EM\"."), call. = FALSE)
   }
   
   # Rename andel_missing and set to numeric
