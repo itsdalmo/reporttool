@@ -163,9 +163,9 @@ survey_table_ <- function(srv, dots, wide = TRUE, weight = TRUE, question = TRUE
   if (all_factor) by_group <- c(by_group, "answer")
   
   # Filter missing for grouping variables
-  nas <- lapply(by_group, function(x) { lazyeval::interp(~!is.na(y), "y" = as.name(x)) } )
+  nas <- lapply(c(by_group, "answer"), function(x) { lazyeval::interp(~!is.na(y), "y" = as.name(x)) } )
   df <- filter_(df, .dots = nas)
-  
+
   # Expand data and get count for groups
   df_count <- complete_count(df, by_group)
   
@@ -186,7 +186,7 @@ survey_table_ <- function(srv, dots, wide = TRUE, weight = TRUE, question = TRUE
     df <- suppressWarnings(suppressMessages(left_join(df_count, df)))
     df <- tidyr::replace_na(df, replace = list("proportion" = 0))
   }
-  
+
   # Spread 
   if (wide && all_numeric) {
     df <- spread_numeric(df, by_group, drop = TRUE)
@@ -207,7 +207,7 @@ spread_numeric <- function(df, grouping, drop = TRUE) {
   grouping <- setdiff(grouping, "answer")
   
   # Figure out the variable to spread by
-  if (length(grouping) > 1L && length(unique(df$manifest)) == 1L) {
+  if (length(grouping) > 2L && length(unique(df$manifest)) == 1L) {
     # Spread by last group if > 1 group and only 1 numeric
     spread_by <- setdiff(grouping, "manifest")[-1]
     grouping <- setdiff(grouping, spread_by)
