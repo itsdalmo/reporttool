@@ -103,6 +103,7 @@ read_spss <- function(file) {
     vars <- names(x) %in% names(strings)
 
     x[vars] <- strings[names(strings) %in% names(x)]
+    x$stringID <- NULL # Remove string ID when reading
     warning("Found Rdata with long strings in same directory. Joined with data.", call. = FALSE)
   }
   
