@@ -8,7 +8,7 @@
 survey_table(srv, ..., wide = TRUE, weight = TRUE, question = TRUE,
   filter_missing = TRUE, contrast = TRUE)
 
-survey_table_(srv, ..., dots, wide = TRUE, weight = TRUE, question = TRUE,
+survey_table_(srv, dots, wide = TRUE, weight = TRUE, question = TRUE,
   filter_missing = TRUE, contrast = TRUE)
 }
 \arguments{
