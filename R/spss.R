@@ -85,14 +85,18 @@ to_labelled <- function(survey) {
   # Make sure all factor/scale variables are factors
   survey <- factor_data(survey, vars)
   
-  # Convert all factors to 'labelled'
+  # Convert variables
   survey$df[] <- lapply(names(survey$df), function(nm, df, mm) {
     
     x <- df[[nm]]
-    v <- levels(x)
     
+    # All factors should be 'labelled'
     if (is.factor(x)) {
+      v <- levels(x)
       x <- as.numeric(x); x <- haven::labelled(x, setNames(as.numeric(1:length(v)), v), is_na = NULL)
+    } else if (is.character(x)) {
+      # Make sure encoding is native
+      x <- stri_enc_tonative(x)
     }
     
     # Set attributes/class and return
