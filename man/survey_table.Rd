@@ -6,10 +6,10 @@
 \title{Create tables from surveys}
 \usage{
 survey_table(srv, ..., wide = TRUE, weight = TRUE, question = TRUE,
-  filter_missing = TRUE, contrast = TRUE)
+  filter_missing = TRUE, filter_response = TRUE, contrast = TRUE)
 
 survey_table_(srv, dots, wide = TRUE, weight = TRUE, question = TRUE,
-  filter_missing = TRUE, contrast = TRUE)
+  filter_missing = TRUE, filter_response = TRUE, contrast = TRUE)
 }
 \arguments{
 \item{srv}{A survey object.}
@@ -27,6 +27,10 @@ model will be included in the table (provided they are not empty strings).}
 
 \item{filter_missing}{Set to \code{FALSE} to NOT remove observations with \code{percent_missing}
 above the cutoff that is set in config.}
+
+\item{filter_response}{When set to \code{TRUE} (default), the function will
+filter NA values in the response variables (i.e. \code{...}) before counting
+observations and/or calculating mean or proportions}
 
 \item{contrast}{Set to \code{FALSE} if a contrast exist but you want to use the study
 average instead.}

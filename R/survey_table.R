@@ -46,6 +46,9 @@
 #' model will be included in the table (provided they are not empty strings). 
 #' @param filter_missing Set to \code{FALSE} to NOT remove observations with \code{percent_missing}
 #' above the cutoff that is set in config.
+#' @param filter_response When set to \code{TRUE} (default), the function will
+#' filter NA values in the response variables (i.e. \code{...}) before counting
+#' observations and/or calculating mean or proportions
 #' @param contrast Set to \code{FALSE} if a contrast exist but you want to use the study
 #' average instead.
 #' @author Kristian D. Olsen
@@ -53,14 +56,14 @@
 #' @examples 
 #' x %>% group_by(q7_service) %>% survey_table(image:loyal)
 
-survey_table <- function(srv, ..., wide = TRUE, weight = TRUE, question = TRUE, filter_missing = TRUE, contrast = TRUE) {
+survey_table <- function(srv, ..., wide = TRUE, weight = TRUE, question = TRUE, filter_missing = TRUE, filter_response = TRUE, contrast = TRUE) {
   dots <- lazyeval::lazy_dots(...)
   survey_table_(srv, dots = dots, wide = wide, weight = weight, question = question, contrast = contrast)
 }
 
 #' @export
 #' @rdname survey_table
-survey_table_ <- function(srv, dots, wide = TRUE, weight = TRUE, question = TRUE, filter_missing = TRUE, contrast = TRUE) {
+survey_table_ <- function(srv, dots, wide = TRUE, weight = TRUE, question = TRUE, filter_missing = TRUE, filter_response = TRUE, contrast = TRUE) {
   
   if(!length(dots)) stop("No variables specified.", call. = FALSE)
   
@@ -163,7 +166,8 @@ survey_table_ <- function(srv, dots, wide = TRUE, weight = TRUE, question = TRUE
   if (all_factor) by_group <- c(by_group, "answer")
   
   # Filter missing for grouping variables
-  nas <- lapply(c(by_group, "answer"), function(x) { lazyeval::interp(~!is.na(y), "y" = as.name(x)) } )
+  filter_by <- if (filter_response) c(by_group, "answer") else by_group
+  nas <- lapply(filter_by, function(x) { lazyeval::interp(~!is.na(y), "y" = as.name(x)) } )
   df <- filter_(df, .dots = nas)
 
   # Expand data and get count for groups
