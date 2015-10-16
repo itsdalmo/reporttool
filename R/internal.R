@@ -134,8 +134,8 @@ topline <- function(srv, other = NULL) {
   } 
   
   # Get total n in addition to valid observations from survey_table
-  tots <- suppressWarnings(survey_table_(srv, dots = mainentity, contrast = FALSE, weight = FALSE, filter_missing = FALSE))
-  ents <- suppressWarnings(survey_table_(srv, dots = latents, contrast = FALSE, weight = FALSE))
+  tots <- suppressWarnings(survey_table_(srv, dots = mainentity, contrast = FALSE, weight = FALSE, filter_missing = FALSE, filter_response = FALSE))
+  ents <- suppressWarnings(survey_table_(srv, dots = latents, contrast = FALSE, weight = FALSE, filter_response = FALSE))
   ents <- rename_(ents, .dots = c("valid" = "n"))
   ents <- left_join(tots, ents, by = setNames(mainentity, mainentity))
   
