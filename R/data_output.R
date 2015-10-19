@@ -147,9 +147,8 @@ write_data <- function(x, file, ...) {
   
   # Get file information
   file <- clean_path(file)
-  ext <- tools::file_ext(file)
+  ext <- stri_trans_tolower(tools::file_ext(file))
   name <- filename_no_ext(file)
-  ext <- stri_trans_tolower(ext)
   
   # Convert matrix to data.frame
   if (is.matrix(x)) x <- as_data_frame(x)
@@ -212,7 +211,9 @@ write_spss <- function(data, file) {
       
       # Write strings separately and shorten in original data
       write_rdata(list("x" = data[c(strings, "stringID")]), spath)
-      data[strings] <- lapply(data[strings], stri_sub, to = 250)
+      data[strings] <- lapply(data[strings], function(x) {
+        oa = attributes(x); x <- stri_sub(x, to = 250); attributes(x) <- oa; x
+        })
       warning("Found long strings (> 250) in data. Writing as separate Rdata.", call. = FALSE)
     }
     
