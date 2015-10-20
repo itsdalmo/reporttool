@@ -38,3 +38,26 @@ srv %>%
   mutate_each(funs(rescale_score(clean_score(.))), q3:q4a) %>%
   group_by(q1) %>%
   survey_table(q3, q4a, wide = TRUE)
+
+load_all()
+
+pm %>%
+  group_by(q1) %>%
+  survey_table(q17bpre) %>%
+  select(-manifest, -question)
+
+pm %>%
+  group_by(q1) %>%
+  survey_table2(q17bpre) %>%
+  select(-manifest, -question) %>% to_clipboard
+
+pm %>%
+  group_by(q1) %>%
+  mutate(q17c = rescale_score(clean_score(q17c))) %>%
+  survey_table(q17c, question = FALSE) %>% to_clipboard
+
+pm %>%
+  group_by(q1) %>%
+  mutate(q17c = rescale_score(clean_score(q17c))) %>%
+  survey_table2(q17c, question = FALSE) %>% to_clipboard
+
