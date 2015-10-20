@@ -64,14 +64,20 @@ write_questionnaire <- function(quest, file, study = "Banking", segment = "B2C",
   
   # Use the split list to write to a xlsx_file
   wb <- openxlsx::createWorkbook()
-  
+
   # Write the data and retain rows that have been written to
   merge_rows <- lapply(split_quest, function(x) {
     
     # Get columns
     df <- x[, c("latent", "manifest", "question", "values")]
-    title <- if (nrow(x) == 1L) x$question else paste0(unique(x$primer), collapse = "\n")
     
+    # Set either the primer or question as title
+    if (nrow(x) == 1L && is.na(x$primer)) {
+      title <- x$question
+    } else {
+      title <- stri_c(unique(x$primer), collapse = "\n")
+    }
+
     # Write the question
     to_sheet(df, wb, title = title, sheet = study)
     
