@@ -9,11 +9,11 @@
 \usage{
 add_weights(x, entities = NULL)
 
-\method{add_weights}{survey}(survey, ...)
+\method{add_weights}{survey}(srv)
 
-\method{add_weights}{character}(mainentity, entities)
+\method{add_weights}{character}(x, ms)
 
-\method{add_weights}{factor}(mainentity, entities)
+\method{add_weights}{factor}(x, ms)
 }
 \arguments{
 \item{x}{A survey object, or vector of type \code{character} or \code{facotor}.}

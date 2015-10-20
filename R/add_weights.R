@@ -22,72 +22,66 @@ add_weights <- function(x, entities = NULL) UseMethod("add_weights")
 
 #' @rdname add_weights
 #' @export
-add_weights.survey <- function(survey, ...) {
-  
-  # Measurement model must be added first
-  if (!inherits(survey$mm, "survey_mm") || !nrow(survey$mm)) {
-    stop("The measurement model must be added first. See help(add_mm).", call. = FALSE)
-  }
-  
-  # Entities must be added first
-  if (!inherits(survey$ents, "survey_ents") || !nrow(survey$ents)) {
-    stop("Entities must be added first. See help(add_entities).", call. = FALSE)
-  }
+add_weights.survey <- function(srv) {
   
   # Get the mainentity variable from data
-  mainentity <- filter(survey$mm, stri_trans_tolower(latent) == "mainentity")[["manifest"]]
+  mainentity <- get_association(srv, "mainentity")
+  mainentity <- srv$df[[mainentity]]
+  marketshares <- get_marketshare(srv)
+  
+  if (!all(unique(mainentity)) %in% names(marketshares)) {
+   stop("One or more entities do not have an associated marketshare.", call. = FALSE) 
+  } else if (!all(names(marektshares) %in% unique(mainentity))) {
+    stop("Marketshares are set for entities that do not exist in the data.", call. = FALSE) 
+  }
   
   # Add weights (w) to data.frame
-  survey$df$w <- calculate_weights(survey$df[[mainentity]], survey$ents)
+  srv$df$w <- calculate_weights(srv$df[[mainentity]], marketshares)
   
   # Return the survey
-  survey
+  srv
   
 }
 
 #' @rdname add_weights
 #' @export
-add_weights.character <- function(mainentity, entities) {
-  
-  # Entities must be added first
-  if (!inherits(entities, "survey_ents") || !nrow(entities)) {
-    stop("Entities must be a survey_ents object. See help(add_entities).", call. = FALSE)
-  }
-  
-  # Return a vector of weights
-  calculate_weights(mainentity, entities)
-  
+add_weights.character <- function(x, ms) {
+  calculate_weights(x, ms)
 }
 
 #' @rdname add_weights
 #' @export
-add_weights.factor <- function(mainentity, entities) {
-  
-  # Entities must be added first
-  if (!inherits(entities, "survey_ents") || !nrow(entities)) {
-    stop("Entities must be a survey_ents object. See help(add_entities).", call. = FALSE)
-  }
-  
-  # Return a vector of weights
-  calculate_weights(as.character(mainentity), entities)
-  
+add_weights.factor <- function(x, ms) {
+  calculate_weights(as.character(x), ms)
 }
 
 # Utilities --------------------------------------------------------------------
 
-calculate_weights <- function(mainentity, entities) {
+calculate_weights <- function(x, ms) {
   
-  # Generate new information on entities
-  # with updated count for n (observations)
-  obs <- new_entities(mainentity)
+  # Check input
+  if (is.null(names(ms)) || !is.numeric(ms)) {
+    stop("Marketshares must be a named numeric vector.")
+  } else if (is.factor(x)) {
+    x <- as.character(x)
+  }
   
-  # Get existing marketshares
-  obs$marketshare <- as.numeric(entities$marketshare[match(obs$entity, entities$entity)])
+  # Get count
+  count <- tapply(x, x, length)
+  share <- ms[match(names(count), names(ms), nomatch = NA_integer_)]
   
-  # Calculate weight
-  obs$w <- (obs$marketshare * sum(obs$n))/obs$n
+  # Match count with marketshares
+  if (any(is.na(names(share)))) {
+    stop("The shares do not correspond to the observations (x).")
+  } else if (!sum(share) == 1L) {
+    stop("Marketshares do not sum to one.")
+  }
   
-  # Return a vector with corresponding weights
-  obs$w[match(mainentity, obs$entity)]
+  # Calculate the new weight
+  wts <- (share * sum(count)) / count
+  names(wts) <- names(count)
   
+  # Return a weight of same length as mainentity
+  as.numeric(wts[match(x, names(wts), nomatch = NA_integer_)])
+
 }
