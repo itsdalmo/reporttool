@@ -2,10 +2,13 @@
 % Please edit documentation in R/add_entities.R
 \name{add_entities}
 \alias{add_entities}
+\alias{get_marketshare}
 \alias{print.survey_ents}
 \title{Add a summary of entities to a survey}
 \usage{
 add_entities(srv, entities = NULL)
+
+get_marketshare(srv, ent = NULL)
 
 \method{print}{survey_ents}(ents, width = getOption("width"))
 }

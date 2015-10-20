@@ -108,6 +108,24 @@ add_entities <- function(srv, entities = NULL) {
   
 }
 
+#' @rdname add_entities
+#' @export
+get_marketshare <- function(srv, ent = NULL) {
+  
+  if (is.null(ent)) ent <- srv$ents$entity
+  ent <- stri_trans_tolower(ent)
+  
+  # Measurement model must be added first
+  if (!is.survey_ents(srv$ents) || !nrow(srv$ents)) {
+    stop("Entities must be added first. See help(add_entities).", call. = FALSE)
+  }
+  
+  # Return a named vector
+  ent <- filter(srv$ents, stri_trans_tolower(entity) %in% ent)
+  setNames(as.numeric(ent[["marketshare"]]), ent[["entity"]])
+  
+}
+
 # Utilities --------------------------------------------------------------------
 
 is.survey_ents <- function(x) inherits(x, "survey_ents")
