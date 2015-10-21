@@ -18,7 +18,7 @@ Imports:
   knitr,
   lazyeval,
   openxlsx (>= 3.0.0),
-  readr (>= 0.1.1.9000),
+  readr (>= 0.2.1),
   readxl (>= 0.1.0.9000),
   rmarkdown,
   scales,
