@@ -8,7 +8,7 @@ Maintainer: Kristian D. Olsen <kristian@doingit.no>
 Description: Useful tools for reporting in EPSI.
 License: CC-BY-SA 4.0 International
 Depends:
-  R (>= 3.1),
+  R (>= 3.2),
   dplyr (>= 0.4.3.9000)
 Imports: 
   evaluate,
