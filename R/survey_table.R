@@ -280,7 +280,7 @@ drop_character_columns <- function(df) {
   # Remove character vectors
   is_character <- names(df)[vapply(df, is.character, logical(1))]
   if (length(is_character)) {
-    df <- select(df, .dots = lazyeval::lazy_dots(-one_of(is_character)))
+    df <- select(df, .dots = setdiff(names(df), is_character))
     warning("The following columns are character vectors and will not be included:\n",
             stri_c(is_character, collapse = ", "), call. = FALSE)
   }
@@ -305,7 +305,8 @@ add_question_column <- function(df, srv) {
   df <- select_(mutate_(df, .dots = mt), .dots = c(first, "question", last))
   
   # Make manifest a factor and return - converting to factor caused crashes...
-  # df <- mutate_(df, .dots = lazyeval::lazy_dots(manifest = as.factor(manifest)))
+  df <- mutate(df, question = factor(question, levels = unique(question)),
+                   manifest = factor(manifest, levels = unique(manifest)))
   df
   
 }
