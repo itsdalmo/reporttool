@@ -25,7 +25,7 @@ test_that("Single group and single numeric", {
   # Long
   z <- survey_table(x, epsi, wide = FALSE)
   
-  expect_identical(z$question[1], names(y)[3])
+  expect_identical(z$question[1], as.factor(names(y)[3]))
   expect_identical(z$n, y$n)
   expect_identical(z$answer, y$Kundetilfredshet)
 
