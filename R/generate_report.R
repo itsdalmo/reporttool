@@ -125,8 +125,14 @@ prepare_survey <- function(srv) {
     if (subentity %in% names(srv$hd)) names(srv$hd) <- ordered_replace(names(srv$hd), setNames(subentity, "subentity"))
   }
   
+  # Insert translations for latents as question texts  
   srv <- use_latent_translation(srv)
   
+  # Include question text for EM variables
+  vars <- get_association(srv, default$latents)
+  questions <- srv$mm$question[srv$mm$manifest %in% vars]
+  srv$mm$question[match(stri_c(vars, "em"), srv$mm$manifest, nomatch = 0)] <- questions
+ 
   # Return
   srv
   
