@@ -39,7 +39,8 @@ from_labelled <- function(df) {
   
   # Check labelled scales for consistency and convert to factor
   df[is_scale] <- Map(fix_labelled, df[is_scale], names(df)[is_scale])
-  df[is_labelled] <- lapply(df[is_labelled], haven::as_factor, drop_na = FALSE, ordered = FALSE)
+  df[is_labelled] <- suppressWarnings(
+    lapply(df[is_labelled], haven::as_factor, drop_na = FALSE, ordered = FALSE))
   
   # Insert variable type
   mm$type <- vapply(df, class, character(1))
