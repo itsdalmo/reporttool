@@ -9,8 +9,12 @@
 #'    \item{\code{recode}}{Recode variables without nested ifelse statements. Uses
 #'    \code{\%in\%} to create a logical vector when recoding. I.e. you can recode one
 #'    vector based on matches in another vector of the same length. For factors,
-#'    the function only allows recoding to an existing level, but you can set 
-#'    \code{drop = TRUE} to drop levels that you are recoding (away) from.} 
+#'    the function only allows recoding to an existing level unless \code{add} is \code{TRUE}.
+#'    You can also set \code{drop = TRUE} to drop levels that you are recoding (away) from,
+#'    which can also be used in conjuction with \code{add}. You can also set \code{as_factor}
+#'    to \code{TRUE} to convert other types of vectors to factor after recoding - the
+#'    values you recode into (argument names) will become the levels for the new factor,
+#'    and everything else becomes \code{NA}.} 
 #' 
 #'    \item{\code{intranet_link}}{Converts any http(s) link with a .se domain
 #'    to a link for a network drive (sharepoint) on windows.}  
@@ -42,7 +46,7 @@
 #' @examples 
 #' get_default("palette")
 
-recode <- function(x, ..., by = x, drop = TRUE) {
+recode <- function(x, ..., by = x, drop = TRUE, add = FALSE, as_factor = FALSE) {
   
   dots <- lazyeval::lazy_dots(...)
   
@@ -78,11 +82,11 @@ recode <- function(x, ..., by = x, drop = TRUE) {
   }
   
   # For factors, names must match the levels
-  if (is.factor(x)) {
+  if (is.factor(x) && !add) {
     missing <- setdiff(names(subsets), levels(x))
     if (length(missing)) {
       stop("Some named arguments do not match existing factor levels:\n",
-           stri_c(missing, ", "), call. = FALSE)
+           stri_c(missing, ", "), "\n Set add_levels to TRUE to override.", call. = FALSE)
     }
   } 
   
@@ -91,17 +95,27 @@ recode <- function(x, ..., by = x, drop = TRUE) {
   if (length(overlap) != length(unique(overlap))) {
     warning("Values are being recoded multiple times. Check results.", call. = FALSE)
   }
+
+  # Factors require special attention
+  old_levels <- levels(x)
+  new_levels <- old_levels
   
-  dropped <- NULL
-  
-  # Recode
+  # Convert x to character and recode
+  x <- as.character(x)
   for (nm in names(subsets)) {
     
     by_subset <- subsets[[nm]]
-    
-    # Store values that can be dropped
-    if (drop && is.factor(x)) {
-      dropped <- c(dropped, as.character(x)[by_subset])
+     
+    # Store values that should be added/dropped for factors
+    if (!is.null(old_levels)) {
+      if (drop && add) {
+        new_levels[new_levels %in% x[by_subset]] <- nm
+        new_levels <- unique(new_levels)
+      } else if (add) {
+        new_levels <- union(new_levels, nm)
+      } else if (drop) {
+        new_levels <- setdiff(new_levels, x[by_subset])
+      }
     }
     
     # Do the recode
@@ -109,14 +123,33 @@ recode <- function(x, ..., by = x, drop = TRUE) {
     
   }
   
-  # Drop the recoded values
-  if (!is.null(dropped)) {
-    new_levels <- setdiff(levels(x), dropped)
+  # Convert to desired output format
+  if (!is.null(old_levels)) {
+    # I.e., if it WAS a factor
     x <- factor(x, levels = new_levels)
+  } else if (as_factor) {
+    # Coerce to factor based on recodes
+    x <- factor(x, levels = names(subsets))
   }
-  
+   
   # Return
   x
+  
+}
+
+#' @rdname utilities
+#' @export
+clean_text <- function(var) {
+  
+  # Remove punctuation in start and trailing "
+  var <- stri_replace(as.character(var), "", regex = "^[ [:punct:]]*")
+  var <- stri_replace(var, "", regex = "\"$")
+  
+  # Set zero-length strings to NA and convert to markdown list
+  var[var == ""] <- NA
+  var <- stri_c("- ", var)
+  
+  var
   
 }
 
