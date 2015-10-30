@@ -26,17 +26,17 @@ add_weights.survey <- function(srv) {
   
   # Get the mainentity variable from data
   mainentity <- get_association(srv, "mainentity")
-  mainentity <- srv$df[[mainentity]]
+  mainentity <- as.character(srv$df[[mainentity]])
   marketshares <- get_marketshare(srv)
   
-  if (!all(unique(mainentity)) %in% names(marketshares)) {
+  if (!all(unique(mainentity) %in% names(marketshares))) {
    stop("One or more entities do not have an associated marketshare.", call. = FALSE) 
-  } else if (!all(names(marektshares) %in% unique(mainentity))) {
+  } else if (!all(names(marketshares) %in% unique(mainentity))) {
     stop("Marketshares are set for entities that do not exist in the data.", call. = FALSE) 
   }
   
   # Add weights (w) to data.frame
-  srv$df$w <- calculate_weights(srv$df[[mainentity]], marketshares)
+  srv$df$w <- calculate_weights(mainentity, marketshares)
   
   # Return the survey
   srv
@@ -62,9 +62,7 @@ calculate_weights <- function(x, ms) {
   # Check input
   if (is.null(names(ms)) || !is.numeric(ms)) {
     stop("Marketshares must be a named numeric vector.")
-  } else if (is.factor(x)) {
-    x <- as.character(x)
-  }
+  } 
   
   # Get count
   count <- tapply(x, x, length)
