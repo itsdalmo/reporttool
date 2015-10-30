@@ -98,6 +98,7 @@ survey_table_ <- function(srv, dots, wide = TRUE, weight = TRUE, question = TRUE
   
   # Add weight if it does not exist
   if (!"w" %in% names(srv$df)) {
+    warning("Weights were not found and have been added (1L).", call. = FALSE)
     srv <- mutate(srv, w = 1L)
   }
   
