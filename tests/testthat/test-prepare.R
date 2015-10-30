@@ -23,6 +23,6 @@ test_that("Prepare data", {
   # PLS
   expect_identical(names(z$df)[1], "coderesp")
   expect_identical(names(z$df)[ncol(z$df)], "percent_missing")
-  expect_true(!any(default$latents) %in% names(z$df))
+  expect_true(!any(default$latents %in% names(z$df)))
   
 })
