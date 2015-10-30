@@ -97,7 +97,13 @@ to_labelled <- function(survey) {
       x <- as.numeric(x); x <- haven::labelled(x, setNames(as.numeric(1:length(v)), v), is_na = NULL)
     } else if (is.character(x)) {
       # Make sure encoding is native
-      x <- stri_enc_tonative(x)
+      x <- collect_warnings(stri_enc_tonative(x))
+      if (!is.null(x$warnings)) {
+        warnings <- unlist(lapply(x$warnings, "[[", "message"))
+        warning("Warnings when encoding ", nm, " to native:\n", 
+                stri_c(unique(warnings), collapse = "\n"), call. = FALSE)
+      }
+      x <- x$value
     }
     
     # Set attributes/class and return

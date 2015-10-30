@@ -222,6 +222,16 @@ intranet_link <- function(https) {
 }
 
 # MISC -------------------------------------------------------------------------
+# Adapted from: http://tolstoy.newcastle.edu.au/R/help/04/06/0217.html
+collect_warnings <- function(expr) {
+  myWarnings <- NULL
+  wHandler <- function(w) {
+    myWarnings <<- c(myWarnings, list(w))
+    invokeRestart("muffleWarning")
+  }
+  val <- withCallingHandlers(expr, warning = wHandler)
+  list(value = val, warnings = myWarnings)
+} 
 
 clean_path <- function(path) {
   
