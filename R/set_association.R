@@ -48,8 +48,7 @@ set_association <- function(survey, ..., common = FALSE) {
   # Throw an error if arguments do not match the manifest
   missing <- setdiff(unlist(args), survey$mm$manifest)
   if (length(missing)) {
-    missing <- stri_c(missing, collapse = ", ")
-    stop(stri_c("Variables not found in the measurement model:\n", missing), call. = FALSE)
+    stop("Variables not found in the measurement model:\n", conjunct_string(missing), call. = FALSE)
   }
   
   # Update with a loop for clarity

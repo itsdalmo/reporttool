@@ -42,15 +42,13 @@ set_config <- function(srv, ...) {
   # Throw an error if arguments do not match the manifest
   missing <- setdiff(names(args), srv$cfg$config)
   if (length(missing)) {
-    missing <- stri_c(missing, collapse = ", ")
-    warning("Values not found in config:\n", missing, call. = FALSE)
+    warning("Values not found in config:\n", conjunct_string(missing), call. = FALSE)
   }
   
   # Give warning when modifying fields that are updated by other function
   updated <- intersect(names(args), c("reporttool", "language", "cutoff", "latents", "marketshares"))
   if (length(updated)) {
-    updated <- stri_c(updated, collapse = ", ")
-    stop("The following fields should not be set manually:\n", updated, call. = FALSE)
+    stop("The following fields should not be set manually:\n", conjunct_string(updated), call. = FALSE)
   }
   
   # Update with a loop for clarity

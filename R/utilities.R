@@ -67,7 +67,7 @@ recode <- function(x, ..., by = x, drop = TRUE, add = FALSE, as_factor = FALSE) 
   if (any(is_null)) {
     null <- names(subsets)[is_null]
     stop("Some of the arguments evaluate to NULL:\n", 
-         stri_c(null, collapse = ", "), call. = FALSE)
+         conjunct_string(null), call. = FALSE)
   }
 
   # Check which vectors do not evaluate to logical, and %in% them.
@@ -78,7 +78,7 @@ recode <- function(x, ..., by = x, drop = TRUE, add = FALSE, as_factor = FALSE) 
   if (any(!is_logical)) {
     not_logical <- names(subsets)[!is_logical]
     stop("Some of the arguments are not boolean (TRUE/FALSE):\n", 
-         stri_c(not_logical, collapse = ", "), call. = FALSE)
+         conjunct_string(not_logical), call. = FALSE)
   }
   
   # For factors, names must match the levels
@@ -86,7 +86,7 @@ recode <- function(x, ..., by = x, drop = TRUE, add = FALSE, as_factor = FALSE) 
     missing <- setdiff(names(subsets), levels(x))
     if (length(missing)) {
       stop("Some named arguments do not match existing factor levels:\n",
-           stri_c(missing, ", "), "\n Set add_levels to TRUE to override.", call. = FALSE)
+           conjunct_string(missing), call. = FALSE)
     }
   } 
   
@@ -222,6 +222,16 @@ intranet_link <- function(https) {
 }
 
 # MISC -------------------------------------------------------------------------
+conjunct_string <- function(x, conjunction = "and") {
+  
+  stopifnot(is.character(x))
+  if (length(x) == 1L) {
+    x
+  } else {
+    stri_c(stri_c(x[1:(length(x)-1)], collapse = ", "), conjunction, x[length(x)], sep = " ")
+  } 
+}
+
 # Adapted from: http://tolstoy.newcastle.edu.au/R/help/04/06/0217.html
 collect_warnings <- function(expr) {
   myWarnings <- NULL

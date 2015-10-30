@@ -283,7 +283,7 @@ drop_character_columns <- function(df) {
   if (length(is_character)) {
     df <- select(df, .dots = setdiff(names(df), is_character))
     warning("The following columns are character vectors and will not be included:\n",
-            stri_c(is_character, collapse = ", "), call. = FALSE)
+            conjunct_string(is_character), call. = FALSE)
   }
   
   # Return

@@ -49,8 +49,7 @@ set_translation <- function(srv, ..., language = "norwegian") {
   # Throw an error if arguments do not match the manifest
   missing <- setdiff(names(args), srv$tr$original)
   if (length(missing)) {
-    missing <- stri_c(missing, collapse = ", ")
-    warning(stri_c("Values not found in translations:\n", missing), call. = FALSE)
+    warning(stri_c("Values not found in translations:\n", conjunct_string(missing)), call. = FALSE)
   }
   
   # Update with a loop for clarity

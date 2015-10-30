@@ -207,7 +207,8 @@ read_sharepoint <- function(file, mainentity = "q1", encoding = "latin1") {
     output_dir <- setNames(output_dir, req_folders)
   } else {
     mis_dirs <- setdiff(req_folders, stri_trans_tolower(dir_folders))
-    stop("The required (model related) folders were not found in the directory:\n", stri_c(mis_dirs, collapse = ", "), call. = FALSE)
+    stop("The required (model related) folders were not found in the directory:\n",
+         conjunct_string(mis_dirs), call. = FALSE)
   }
   
   # Read in the dataset if it has been converted to .xlsx
@@ -331,7 +332,8 @@ write_sharepoint <- function(srv, file) {
   if (!all(folders_exist)) {
     missing <- file.path(file, req_folders[!folders_exist])
     lapply(missing, dir.create, showWarnings = FALSE)
-    warning("Created the following (required) folders:\n", stri_c(req_folders[!folders_exist], collapse = ", "), call. = FALSE)
+    warning("Created the following (required) folders:\n", 
+            conjunct_string(req_folders[!folders_exist]), call. = FALSE)
     dir_folders <- list.files(file)
   }
   
