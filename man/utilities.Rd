@@ -4,6 +4,7 @@
 \alias{Utilities}
 \alias{clean_score}
 \alias{clean_text}
+\alias{conjunct_string}
 \alias{get_default}
 \alias{intranet_link}
 \alias{ordered_replace}
@@ -20,6 +21,8 @@ clean_text(var)
 clean_score(var)
 
 rescale_score(var)
+
+conjunct_string(x, conjunction = "and")
 
 ordered_replace(x, match_by, replacement = NULL)
 
