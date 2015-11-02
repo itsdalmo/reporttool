@@ -170,6 +170,18 @@ rescale_score <- function(var) {
 
 #' @rdname utilities
 #' @export
+conjunct_string <- function(x, conjunction = "and") {
+  
+  stopifnot(is.character(x))
+  if (length(x) == 1L) {
+    x
+  } else {
+    stri_c(stri_c(x[1:(length(x)-1)], collapse = ", "), conjunction, x[length(x)], sep = " ")
+  } 
+}
+
+#' @rdname utilities
+#' @export
 ordered_replace <- function(x, match_by, replacement = NULL) {
   
   # Make sure a named vector is used if replacement is not specified
@@ -222,16 +234,6 @@ intranet_link <- function(https) {
 }
 
 # MISC -------------------------------------------------------------------------
-conjunct_string <- function(x, conjunction = "and") {
-  
-  stopifnot(is.character(x))
-  if (length(x) == 1L) {
-    x
-  } else {
-    stri_c(stri_c(x[1:(length(x)-1)], collapse = ", "), conjunction, x[length(x)], sep = " ")
-  } 
-}
-
 # Adapted from: http://tolstoy.newcastle.edu.au/R/help/04/06/0217.html
 collect_warnings <- function(expr) {
   myWarnings <- NULL
