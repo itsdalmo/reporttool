@@ -43,7 +43,7 @@ from_labelled <- function(df) {
     lapply(df[is_labelled], haven::as_factor, drop_na = FALSE, ordered = FALSE))
   
   # Insert variable type
-  mm$type <- vapply(df, class, character(1))
+  mm$type <- vapply(df, function(x) {if (inherits(x, "POSIXct")) "Date" else class(x)}, character(1))
   mm$type[is_scale] <- "scale"
   
   # Clean up the scale variable values (only endpoints)
