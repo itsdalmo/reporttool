@@ -72,13 +72,19 @@ recode <- function(x, ..., by = x, drop = TRUE, add = FALSE, as_factor = FALSE) 
 
   # Check which vectors do not evaluate to logical, and %in% them.
   subsets <- lapply(subsets, function(x) if (is.character(x) || is.numeric(x)) by %in% x else x)
-
+  
   # Must be logical
   is_logical <- vapply(subsets, is.logical, logical(1))
   if (any(!is_logical)) {
-    not_logical <- names(subsets)[!is_logical]
     stop("Some of the arguments are not boolean (TRUE/FALSE):\n", 
-         conjunct_string(not_logical), call. = FALSE)
+         conjunct_string(names(not_logical[!is_logical])), call. = FALSE)
+  } 
+  
+  # Check that something is recoded
+  is_recoding <- vapply(subsets, any, logical(1))
+  if (any(!is_recoding)) {
+    stop("The expression for the following recodes resulted in no matches:\n", 
+         conjunct_string(stri_c("'", names(is_recoding[!is_recoding]), "'")), call. = FALSE)
   }
   
   # For factors, names must match the levels
