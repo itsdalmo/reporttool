@@ -200,6 +200,7 @@ print.survey_mm <- function(mm, width = getOption("width")) {
   # Lowercase for easier referencing
   names(mm) <- stri_trans_tolower(names(mm))
   
+  w_n <- stri_length(nrow(mm))
   w_name <- max(stri_length(mm$manifest), na.rm = TRUE) + 1
   w_reserved <- 8 + w_name + 3 # $ and three spaces as separation
   w_available <- width - w_reserved - 5 # in case of large font
@@ -221,7 +222,7 @@ print.survey_mm <- function(mm, width = getOption("width")) {
   
   # Print
   for (i in 1:nrow(mm)) {
-    cat("$", mm$manifest[i], mm$type[i], " ", mm$question[i], sep = "", collapse = "\n")
+    cat(stri_pad_right(i, w_n), ": ", mm$manifest[i], mm$type[i], " ", mm$question[i], sep = "", collapse = "\n")
   }
   
   cat("Note: Associations (including latents) are marked with *\n")
