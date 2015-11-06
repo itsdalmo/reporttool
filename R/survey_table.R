@@ -61,14 +61,17 @@
 #' @examples 
 #' x %>% group_by(q7_service) %>% survey_table(image:loyal)
 
-survey_table <- function(srv, ..., wide = TRUE, weight = TRUE, question = TRUE, filter_missing = TRUE, filter_response = TRUE, contrast = TRUE) {
+survey_table <- function(srv, ..., wide = TRUE, weight = TRUE, question = TRUE, 
+                         filter_missing = TRUE, filter_response = TRUE, contrast = TRUE) {
   dots <- lazyeval::lazy_dots(...)
-  survey_table_(srv, dots = dots, wide = wide, weight = weight, question = question, contrast = contrast)
+  survey_table_(srv, dots = dots, wide = wide, weight = weight, question = question, 
+                filter_missing = filter_missing, filter_response = filter_response, contrast = contrast)
 }
 
 #' @export
 #' @rdname survey_table
-survey_table_ <- function(srv, dots, wide = TRUE, weight = TRUE, question = TRUE, filter_missing = TRUE, filter_response = TRUE, contrast = TRUE) {
+survey_table_ <- function(srv, dots, wide = TRUE, weight = TRUE, question = TRUE, 
+                          filter_missing = TRUE, filter_response = TRUE, contrast = TRUE) {
   
   if(!length(dots)) stop("No variables specified.", call. = FALSE)
   
@@ -98,7 +101,7 @@ survey_table_ <- function(srv, dots, wide = TRUE, weight = TRUE, question = TRUE
   
   # Add weight if it does not exist
   if (!"w" %in% names(srv$df)) {
-    warning("Weights were not found and have been added (1L).", call. = FALSE)
+    warning("Weights were not found (the average will be unweighted).", call. = FALSE)
     srv <- mutate(srv, w = 1L)
   }
   
@@ -281,8 +284,8 @@ drop_character_columns <- function(df) {
   # Remove character vectors
   is_character <- names(df)[vapply(df, is.character, logical(1))]
   if (length(is_character)) {
-    df <- select(df, .dots = setdiff(names(df), is_character))
-    warning("The following columns are character vectors and will not be included:\n",
+    df <- select_(df, .dots = setdiff(names(df), is_character))
+    stop("The following columns are character vectors:\n",
             conjunct_string(is_character), call. = FALSE)
   }
   
