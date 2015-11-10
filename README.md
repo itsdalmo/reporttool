@@ -3,9 +3,9 @@ reporttool
 
 Installation:
 
-    ```r
-    devtools::install_github("itsdalmo/reporttool")
-    ```
+``` r
+devtools::install_github("itsdalmo/reporttool")
+```
 
 Requirements:
 
