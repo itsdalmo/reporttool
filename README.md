@@ -3,9 +3,9 @@ reporttool
 
 Installation:
 
-    ```R
-     devtools::install_github("itsdalmo/reporttool")
-     ```
+    ``` r
+    devtools::install_github("itsdalmo/reporttool")
+    ```
 
 Requirements:
 
@@ -28,4 +28,6 @@ Optional:
 -   For PPT outputs, you'll need to install Java and ReporteRs:
     -   [www.oracle.com](http://www.oracle.com/technetwork/java/javase/downloads/jre8-downloads-2133155.html)
 
-    `R   install.packages("ReporteRs")`
+    ``` r
+    install.packages("ReporteRs")
+    ```
