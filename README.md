@@ -3,7 +3,7 @@ reporttool
 
 Installation:
 
-    ``` r
+    ```r
     devtools::install_github("itsdalmo/reporttool")
     ```
 
