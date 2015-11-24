@@ -40,6 +40,14 @@ mutate_.survey <- function(srv, ..., .dots) {
   # Gather dots and mutate the data
   dots <- lazyeval::all_dots(.dots, ..., all_named = TRUE)
   srv$df <- dplyr::mutate_(srv$df, .dots = dots)
+  
+  # Also update contrast if it exists
+  if (nrow(srv$cd)) {
+    vars <- intersect(names(dots), names(srv$cd))
+    if (length(vars)) {
+      srv$cd <- dplyr::mutate_(srv$cd, .dots = dots[names(dots) %in% vars])
+    }
+  }
 
   # Update mm (overhead)
   cols <- unique(names(dots))
