@@ -65,16 +65,17 @@ set_association <- function(survey, ..., common = FALSE) {
 
 #' @rdname set_association
 #' @export
-get_association <- function(srv, assoc) {
-  
-  assoc <- stri_trans_tolower(assoc)
+get_association <- function(srv, association) {
   
   # Measurement model must be added first
   if (!is.survey_mm(srv$mm) || !nrow(srv$mm)) {
     stop("The measurement model must be added first. See help(add_mm).", call. = FALSE)
   }
   
-  filter(srv$mm, stri_trans_tolower(latent) %in% assoc)[["manifest"]]
+  association <- stri_trans_tolower(association)
+  latent <- stri_trans_tolower(srv$mm$latent)
+  
+  srv$mm$manifest[match_all(association, latent)]
   
 }
 

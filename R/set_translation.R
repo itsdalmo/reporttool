@@ -67,16 +67,17 @@ set_translation <- function(srv, ..., language = "norwegian") {
 
 #' @rdname set_translation
 #' @export
-get_translation <- function(srv, trans) {
+get_translation <- function(srv, translation) {
   
-  trans <- stri_trans_tolower(trans)
-  
-  # Measurement model must be added first
+  # Translations must be added first
   if (!is.survey_tr(srv$tr) || !nrow(srv$tr)) {
     stop("Translations must be set first. See help(set_translation).", call. = FALSE)
   }
-
-  filter(srv$tr, stri_trans_tolower(original) %in% trans)[["replacement"]]
+  
+  translation <- stri_trans_tolower(translation)
+  original <- stri_trans_tolower(srv$tr$original)
+  
+  srv$tr$replacement[match_all(translation, original)]
   
 }
 
