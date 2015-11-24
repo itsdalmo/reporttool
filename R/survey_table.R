@@ -119,6 +119,7 @@ survey_table_ <- function(srv, dots, wide = TRUE, weight = TRUE, question = TRUE
   
   # 2x length dataset to produce average as well
   if (contrast && is.data.frame(srv$cd) && nrow(srv$cd) && all(vars %in% names(srv$cd))) {
+    srv$cd <- select_(srv$cd, .dots = c(as.character(vars), "w"))
     tr <- get_translation(srv, "contrast_average")
     mt <- lazyeval::interp(~x, x = tr)
     df <- bind_rows(srv$df, mutate_(srv$cd, .dots = setNames(list(mt), mainentity)))
