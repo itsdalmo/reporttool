@@ -83,7 +83,7 @@ recode <- function(x, ..., by = x, drop = TRUE, add = FALSE, as_factor = FALSE) 
   # Check that something is recoded
   is_recoding <- vapply(subsets, any, logical(1))
   if (any(!is_recoding)) {
-    stop("The expression for the following recodes resulted in no matches:\n", 
+    warning("The expression for the following recodes resulted in no matches:\n", 
          conjunct_string(stri_c("'", names(is_recoding[!is_recoding]), "'")), call. = FALSE)
   }
   
