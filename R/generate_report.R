@@ -129,8 +129,9 @@ prepare_survey <- function(srv) {
   srv <- use_latent_translation(srv)
   
   # Include question text for EM variables
-  vars <- get_association(srv, default$latents)
-  questions <- srv$mm$question[srv$mm$manifest %in% vars]
+  vars <- srv$mm$manifest[srv$mm$latent %in% default$latents]
+  questions <- get_question(srv, vars)
+  
   srv$mm$question[match(stri_c(vars, "em"), srv$mm$manifest, nomatch = 0)] <- questions
  
   # Return
