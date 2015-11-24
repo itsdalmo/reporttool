@@ -240,6 +240,10 @@ intranet_link <- function(https) {
 }
 
 # MISC -------------------------------------------------------------------------
+match_all <- function(x, table) {
+  unlist(lapply(x, function(x) which(table == x)))
+}
+
 # Adapted from: http://tolstoy.newcastle.edu.au/R/help/04/06/0217.html
 collect_warnings <- function(expr) {
   myWarnings <- NULL
