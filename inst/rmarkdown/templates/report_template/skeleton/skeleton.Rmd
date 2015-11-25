@@ -117,49 +117,50 @@ latent_scores <- srv %>%
 # Forord
 ## Gjennomføring
 
-- Målgruppen for denne undersøkelsen er kunder/brukere av `r entity`.
+- Målgruppen for denne undersøkelsen er foreldre med barn i `r entity`.
 - Svarene er avgitt på web (Research.net[^1]) i perioden `r info$start` til `r info$end`.
 - Respondentene (de som er invitert til å delta) kan motta inntil 3 e-poster - hvorav den første er en standard utsendelse, samt 2 påminnelser til de som ikke svarte på den første utsendelsen og evt. den første påminnelsen.
-- Totalt antall svar som ligger til grunne for denne rapporten: `r info$valid`.
+- Totalt antall svar som ligger til grunn for denne rapporten: `r info$valid`.
 - Det er hentet inn svar på `r info$questions` spørsmål som bygger opp under hovedanalysen. I tillegg til dette så har det vært stilt bakgrunnsspørsmål som bidrar med ytterligere innsikt i forhold til kundeopplevelsen. 
-- Alle resultatene som presenteres i denne rapporten er overlevert for intern bruk i `r entity`.
-- EPSIs nasjonale studie av telekom er en separat studie, og resultatene som formidles via EPSIs hjemmesider[^2] kan fritt siteres. 
+- Alle resultatene som presenteres i denne rapporten er overlevert for intern bruk i `r entity`, og dere står selv fritt til å dele resultatene med andre.
+- EPSIs nasjonale studie av barnehage er en separat studie, og resultatene som formidles via EPSIs hjemmesider[^2] kan fritt siteres. 
+- Enkelte resultater fra den nasjonale studien (Snitt nasjonal) er inkludert i denne rapporten.
 
 [^1]: [http://surveymonkey.com](http://surveymonkey.com)
 [^2]: [http://epsi-norway.org](http://epsi-norway.org)
 
 ## Skala og svar
 
-- Indeksen for kundetilfredshet presenteres som en verdi mellom 0 og 100, og er det sentrale målet i disse målingene. Dette er en indeksverdi, ikke en prosentverdi. Jo høyere verdi desto bedre anser kundene deres krav og forventninger oppfylles. 
+- Indeksen for kundetilfredshet presenteres som en verdi mellom 0 og 100, og er det sentrale målet i disse målingene. Dette er en indeksverdi, ikke en prosentverdi. Jo høyere verdi desto bedre anser kundene (de foresatte) deres krav og forventninger oppfylles. 
 - Spørsmålene svares på en skala fra 1 til 10, hvor 1 betyr "svært misfornøyd" eller "helt uenig" og hvor 10 betyr "svært fornøyd" eller "helt enig".
 - Resultatene gjøres i etterkant om til en 100-punkts skala.
 
 - Som en generell regel kan man si at:
-    - Målinger under 60 er lavt/veldig lavt (vanskeligheter med å motivere kundene til å bli).
-    - Målinger fra 60 - 75 er gjennomsnittlig  
-    - Målinger over 75 anses som høyt/veldig høyt (peker på en sterk relasjon mellom leverandør og kunde). 
+    - Målinger under 60 er lavt/veldig lavt
+    - Målinger fra 60 - 75 er gjennomsnittlig
+    - Målinger over 75 anses som høyt/veldig høyt
 
-- Som en tommelfingerregel så er forskjeller på mer enn 2.5 poeng signifikante. Dette innebærer at dersom det skiller mer enn 2.5 punkter mellom to indeksverdier, så er forskjellen signifikant.
 - Se www.epsi-norway.org for mer informasjon om metode og modell, eller om EPSI for øvrig.
 
 ## Aspekter i EPSI modellen
 
-- **`r get_translation(srv, "image")`** (`r conjunct_string(stri_trans_totitle(get_association(srv, "image")), "og")`) er målt for å fange hvilket inntrykk kundene har, basert på det de har hørt og lest.
+- **`r get_translation(srv, "image")`** (`r conjunct_string(stri_trans_totitle(get_association(srv, "image")), "og")`) er målt for å fange hvilket inntrykk foreldrene har av `r entity`, basert på det de har hørt og lest.
 
-- **`r get_translation(srv, "expect")`** (`r conjunct_string(stri_trans_totitle(get_association(srv, "expect")), "og")`) er et mål på hva respondentene forventer å få ut av kundeforholdet.
+- **`r get_translation(srv, "expect")`** (`r conjunct_string(stri_trans_totitle(get_association(srv, "expect")), "og")`) er et mål på hva foreldrene forventer å få ut av kundeforholdet.
 
-- **`r get_translation(srv, "prodq")`** (`r conjunct_string(stri_trans_totitle(get_association(srv, "prodq")), "og")`) fanger respondentens opplevelse av tjeneste- og produkttilbudet.
+- **`r get_translation(srv, "prodq")`** (`r conjunct_string(stri_trans_totitle(get_association(srv, "prodq")), "og")`) fanger foreldrenes opplevelse av tjeneste- og produkttilbudet.
 
-- **`r get_translation(srv, "servq")`** (`r conjunct_string(stri_trans_totitle(get_association(srv, "servq")), "og")`) har fokus på det generelle servicenivået sett fra kundenes ståsted.
+- **`r get_translation(srv, "servq")`** (`r conjunct_string(stri_trans_totitle(get_association(srv, "servq")), "og")`) har fokus på det generelle servicenivået sett fra foreldrenes ståsted.
 
-- **`r get_translation(srv, "value")`** (`r conjunct_string(stri_trans_totitle(get_association(srv, "value")), "og")`) er utformet for å fange opp forholdet mellom hva som er oppnådd (levert) og prisen / kostnaden for å få dette, sett fra respondentenes ståsted. 
+- **`r get_translation(srv, "value")`** (`r conjunct_string(stri_trans_totitle(get_association(srv, "value")), "og")`) er utformet for å fange opp forholdet mellom hva som er oppnådd (levert) og prisen / kostnaden for å få dette, sett fra foreldrenes ståsted. 
 
-- **`r get_translation(srv, "epsi")`** (KTI) er det sentrale målet i modellen, og reflekterer hvorvidt kundene opplever at deres krav og forventninger blir oppfylt. Resultatet for partneren beregnes på bakgrunn av `r length(get_association(srv, "epsi"))` spørsmål (`r conjunct_string(stri_trans_totitle(get_association(srv, "epsi")), "og")`).
+- **`r get_translation(srv, "epsi")`** (KTI) er det sentrale målet i modellen, og reflekterer hvorvidt foreldrene opplever at deres krav og forventninger blir oppfylt. Resultatet for barnehagen beregnes på bakgrunn av `r length(get_association(srv, "epsi"))` spørsmål (`r conjunct_string(stri_trans_totitle(get_association(srv, "epsi")), "og")`).
 
-- **`r get_translation(srv, "loyal")`** (`r conjunct_string(stri_trans_totitle(get_association(srv, "loyal")), "og")`) måler eksempelvis hvorvidt respondenten ville valgt samme dersom vedkommende måtte velge på nytt. Forskning viser at lojalitet i stor grad er påvirket av kundetilfredsheten.
+- **`r get_translation(srv, "loyal")`** (`r conjunct_string(stri_trans_totitle(get_association(srv, "loyal")), "og")`) måler eksempelvis hvorvidt foreldrene ville valgt samme barnehage dersom vedkommende måtte velge på nytt. Forskning viser at lojalitet i stor grad er påvirket av kundetilfredsheten.
 
-- Generelt så er det viktig med en balanse mellom forventninger og opplevd kvalitet (selve leveransen). Med andre ord, dersom gapet mellom hva kundene forventer og hvordan de opplever kvaliteten (negativt gap) blir for stor, så vil det ha negativ betydning for tilfredsheten.
+- Generelt så er det viktig med en balanse mellom forventninger og opplevd kvalitet (selve leveransen). Med andre ord, dersom gapet mellom hva foreldrene forventer og hvordan de opplever kvaliteten (negativt gap) blir for stor, så vil det ha negativ betydning for tilfredsheten.
 
+- **NB:** I spørsmålsteksten er {XX} benyttet som en plassholder. Da foreldrene svarte på undersøkelsen ble dette feltet byttet ut med navnet på barnehagen (altså `r entity`).
 
 # Kundeprofil for `r entity`
 
@@ -195,10 +196,9 @@ p + geom_line(size=1) +
 
 ```
 
-# Kundeprofil per `r get_translation(srv, "subentity")`
-
 ```{r, eval=subentity}
-# Frametitle -------------------------------------------------------------------
+# Title and subtitle -----------------------------------------------------------
+cat("#", "Kundeprofil per", get_translation(srv, "subentity"), "\n", sep = " ")
 cat("##", "","\n", sep=" ")
 
 # Use survey_table to collect the data
@@ -235,12 +235,11 @@ p + geom_line(size=1) +
 
 ```
 
-# Historikk
-
 ```{r, eval = historical}
 # Frametitle -------------------------------------------------------------------
+cat("# Historikk\n")
 cat("##", "","\n", sep=" ")
-csemester = "fall"; cyear = 2015
+csemester <- "fall"; cyear <- 2015
 
 # Use survey_table to collect the data
 pd <- latent_scores %>%
@@ -448,10 +447,9 @@ p + geom_bar(stat="identity", width=0.5, position=position_dodge(width=0.6)) +
     theme(panel.margin = unit(2, "lines"))
 ```
 
-# Klager
-
 ```{r, eval = complaint}
 # Frametitle -------------------------------------------------------------------
+cat("# Klager\n")
 cat("##", "\n", sep = " ")
 
 # Create the first plot --------------------------------------------------------
@@ -465,37 +463,37 @@ pd <- srv %>%
 p1 <- ggplot(pd, aes(x=answer, y=proportion, fill=mainentity, group=mainentity, ymin=0, ymax=1))
 p1 <- p1 + geom_bar(stat="identity", width=0.5, position=position_dodge(width=0.6)) +
   scale_fill_manual(values=setNames(palette, levels(pd$mainentity)), drop=FALSE) +
-  scale_x_discrete(labels = function(x) simple_wrap(x, 15)) + 
+  scale_x_discrete(labels = function(x) simple_wrap(x, 25)) + 
   scale_y_continuous(labels=percent) +
   geom_text(aes(label=sprintf("%.0f%%", proportion*100)),  
             size=3, colour="#23373b", position=position_dodge(width=0.6), vjust=-1.1, hjust=.35) +
   guides(fill = guide_legend(keywidth = .5, keyheight = .5)) +
   plot_theme() + 
-  theme(title = element_text(hjust = 0, size = 12)) +
+  theme(title = element_text(hjust = 0, size = 10)) +
   ggtitle(get_question(srv, mvar))
 
 # Create the second plot --------------------------------------------------------
 mvar <- get_association(srv, "complaint_handling")
 call_recode <- lazyeval::interp(
-  ~recode(clean_score(x), "Lite fornøyd (1-5)" = 1:5, "Middels (6-8)" = 6:8, "Svært fornøyd (9-10)" = 9:10, as_factor = TRUE), x = as.name(mvar))
+  ~recode(clean_score(x), as_factor = TRUE, "Lite fornøyd (1-5)" = 1:5L, "Middels (6-8)" = 6:8L, "Svært fornøyd (9-10)" = 9:10L), x = as.name(mvar))
 
 pd <- srv %>%
-  group_by(mainentity) %>%
   mutate_(.dots = setNames(list(call_recode), mvar)) %>%
+  group_by(mainentity) %>%
   survey_table_(dots = mvar, wide = FALSE) %>%
   filter(mainentity %in% c(entity, get_translation(srv, c("contrast_average", "study_average")))) %>%
   mutate(mainentity = factor(mainentity))
 
-p2 <- ggplot(pd, aes(x=answer, y=proportion, fill=mainentity, group=mainentity, ymin=0, ymax=1))
+p2 <- ggplot(pd, aes(x=answer, y=proportion, fill=mainentity, group=mainentity, ymin=0, ymax=1.05))
 p2 <- p2 + geom_bar(stat="identity", width=0.5, position=position_dodge(width=0.6)) +
   scale_fill_manual(values=setNames(palette, levels(pd$mainentity)), drop=FALSE) +
-  scale_x_discrete(labels = function(x) simple_wrap(x, 15)) + 
+  scale_x_discrete(labels = function(x) simple_wrap(x, 25)) + 
   scale_y_continuous(labels=percent) +
   geom_text(aes(label=sprintf("%.0f%%", proportion*100)),  
             size=3, colour="#23373b", position=position_dodge(width=0.6), vjust=-1.1, hjust=.35) +
   guides(fill = guide_legend(keywidth = .5, keyheight = .5)) +
   plot_theme() + 
-  theme(title = element_text(hjust = 0, size = 12)) +
+  theme(title = element_text(hjust = 0, size = 10)) +
   ggtitle(get_question(srv, mvar))
 
 # Plot both plots with shared legend
@@ -503,66 +501,9 @@ plot_shared_legend(p1, p2)
 
 ```
 
-# Sosiale medier
-
-```{r} 
-cat("##", "", "\n", sep = " ")
-
-# Gather the data
-pd <- srv %>%
-  group_by(mainentity) %>%
-  survey_table(q19a, q19b, wide = FALSE) %>%
-  select(-n) %>%
-  filter(mainentity %in% c(entity, get_translation(srv, c("contrast_average", "study_average")))) %>%
-  mutate(mainentity = factor(mainentity)) # Drop unused levels
-
-# Plot the data
-p <- ggplot(pd, aes(x=answer, y=proportion, fill=mainentity, group=mainentity, ymin=0, ymax=1))
-p + geom_bar(stat="identity", width=0.5, position=position_dodge(width=0.6)) +
-    scale_fill_manual(values=setNames(palette, levels(pd$mainentity)), drop=FALSE) +
-    facet_wrap(~ question, ncol=1, scales="free_x") +
-    scale_x_discrete(labels = function(x) simple_wrap(x, 15)) + 
-    scale_y_continuous(labels=percent) +
-    geom_text(aes(label=sprintf("%.0f%%", proportion*100)),  
-              size=3, colour="#23373b", position=position_dodge(width=0.6), vjust=-1.1, hjust=.35) +
-    guides(fill = guide_legend(keywidth = .5, keyheight = .5)) +
-    plot_theme() + 
-    theme(strip.background = element_blank(),
-          strip.text = element_text(color = "#23373b", hjust = 0, size = 12),
-          panel.margin = unit(2, "lines"))
-
-```
-
-```{r} 
-cat("##", get_question(srv, "q19a"), "\n", sep = " ")
-
-# Gather the data
-pd <- srv %>%
-  group_by(mainentity, q19a) %>%
-  survey_table(epsi, loyal, wide = FALSE) %>%
-  select(-n) %>%
-  filter(mainentity %in% c(entity, get_translation(srv, c("contrast_average", "study_average")))) %>%
-  mutate(mainentity = factor(mainentity)) # Drop unused levels
-
-# Plot the data
-p <- ggplot(pd, aes(x=q19a, y=answer, fill=mainentity, group=mainentity, ymin=0, ymax=100))
-p + geom_bar(stat="identity", width=0.5, position=position_dodge(width=0.6)) +
-    facet_wrap(~ question, ncol=1, scales="free_x") +
-    scale_fill_manual(values=setNames(palette, levels(pd$mainentity)), drop=FALSE) +
-    scale_x_discrete(labels = function(x) simple_wrap(x, 15)) + 
-    geom_text(aes(label=sprintf("%.1f", answer)), 
-              size=3, colour="#23373b", position=position_dodge(width=0.6), vjust=-1.1, hjust=.35) +
-    guides(fill = guide_legend(keywidth = .5, keyheight = .5)) +
-    plot_theme() + 
-    theme(strip.background = element_blank(),
-          strip.text = element_text(color = "#23373b", hjust = 0, size = 12),
-          panel.margin = unit(2, "lines"))
-
-```
-
 # Åpne svar
 
-```{r, eval=open_answers}
+```{r, eval = open_answers}
 # Frametitle -------------------------------------------------------------------
 mvar <- get_association(srv, c("open_complaint", "open_answer"))
 frametitle <- stri_c("##", get_question(srv, mvar), "(uredigerte svar)", sep = " ")
@@ -573,12 +514,16 @@ pd <- get_data(srv) %>%
   gather(var, answers, -mainentity) %>%
   mutate(answers = clean_text(answers)) %>% 
   mutate(title = ordered_replace(as.character(var), mvar, frametitle)) %>%
-  filter(!is.na(answers)) %>%
-  group_by(var) %>%
-  mutate(nchars = stri_length(answers), nlines = ceiling(nchars/135), tlines = cumsum(nlines)) %>%
-  mutate(page = if (max(tlines) > 23) cut(tlines, breaks = ceiling(sum(nlines)/23), labels = FALSE) else 1L)
-  
+  filter(!is.na(answers)) 
 
+lines <- stri_wrap(pd$answers, width = 135L, whitespace_only = TRUE, simplify = FALSE)
+lines <- vapply(lines, length, numeric(1))
+
+pd <- pd %>%
+  mutate(nlines = lines) %>%
+  group_by(var) %>%
+  mutate(tlines = cumsum(nlines)) %>%
+  mutate(page = if (max(tlines) > 23) cut(tlines, breaks = ceiling(sum(nlines)/23) + 1L, labels = FALSE, right = FALSE) else 1L)
 
 # Inform if no answers were found ----------------------------------------------
 for (i in levels(pd$var)) {
