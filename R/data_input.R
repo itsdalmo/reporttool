@@ -102,7 +102,7 @@ read_spss <- function(file) {
     rows <- match(x$stringID, strings$stringID)
     vars <- intersect(names(strings), names(x))
     
-    x[vars] <- strings[rows, vars]
+    x[vars] <- Map(function(d, a) { attr(d, "label") <- attr(a, "label"); d }, strings[rows, vars], x[vars])
     x$stringID <- NULL # Remove string ID when reading
     warning("Found Rdata with long strings in same directory. Joined with data.", call. = FALSE)
   }
