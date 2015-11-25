@@ -96,13 +96,13 @@ read_spss <- function(file) {
   # BUG in ReadStat (long strings, > 256 characters) 
   name <- filename_no_ext(file)
   strings <- file.path(dirname(file), stri_c(name, " (long strings).Rdata"))
-
+  
   if (file.exists(strings)) {
     strings <- as.data.frame(read_data(strings))
-    strings2 <- strings[match(strings$stringID, x$stringID), ]
-    vars <- names(x) %in% names(strings)
-
-    x[vars] <- strings[names(strings) %in% names(x)]
+    rows <- match(x$stringID, strings$stringID)
+    vars <- intersect(names(strings), names(x))
+    
+    x[vars] <- strings[rows, vars]
     x$stringID <- NULL # Remove string ID when reading
     warning("Found Rdata with long strings in same directory. Joined with data.", call. = FALSE)
   }
