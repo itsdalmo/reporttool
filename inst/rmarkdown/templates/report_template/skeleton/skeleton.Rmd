@@ -37,6 +37,7 @@ excel_only <- FALSE
 # Get default values
 latents <- get_default("latents")
 palette <- get_default("palette")
+palette <- c("#2FABB7", "#F04E36", "#747678", "#4C72B0", "#55A868", "#C44E52", "#8172B2", "#CCB974", "#FFC000", "#004A52", "#0091A1", "#BFBFBF")
 
 # Get model questions
 questions <- tbl_df(srv$mm) %>%
@@ -196,7 +197,7 @@ p + geom_line(size=1) +
 
 ```
 
-```{r, eval=subentity}
+```{r, eval = subentity}
 # Title and subtitle -----------------------------------------------------------
 cat("#", "Kundeprofil per", get_translation(srv, "subentity"), "\n", sep = " ")
 cat("##", "","\n", sep=" ")
@@ -308,7 +309,7 @@ pd$question <- text
 # Ready the data for plotting --------------------------------------------------
 pd <- pd %>%
   select(manifest, question, difference) %>%
-  mutate("sign" = ifelse(difference > 0, 1, 0)) %>%
+  mutate("sign" = ifelse(difference > 0, 0, 1)) %>%
   mutate(sign = factor(sign, levels=unique(sign))) %>%
   mutate(question = stri_c(manifest, question, sep = " - ")) %>%
   mutate(question = factor(question, levels=rev(unique(question))))
@@ -523,7 +524,7 @@ pd <- pd %>%
   mutate(nlines = lines) %>%
   group_by(var) %>%
   mutate(tlines = cumsum(nlines)) %>%
-  mutate(page = if (max(tlines) > 23) cut(tlines, breaks = ceiling(sum(nlines)/23) + 1L, labels = FALSE, right = FALSE) else 1L)
+  mutate(page = findInterval(tlines, vec = if (max(tlines) > 23) seq(1, max(tlines), 22)  else 1L))
 
 # Inform if no answers were found ----------------------------------------------
 for (i in levels(pd$var)) {
