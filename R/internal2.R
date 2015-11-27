@@ -1,5 +1,5 @@
 #' @export
-read_sharepoint2 <- function(file, mainentity = "q1", weights = TRUE) {
+read_sharepoint2 <- function(file, mainentity = "q1", weights = FALSE) {
   
   # Check path
   if (!tools::file_ext(file) == "") {
