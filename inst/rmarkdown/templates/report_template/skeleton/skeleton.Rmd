@@ -121,7 +121,7 @@ latent_scores <- srv %>%
 - Målgruppen for denne undersøkelsen er foreldre med barn i `r entity`.
 - Svarene er avgitt på web (Research.net[^1]) i perioden `r info$start` til `r info$end`.
 - Respondentene (de som er invitert til å delta) kan motta inntil 3 e-poster - hvorav den første er en standard utsendelse, samt 2 påminnelser til de som ikke svarte på den første utsendelsen og evt. den første påminnelsen.
-- Totalt antall svar som ligger til grunn for denne rapporten: `r info$valid`.
+- Totalt antall gyldige svar som ligger til grunn for denne rapporten: `r info$valid`
 - Det er hentet inn svar på `r info$questions` spørsmål som bygger opp under hovedanalysen. I tillegg til dette så har det vært stilt bakgrunnsspørsmål som bidrar med ytterligere innsikt i forhold til kundeopplevelsen. 
 - Alle resultatene som presenteres i denne rapporten er overlevert for intern bruk i `r entity`, og dere står selv fritt til å dele resultatene med andre.
 - EPSIs nasjonale studie av barnehage er en separat studie, og resultatene som formidles via EPSIs hjemmesider[^2] kan fritt siteres. 
