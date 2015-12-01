@@ -336,6 +336,7 @@ read_outer_weights <- function(dir, entities) {
   
   outer_weights <- lapply(entities, function(x) {
     ow <- read_data(file.path(dir, file), sheet = x, skip = 3)
+    if (nrow(iw) == 0L) stop("Problem reading data from 'score weights out.xlsx'. This is often solved by opening the file for editing, selecting each sheet in turn, and saving again without further changes.", call. = FALSE)
     ow <- mutate(ow[, c(2:7, 9)], mainentity = x)
     names(ow) <- c("latent", "manifest", "question", "score", "weight", "std", "epsi_effect", "mainentity")
     ow <- mutate_each(select(ow, mainentity, everything()), funs(as.numeric(.)), score:epsi_effect)
