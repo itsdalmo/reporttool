@@ -4,7 +4,7 @@
 \alias{read_sharepoint}
 \title{Extract from a study directory on sharepoint}
 \usage{
-read_sharepoint(file, mainentity = "q1", encoding = "latin1")
+read_sharepoint(file, mainentity = "q1", weights = FALSE)
 }
 \arguments{
 \item{file}{Path to a study directory on the intranet.}

@@ -7,7 +7,7 @@
 \usage{
 set_translation(srv, ..., language = "norwegian")
 
-get_translation(srv, trans)
+get_translation(srv, translation)
 }
 \arguments{
 \item{srv}{A survey object.}

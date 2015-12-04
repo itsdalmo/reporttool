@@ -7,7 +7,7 @@
 \usage{
 set_association(survey, ..., common = FALSE)
 
-get_association(srv, assoc)
+get_association(srv, association)
 }
 \arguments{
 \item{survey}{A survey object.}

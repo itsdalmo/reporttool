@@ -30,4 +30,4 @@ Suggests:
     gridExtra,
     ReporteRs (>= 0.8.2),
     testthat
-RoxygenNote: 5.0.0
+RoxygenNote: 5.0.1
