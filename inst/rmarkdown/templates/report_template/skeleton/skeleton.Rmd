@@ -52,12 +52,17 @@ simple_wrap <- function(x, width) {
   vapply(x, stri_c, collapse = "\n", character(1))
 }
 
+# Small function to make some colors fixed
+fixed_colors <- function(colors, entities) {
+  c(colors[!is.na(names(colors))], setNames(colors[is.na(names(colors))], setdiff(entities, names(colors))))
+}
+
 # Prepare survey (replace and lowercase columnnames)
 srv <- prepare_survey(srv)
 
 # Figure out which slides should be included
 subentity <- "subentity" %in% names(srv$df) && nrow(filter(srv$df, mainentity %in% entity, !is.na(subentity))) > 0L
-historical <- entity %in% srv$hd$mainentity
+historical <- nrow(srv$hd) > 0L && "mainentity" %in% names(srv$hd) && entity %in% srv$hd$mainentity
 complaint <- length(get_association(srv, "complaint")) > 0
 complaint_handeling <- length(get_association(srv, "complaint_handling")) > 0
 open_answers <- length(get_association(srv, c("open_complaint", "open_answer"))) > 0
@@ -113,6 +118,8 @@ latent_scores <- srv %>%
   group_by(mainentity) %>%
   survey_table(one_of(get_default("latents")), wide = FALSE)
 
+# Fixed colors -----------------------------------------------------------------
+palette <- setNames(palette, c(entity, as.character(latent_scores$mainentity)[length(latent_scores$mainentity)]))
 ```
 
 # Forord
@@ -187,7 +194,7 @@ y_min <- ifelse(min(pd[["answer"]]) > 10, round(min(pd[["answer"]])-10, -1), 0)
 p <- ggplot(data=pd, aes(x=question, y=answer, group=mainentity, colour=mainentity))
 p + geom_line(size=1) +
   geom_point(size=3) +
-  scale_color_manual(values = setNames(palette, unique(pd$mainentity))) +
+  scale_color_manual(values = fixed_colors(palette, as.character(pd$mainentity))) +
   geom_text(data = filter(pd, mainentity == entity), 
             aes(label=sprintf("%.1f", answer)),  
             size=4, colour="#23373b", vjust=vjust) + 
@@ -205,33 +212,35 @@ cat("##", "","\n", sep=" ")
 # Use survey_table to collect the data
 pd <- srv %>%
   filter(mainentity %in% entity, !is.na(subentity)) %>%
+  mutate(subentity = factor(subentity)) %>%
   group_by(subentity) %>%
   survey_table(one_of(get_default("latents")), wide = FALSE, contrast = FALSE) %>%
-  mutate(subentity = factor(stri_trans_totitle(subentity))) %>%
+  mutate(subentity = ifelse(subentity %in% get_translation(srv, "study_average"), "Snitt", as.character(subentity))) %>%
+  mutate(subentity = factor(stri_trans_totitle(subentity), levels = stri_trans_totitle(unique(subentity)))) %>%
   select(-n, -manifest) 
 
 # Get the vertical justification for geom text ---------------------------------
 vjust <- pd %>% spread(subentity, answer)
 vjust$overlap <- if (ncol(vjust) > 3) rowMeans(vjust[, 2:ncol(vjust)]) else vjust[[ncol(vjust)]]
-vjust <- ifelse(vjust[[get_translation(srv, "study_average")]] < vjust[["overlap"]], "2", "-1")
+vjust <- ifelse(vjust[["Snitt"]] < vjust[["overlap"]], "2", "-1")
 
 # Calculate appropriate range for y-axis ---------------------------------------
 y_max <- ifelse(max(pd[["answer"]]) < 90, round(max(pd[["answer"]])+10, -1), 100)
 y_min <- ifelse(min(pd[["answer"]]) > 10, round(min(pd[["answer"]])-10, -1), 0)
 
 # Add linetypes
-pd <- pd %>% mutate(line = ifelse(subentity == get_translation(srv, "study_average"), "solid", "dashed"))
+pd <- pd %>% mutate(line = ifelse(subentity == "Snitt", "solid", "dashed"))
 
 # Create the profile-plot ------------------------------------------------------
 p <- ggplot(data=pd, aes(x=question, y=answer, group=subentity, colour=subentity, linetype = line))
 p + geom_line(size=1) +
   geom_point(size=3) +
-  scale_color_manual(values = setNames(palette, rev(unique(pd$subentity)))) +
-  geom_text(data = filter(pd, subentity == get_translation(srv, "study_average")), 
+  scale_color_manual(values = fixed_colors(setNames(palette, c(entity, "Snitt")), pd$subentity)) +
+  geom_text(data = filter(pd, subentity == "Snitt"), 
             aes(label=sprintf("%.1f", answer)),  
             size=4, colour="#23373b", vjust=vjust) + 
   ylim(y_min, y_max) + 
-  guides(linetype=FALSE) +
+  guides(linetype=FALSE, color=guide_legend(nrow=2, byrow=TRUE)) +
   plot_theme()
 
 ```
@@ -281,9 +290,10 @@ p + geom_bar(stat="identity", width=0.5, position=position_dodge(width=0.6)) +
   plot_theme() + 
   theme(title = element_text(hjust = -.1))
 
+
 ```
 
-# SWOT
+# GAP-analyse
 
 ```{r}
 # Frametitle -------------------------------------------------------------------
@@ -309,7 +319,7 @@ pd$question <- text
 # Ready the data for plotting --------------------------------------------------
 pd <- pd %>%
   select(manifest, question, difference) %>%
-  mutate("sign" = ifelse(difference > 0, 0, 1)) %>%
+  mutate("sign" = ifelse(difference > 0, 1, 0)) %>%
   mutate(sign = factor(sign, levels=unique(sign))) %>%
   mutate(question = stri_c(manifest, question, sep = " - ")) %>%
   mutate(question = factor(question, levels=rev(unique(question))))
@@ -322,7 +332,7 @@ y_max <- 5*ceiling(max(pd$difference, na.rm=TRUE)/4)
 p <- ggplot(data=pd, aes(x=question, y=difference, fill=sign))
 p + geom_bar(stat="identity", width=0.5, position="dodge") + 
   coord_flip(ylim = c(y_min, y_max)) +
-  scale_fill_manual(values=setNames(palette, c(0,1))) +
+  scale_fill_manual(values=setNames(palette, c(1,0))) +
   geom_hline(xintercept=0, size=.5, colour = "#D0D0D0") +
   geom_text(data = filter(pd, sign == 1), 
             aes(label=sprintf("%.1f", difference)),  
@@ -391,6 +401,87 @@ cat("##", "","\n", sep=" ")
 cat(second_table, sep="\n")
 ```
 
+# Flowchart
+
+```{r}
+# Frametitle -------------------------------------------------------------------
+cat("##", "\n", sep=" ")
+
+weights <- srv$inner_weights %>%
+  mutate(origin = stri_trans_tolower(origin)) %>%
+  filter(mainentity == entity, !origin %in% "loyal") %>%
+  select(-image) %>%
+  gather(target, weight, -mainentity, -origin) %>%
+  filter(!(origin == target),
+         !(origin == "image" & target %in% c("value", "loyal")), 
+         !(origin == "expect" & target %in% c("value", "epsi", "loyal")), 
+         !(origin == "prodq" & target %in% c("expect", "loyal")), 
+         !(origin == "servq" & target %in% c("expect", "prodq", "loyal")), 
+         !(origin == "value" & target %in% c("expect", "prodq", "servq", "loyal")),
+         !(origin == "epsi" & target != "loyal")) %>%
+  mutate(origin = factor(origin, levels = get_default("latents"), ordered = TRUE)) %>%
+  arrange(origin) %>%
+  mutate(latent = stri_c(stri_c(origin, "_"), target)) %>%
+  select(latent, weight)
+
+scores <- latent_scores %>% filter(mainentity == entity)
+
+nms <- get_translation(srv, get_default("latents"))
+
+p <- flowchart(scores$answer, weights$weight, nms)
+p + annotate("rect", xmin = .3, xmax = 5.25, ymin = 0, ymax = 10, alpha = .1, fill = palette[1]) +
+    annotate("text", x = 4.93, y = 0.2, label = "Drivere", size = 3, colour = "#23373b", fontface = "bold")
+  
+# Add footnote -----------------------------------------------------------------
+footnote <- stri_c("Pilene i flytdiagrammet viser sammenhengen mellom aspektene vi har målt, og deres effekt på hverandre.
+                   Effekten beskrives med et tall mellom 0 og 1, og jo høyere verdi (nærmere 1) dess tettere sammenheng.")
+cat("\\footnoteextra{", footnote, "}", sep = "")
+```
+
+# Effekt på kundetilfredshet
+
+```{r}
+# Frametitle -------------------------------------------------------------------
+cat("##", "", "\n", sep=" ")
+
+# Gather the data for the table ------------------------------------------------
+pd <- srv$outer_weights %>%
+  filter(mainentity == entity) %>%
+  select(latent, manifest, question, epsi_effect) %>%
+  arrange(desc(epsi_effect)) %>%
+  mutate(manifest = stri_trans_totitle(manifest), latent = stri_trans_totitle(latent)) 
+  
+# Replace headers with the translation from config -----------------------------
+names(pd) <- ordered_replace(names(pd), setNames(srv$tr$original, srv$tr$replacement))
+names(pd)[c(1, 4)] <- c("Aspekt", "Effekt")
+
+# Get length of column headers for the table, and truncate manifest text if needed:
+max_length <- 110 - 2*length(names(pd)) - sum(stri_length(names(pd)[-2]))
+max_length <- floor(max_length/5)*5
+
+min_length <- stri_length(get_translation(srv, "question"))
+max_length <- if (max_length < min_length)  min_length else max_length
+
+# Shorten the strings and insert them into the data ----------------------------
+text <- as.character(pd[[get_translation(srv, "question")]])
+text <- ifelse(stri_length(text) >= max_length, stri_c(stri_sub(text, to = max_length-3), "..."), text)
+pd[[get_translation(srv, "question")]] <- text
+
+# Divide the data for the two tables -------------------------------------------
+first_table <- pd %>% xtable(digits=2)
+
+# Capture output and alter to color negative values in red ---------------------
+first_table <- capture.output(print.xtable(first_table, size="\\tiny", comment=F, include.rownames=F))
+
+# Print the first table --------------------------------------------------------
+cat(first_table, sep="\n")
+
+# Add footnote -----------------------------------------------------------------
+footnote <- "Spørsmålene i tabellen over er sortert etter viktighet. Tabellen leses slik at dersom resultatet på ett enkelt spørsmål øker med 0,5 enhet på en 1-10 skala, så vil kundetilfredsheten øke med det som står i 'effekt' (på en 100 punkts skala)."
+cat("\\footnoteextra{", footnote, "}", sep = "")
+
+```
+
 # Kontakt og service
 
 ```{r}
@@ -408,7 +499,7 @@ pd <- srv %>%
 # Create the plot --------------------------------------------------------------
 p <- ggplot(pd, aes(x=answer, y=proportion, fill=mainentity, group=mainentity, ymin=0, ymax=1))
 p + geom_bar(stat="identity", width=0.5, position=position_dodge(width=0.6)) +
-  scale_fill_manual(values=setNames(palette, levels(pd$mainentity)), drop=FALSE) +
+  scale_fill_manual(values=fixed_colors(palette, pd$mainentity), drop=FALSE) +
   scale_x_discrete(labels = function(x) simple_wrap(x, 15)) + 
   scale_y_continuous(labels=percent) +
   geom_text(aes(label=sprintf("%.0f%%", proportion*100)),  
@@ -438,7 +529,7 @@ y_min <- ifelse(min(pd[["answer"]]) > 10, round(min(pd[["answer"]])-10, -1), 0)
 # Plot the data
 p <- ggplot(pd, aes(x=question, y=answer, fill=mainentity, group=mainentity, ymin=0, ymax=100))
 p + geom_bar(stat="identity", width=0.5, position=position_dodge(width=0.6)) +
-    scale_fill_manual(values=setNames(palette, levels(pd$mainentity)), drop=FALSE) +
+    scale_fill_manual(values=fixed_colors(palette, pd$mainentity), drop=FALSE) +
     scale_y_continuous(limits=c(y_min, y_max), oob = rescale_none) +
     scale_x_discrete(labels = function(x) simple_wrap(x, 25)) + 
     geom_text(aes(label=sprintf("%.1f", answer)), 
@@ -463,7 +554,7 @@ pd <- srv %>%
 
 p1 <- ggplot(pd, aes(x=answer, y=proportion, fill=mainentity, group=mainentity, ymin=0, ymax=1))
 p1 <- p1 + geom_bar(stat="identity", width=0.5, position=position_dodge(width=0.6)) +
-  scale_fill_manual(values=setNames(palette, levels(pd$mainentity)), drop=FALSE) +
+  scale_fill_manual(values=fixed_colors(palette, pd$mainentity), drop=FALSE) +
   scale_x_discrete(labels = function(x) simple_wrap(x, 25)) + 
   scale_y_continuous(labels=percent) +
   geom_text(aes(label=sprintf("%.0f%%", proportion*100)),  
@@ -487,7 +578,7 @@ pd <- srv %>%
 
 p2 <- ggplot(pd, aes(x=answer, y=proportion, fill=mainentity, group=mainentity, ymin=0, ymax=1.05))
 p2 <- p2 + geom_bar(stat="identity", width=0.5, position=position_dodge(width=0.6)) +
-  scale_fill_manual(values=setNames(palette, levels(pd$mainentity)), drop=FALSE) +
+  scale_fill_manual(values=fixed_colors(palette, pd$mainentity), drop=FALSE) +
   scale_x_discrete(labels = function(x) simple_wrap(x, 25)) + 
   scale_y_continuous(labels=percent) +
   geom_text(aes(label=sprintf("%.0f%%", proportion*100)),  
