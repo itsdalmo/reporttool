@@ -101,7 +101,7 @@ test_that("recode works for factors", {
 
   # Add works
   y <- recode(x, "d" = . %in% "a", drop = TRUE, add = TRUE)
-  expect_identical(y, factor(c("d", "b", "c"), levels = c("d", "b", "c"))) 
+  expect_identical(y, factor(c("d", "b", "c"), levels = c("b", "c", "d"))) 
   y <- recode(x, "d" = . %in% "a", drop = FALSE, add = TRUE)
   expect_identical(y, factor(c("d", "b", "c"), levels = c("a", "b", "c", "d"))) 
   

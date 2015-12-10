@@ -8,13 +8,10 @@
 \alias{get_default}
 \alias{intranet_link}
 \alias{ordered_replace}
-\alias{recode}
 \alias{rescale_score}
 \title{Utilities}
 \usage{
 get_default(string)
-
-recode(x, ..., by = x, drop = TRUE, add = FALSE, as_factor = FALSE)
 
 clean_text(var)
 
@@ -35,16 +32,6 @@ A few wrappers to make a common tasks less verbose.
 
 
 \describe{
-
-   \item{\code{recode}}{Recode variables without nested ifelse statements. Uses
-   \code{\%in\%} to create a logical vector when recoding. I.e. you can recode one
-   vector based on matches in another vector of the same length. For factors,
-   the function only allows recoding to an existing level unless \code{add} is \code{TRUE}.
-   You can also set \code{drop = TRUE} to drop levels that you are recoding (away) from,
-   which can also be used in conjuction with \code{add}. You can also set \code{as_factor}
-   to \code{TRUE} to convert other types of vectors to factor after recoding - the
-   values you recode into (argument names) will become the levels for the new factor,
-   and everything else becomes \code{NA}.} 
 
    \item{\code{intranet_link}}{Converts any http(s) link with a .se domain
    to a link for a network drive (sharepoint) on windows.}  
