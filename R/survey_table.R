@@ -266,14 +266,14 @@ complete_count <- function(df, grouping) {
   df <- select_(df, .dots = grouping)
   
   # Count and create the completed dataset
-  df_count <- count_(df, vars = names(df))
+  df_count <- count_(df, vars = names(df), sort = FALSE)
   df_compl <- lapply(df, function(x) { if (is.factor(x)) levels(x) else unique(x) })
   df_compl <- as_data_frame(expand.grid(df_compl))
+  df_compl <- arrange_(df_compl, .dots = grouping)
   
   # Join and clean counts
   df_count <- suppressWarnings(suppressMessages(left_join(df_compl, df_count)))
   df_count <- tidyr::replace_na(df_count, list(n = 0L))
-  df_count <- arrange_(df_count, .dots = grouping)
   
   # Return
   df_count
