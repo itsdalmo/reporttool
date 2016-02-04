@@ -26,6 +26,9 @@ write_questionnaire <- function(quest, file, study = "Banking", segment = "B2C",
   segment <- stri_trans_tolower(segment)
   names(quest) <- stri_trans_tolower(names(quest))
   
+  # Arrange the questions by "order"
+  quest <- quest[order(quest$order), ]
+  
   # Subset and create index
   quest <- quest[stri_trans_tolower(quest$study) == study & stri_trans_tolower(quest$segment) == segment, ]
   quest[] <- lapply(quest, stri_replace_all, replacement = "", regex = "\\r")
