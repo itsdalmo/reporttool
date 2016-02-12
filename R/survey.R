@@ -101,6 +101,37 @@ survey <- function(x) {
   
 }
 
+#' @rdname survey
+#' @export
+get_data <- function(srv) srv$df
+
+#' @rdname survey
+#' @export
+lowercase_names <- function(srv) {
+  
+  # Check class
+  if (!is.survey(srv)) {
+    stop("Argument 'srv' is not an object with the class 'survey'. See help(survey).", call. = FALSE)
+  }
+  
+  # Lowercase names
+  nms <- names(srv$df)
+  srv <- rename_(srv, .dots = setNames(nms, stri_trans_tolower(nms)))
+  
+  if (nrow(srv$cd)) {
+    nms <- names(srv$cd)
+    srv$cd <- rename_(srv$cd, .dots = setNames(nms, stri_trans_tolower(nms)))
+  }
+  
+  if (nrow(srv$hd)) {
+    nms <- names(srv$hd)
+    srv$hd <- rename_(srv$hd, .dots = setNames(nms, stri_trans_tolower(nms)))
+  }
+  
+  srv
+  
+}
+
 # Methods ----------------------------------------------------------------------
 
 #' @rdname survey

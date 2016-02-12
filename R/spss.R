@@ -39,10 +39,11 @@ from_labelled <- function(df) {
   
   # Check labelled scales for consistency and convert to factor
   df[is_scale] <- Map(fix_labelled, df[is_scale], names(df)[is_scale])
-  df[is_labelled] <- lapply(df[is_labelled], haven::as_factor, drop_na = FALSE, ordered = FALSE)
+  df[is_labelled] <- suppressWarnings(
+    lapply(df[is_labelled], haven::as_factor, drop_na = FALSE, ordered = FALSE))
   
   # Insert variable type
-  mm$type <- vapply(df, class, character(1))
+  mm$type <- vapply(df, function(x) {if (inherits(x, "POSIXct")) "Date" else class(x)}, character(1))
   mm$type[is_scale] <- "scale"
   
   # Clean up the scale variable values (only endpoints)
@@ -85,14 +86,24 @@ to_labelled <- function(survey) {
   # Make sure all factor/scale variables are factors
   survey <- factor_data(survey, vars)
   
-  # Convert all factors to 'labelled'
+  # Convert variables
   survey$df[] <- lapply(names(survey$df), function(nm, df, mm) {
     
     x <- df[[nm]]
-    v <- levels(x)
     
+    # All factors should be 'labelled'
     if (is.factor(x)) {
+      v <- levels(x)
       x <- as.numeric(x); x <- haven::labelled(x, setNames(as.numeric(1:length(v)), v), is_na = NULL)
+    } else if (is.character(x)) {
+      # Make sure encoding is native
+      x <- collect_warnings(stri_enc_tonative(x))
+      if (!is.null(x$warnings)) {
+        warnings <- unlist(lapply(x$warnings, "[[", "message"))
+        warning("Warnings when encoding ", nm, " to native:\n", 
+                stri_c(unique(warnings), collapse = "\n"), call. = FALSE)
+      }
+      x <- x$value
     }
     
     # Set attributes/class and return

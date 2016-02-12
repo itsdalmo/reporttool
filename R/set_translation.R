@@ -49,8 +49,7 @@ set_translation <- function(srv, ..., language = "norwegian") {
   # Throw an error if arguments do not match the manifest
   missing <- setdiff(names(args), srv$tr$original)
   if (length(missing)) {
-    missing <- stri_c(missing, collapse = ", ")
-    warning(stri_c("Values not found in translations:\n", missing), call. = FALSE)
+    warning(stri_c("Values not found in translations:\n", conjunct_string(missing)), call. = FALSE)
   }
   
   # Update with a loop for clarity
@@ -66,7 +65,39 @@ set_translation <- function(srv, ..., language = "norwegian") {
   
 }
 
+#' @rdname set_translation
+#' @export
+get_translation <- function(srv, translation) {
+  
+  # Translations must be added first
+  if (!is.survey_tr(srv$tr) || !nrow(srv$tr)) {
+    stop("Translations must be set first. See help(set_translation).", call. = FALSE)
+  }
+  
+  translation <- stri_trans_tolower(translation)
+  original <- stri_trans_tolower(srv$tr$original)
+  
+  srv$tr$replacement[match_all(translation, original)]
+  
+}
+
 # Utilities --------------------------------------------------------------------
 
 is.survey_tr <- function(x) inherits(x, "survey_tr")
 as.survey_tr <- function(x) structure(x, class = c("survey_tr", "data.frame"))
+
+use_latent_translation <- function(srv) {
+  
+  # Check class
+  if (!is.survey(srv)) {
+    stop("Argument 'srv' is not an object with the class 'survey'. See help(survey).", call. = FALSE)
+  }
+  
+  # Set latent translations as "question"
+  cols <- stri_trans_tolower(srv$mm$manifest) %in% default$latents
+  srv$mm$question[cols] <- get_translation(srv, stri_trans_tolower(srv$mm$manifest[cols]))
+  
+  # Return
+  srv
+  
+}

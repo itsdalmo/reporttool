@@ -58,7 +58,7 @@ test_that("Writing questionnaires", {
   
   # Read data again and compare
   w_q <- read_data(fileName)
-  expect_identical(names(w_q)[1], "Test question")
+  expect_identical(names(w_q)[1], "Test primer")
   
   # Remove title row and compare again
   names(w_q) <- w_q[1, ]; w_q <- w_q[2,]

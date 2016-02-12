@@ -48,8 +48,7 @@ set_association <- function(survey, ..., common = FALSE) {
   # Throw an error if arguments do not match the manifest
   missing <- setdiff(unlist(args), survey$mm$manifest)
   if (length(missing)) {
-    missing <- stri_c(missing, collapse = ", ")
-    stop(stri_c("Variables not found in the measurement model:\n", missing), call. = FALSE)
+    stop("Variables not found in the measurement model:\n", conjunct_string(missing), call. = FALSE)
   }
   
   # Update with a loop for clarity
@@ -61,6 +60,22 @@ set_association <- function(survey, ..., common = FALSE) {
   
   # Return
   survey
+  
+}
+
+#' @rdname set_association
+#' @export
+get_association <- function(srv, association) {
+  
+  # Measurement model must be added first
+  if (!is.survey_mm(srv$mm) || !nrow(srv$mm)) {
+    stop("The measurement model must be added first. See help(add_mm).", call. = FALSE)
+  }
+  
+  association <- stri_trans_tolower(association)
+  latent <- stri_trans_tolower(srv$mm$latent)
+  
+  srv$mm$manifest[match_all(association, latent)]
   
 }
 

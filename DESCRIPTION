@@ -8,26 +8,26 @@ Maintainer: Kristian D. Olsen <kristian@doingit.no>
 Description: Useful tools for reporting in EPSI.
 License: CC-BY-SA 4.0 International
 Depends:
-  R (>= 3.1),
-  dplyr (>= 0.4.3)
-Imports: 
-  evaluate,
-  ggplot2,
-  grid,
-  haven (>= 0.2.0.9000),
-  knitr,
-  lazyeval,
-  openxlsx (>= 3.0.0),
-  readr (>= 0.1.1.9000),
-  readxl (>= 0.1.0.9000),
-  rmarkdown,
-  scales,
-  stringi (>= 0.5.5),
-  tidyr (>= 0.3.1.9000),
-  tools,
-  utils
+    R (>= 3.2),
+    dplyr (>= 0.4.3.9000)
+Imports:
+    evaluate,
+    ggplot2,
+    grid,
+    haven (>= 0.2.0.9000),
+    knitr,
+    lazyeval,
+    openxlsx (>= 3.0.0),
+    readr (>= 0.2.1),
+    readxl (>= 0.1.0.9000),
+    rmarkdown,
+    scales,
+    stringi (>= 0.5.5),
+    tidyr (>= 0.3.1.9000),
+    tools,
+    utils
 Suggests:
-  gridExtra,
-  ReporteRs,
-  testthat
-
+    gridExtra,
+    ReporteRs (>= 0.8.2),
+    testthat
+RoxygenNote: 5.0.1

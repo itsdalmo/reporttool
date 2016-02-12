@@ -95,27 +95,22 @@ prepare_survey <- function(srv) {
     stop("Argument 'srv' is not an object with the class 'survey'. See help(survey).", call. = FALSE)
   }
   
-  # Measurement model must be added first
-  if (!is.survey_mm(srv$mm) || !nrow(srv$mm)) {
-    stop("The measurement model must be added first. See help(add_mm).", call. = FALSE)
-  }
-  
   # Lowercase names
   nms <- names(srv$df)
   srv <- rename_(srv, .dots = setNames(nms, stri_trans_tolower(nms)))
   
-#   if (nrow(srv$cd) && !is.null(names(srv$cd))) {
-#     nms <- names(srv$cd)
-#     srv$cd <- rename_(srv$cd, .dots = setNames(nms, stri_trans_tolower(nms)))
-#   }
-#   
-#   if (nrow(srv$hd) && !is.null(names(srv$hd))) {
-#     nms <- names(srv$hd)
-#     srv$hd <- rename_(srv$hd, .dots = setNames(nms, stri_trans_tolower(nms)))
-#   }
+  if (nrow(srv$cd)) {
+    nms <- names(srv$cd)
+    srv$cd <- rename_(srv$cd, .dots = setNames(nms, stri_trans_tolower(nms)))
+  }
+  
+  if (nrow(srv$hd)) {
+    nms <- names(srv$hd)
+    srv$hd <- rename_(srv$hd, .dots = setNames(nms, stri_trans_tolower(nms)))
+  }
   
   # Replace mainentity
-  mainentity <- srv$mm$manifest[srv$mm$latent %in% "mainentity"]
+  mainentity <- get_association(srv, "mainentity")
   if (length(mainentity)) {
     if (mainentity %in% names(srv$df)) srv <- rename_(srv, .dots = setNames(list(mainentity), "mainentity"))
     if (mainentity %in% names(srv$cd)) names(srv$cd) <- ordered_replace(names(srv$cd), setNames(mainentity, "mainentity"))
@@ -123,16 +118,22 @@ prepare_survey <- function(srv) {
   }
   
   # Replace subentity
-  subentity <- srv$mm$manifest[srv$mm$latent %in% "subentity"]
+  subentity <- get_association(srv, "subentity")
   if (length(subentity)) {
     if (subentity %in% names(srv$df)) srv <- rename_(srv, .dots = setNames(list(subentity), "subentity"))
     if (subentity %in% names(srv$cd)) names(srv$cd) <- ordered_replace(names(srv$cd), setNames(subentity, "subentity"))
     if (subentity %in% names(srv$hd)) names(srv$hd) <- ordered_replace(names(srv$hd), setNames(subentity, "subentity"))
   }
   
-  # Set latent translations as "question"
-  srv$mm$question[srv$mm$manifest %in% default$latents] <- filter(srv$tr, original %in% default$latents)[["replacement"]]
+  # Insert translations for latents as question texts  
+  srv <- use_latent_translation(srv)
   
+  # Include question text for EM variables
+  vars <- srv$mm$manifest[srv$mm$latent %in% default$latents]
+  questions <- get_question(srv, vars)
+  
+  srv$mm$question[match(stri_c(vars, "em"), srv$mm$manifest, nomatch = 0)] <- questions
+ 
   # Return
   srv
   

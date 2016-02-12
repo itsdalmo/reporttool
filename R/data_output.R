@@ -142,27 +142,27 @@ to_sheet <- function(df, wb, title = "Table", sheet = "analysis", row = 1L,
 
 write_data <- function(x, file, ...) {
   
+  # Gather dots
+  dots <- list(...)
+  
   # Get file information
   file <- clean_path(file)
-  ext <- tools::file_ext(file)
-  name <- stri_replace(basename(file), "$1", regex = stri_c("(.*)\\.", ext, "$"))
-  ext <- stri_trans_tolower(ext)
+  ext <- stri_trans_tolower(tools::file_ext(file))
+  name <- filename_no_ext(file)
   
   # Convert matrix to data.frame
   if (is.matrix(x)) x <- as_data_frame(x)
   
   # Check if it is a survey and convert depending on output format
-  if (is.survey(x)) {
-    if (ext == "sav") {
+  if (is.survey(x) && ext == "sav") {
       x <- to_labelled(x)$df
-    } else if (ext == "xlsx") {
-      is_date <- vapply(x$df, inherits, what = "Date", logical(1))
-      x$df[is_date] <- lapply(x$df[is_date], as.character)
-      names(x) <- ordered_replace(names(x), default$structure$survey, default$structure$sheet) 
-    }
+  } else if (is.survey(x) && ext == "xlsx") {
+    is_date <- vapply(x$df, inherits, what = "Date", logical(1))
+    x$df[is_date] <- lapply(x$df[is_date], as.character)
+    names(x) <- ordered_replace(names(x), default$structure$survey, default$structure$sheet) 
   } else if (is.data.frame(x)) {
     if (ext %in% c("xlsx", "rdata")) {
-      x <- setNames(list(x), name)
+      x <- if ("sheet" %in% names(dots)) setNames(list(x), dots[["sheet"]]) else setNames(list(x), name)
     }
   } else if (!is.list(x)) {
     stop("This function expects a matrix, data.frame, list or survey.", call. = FALSE)
@@ -171,11 +171,8 @@ write_data <- function(x, file, ...) {
   # Only xlsx and rdata supports a list of output
   supports_list <- ext %in% c("xlsx", "rdata")
   if (is.list2(x) && !supports_list) {
-      stop("Use lapply to write lists that are not survey objects and output is not xlsx.", call. = FALSE) 
+      stop("Use lapply to write lists that are not survey objects when output is not xlsx.", call. = FALSE) 
   }
-  
-  # Gather dots
-  dots <- list(...)
   
   # Use extension to write correct format
   switch(ext,
@@ -196,6 +193,30 @@ write_spss <- function(data, file) {
   
   if (!is.spss(data)) {
     warning("No labelled variables found.", call. = FALSE)
+  }
+  
+  # BUG in ReadStat (long strings, > 256 characters) 
+  is_character <- vapply(data, is.character, logical(1))
+  
+  if (any(is_character)) {
+    strings <- vapply(data[is_character], function(x) max(stri_length(x), na.rm = TRUE) > 250, logical(1))
+    strings <- names(strings[strings])
+    
+    if (length(strings)) {
+      name <- filename_no_ext(file)
+      spath <- file.path(dirname(file), stri_c(name, " (long strings).Rdata"))
+      
+      # Add stringID to data
+      data$stringID <- 1:nrow(data)
+      
+      # Write strings separately and shorten in original data
+      write_rdata(list("x" = data[c(strings, "stringID")]), spath)
+      data[strings] <- lapply(data[strings], function(x) {
+        oa = attributes(x); x <- stri_sub(x, to = 250); attributes(x) <- oa; x
+        })
+      warning("Found long strings (> 250) in data. Writing as separate Rdata.", call. = FALSE)
+    }
+    
   }
   
   haven::write_sav(data, path = file)
@@ -230,7 +251,7 @@ write_xlsx <- function(data, file, dots) {
   
   # Update standard args
   args <- list(row = 1L, format_style = FALSE, format_values = FALSE, append = FALSE)
-  args <- append(dots, args[!names(args) %in% names(dots)])
+  args <- append(dots[!names(dots) %in% "sheet"], args[!names(args) %in% names(dots)])
   
   lapply(names(data), function(nm, x, wb) {
     a <- list(df = x[[nm]], wb = wb, sheet = nm); a <- append(a, args)

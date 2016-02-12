@@ -53,8 +53,8 @@ default <- list(
                     "Snitt webstudien", "Vår", "Høst"),
     "danish" = c("Image", "Forventninger", "Produktkvalitet", "Servicekvalitet",
                  "Værdi for pengene", "Kundetilfredshed", "Loyalitet", "Bank",
-                 "Afdeling", "Kode", "Diff", "Spørsmål", "Snitt national", "Snitt", 
-                 "Snitt webstudien", "Forår", "Efterår")),
+                 "Afdeling", "Kode", "Diff", "Spørgsmål", "Snit national", "Snit", 
+                 "Snit webstudien", "Forår", "Efterår")),
   
   "config" = list(
     "setting" = c("reporttool", "study", "segment", "year", "period", "method",

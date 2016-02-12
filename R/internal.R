@@ -26,6 +26,9 @@ write_questionnaire <- function(quest, file, study = "Banking", segment = "B2C",
   segment <- stri_trans_tolower(segment)
   names(quest) <- stri_trans_tolower(names(quest))
   
+  # Arrange the questions by "order"
+  quest <- quest[order(quest$order), ]
+  
   # Subset and create index
   quest <- quest[stri_trans_tolower(quest$study) == study & stri_trans_tolower(quest$segment) == segment, ]
   quest[] <- lapply(quest, stri_replace_all, replacement = "", regex = "\\r")
@@ -35,7 +38,7 @@ write_questionnaire <- function(quest, file, study = "Banking", segment = "B2C",
   is_scale <- stri_trans_tolower(quest$type) == "scale"
   quest$values[is_scale] <-  vapply(quest$values[is_scale], function(x) {
     x <- split_scale(x); stri_c(x[1], "...", x[10], if (length(x) > 10) x[11] else "", sep = "\n")
-    }, character(1))
+  }, character(1))
   
   # Replace {XX} with whatever value is specified
   if (!is.null(entity)) {
@@ -64,14 +67,20 @@ write_questionnaire <- function(quest, file, study = "Banking", segment = "B2C",
   
   # Use the split list to write to a xlsx_file
   wb <- openxlsx::createWorkbook()
-  
+
   # Write the data and retain rows that have been written to
   merge_rows <- lapply(split_quest, function(x) {
     
     # Get columns
     df <- x[, c("latent", "manifest", "question", "values")]
-    title <- if (nrow(x) == 1L) x$question else paste0(unique(x$primer), collapse = "\n")
     
+    # Set either the primer or question as title
+    if (nrow(x) == 1L && is.na(x$primer)) {
+      title <- x$question
+    } else {
+      title <- stri_c(unique(x$primer), collapse = "\n")
+    }
+
     # Write the question
     to_sheet(df, wb, title = title, sheet = study)
     
@@ -123,55 +132,34 @@ topline <- function(srv, other = NULL) {
   # Check the input
   if (!is.survey(srv)) {
     stop("Argument 'srv' is not an object with the class 'survey'. See help(survey).", call. = FALSE)
-  }
-  
-  # Config and translations must be set beforehand.
-  if (!is.survey_tr(srv$tr) || !nrow(srv$tr)) {
-    stop("Translations must be set first. See help(set_translation).", call. = FALSE)
+  } else {
+    mainentity <- get_association(srv, "mainentity")
   }
   
   # Data must be prepared first
-  if (!all(default$latents %in% names(srv$df))) {
+  latents <- filter(srv$mm, stri_trans_tolower(manifest) %in% default$latents)[["manifest"]]
+  if (!length(latents)) {
     stop("Latents were not found in the data. See help(prepare_data).", call. = FALSE)
-  }
+  } 
   
-  # Find mainentity variable and cutoff
-  mainentity <- filter(srv$mm, stri_trans_tolower(latent) == "mainentity")[["manifest"]]
-  cutoff <- as.numeric(filter(srv$cfg, config == "cutoff")[["value"]])
-
+  # Get total n in addition to valid observations from survey_table
+  tots <- suppressWarnings(survey_table_(srv, dots = mainentity, contrast = FALSE, weight = FALSE, filter_missing = FALSE, filter_response = FALSE))
+  ents <- suppressWarnings(survey_table_(srv, dots = latents, contrast = FALSE, weight = FALSE, filter_response = FALSE))
+  ents <- rename_(ents, .dots = c("valid" = "n"))
+  ents <- left_join(tots, ents, by = setNames(mainentity, mainentity))
+  
   # Check mainentity + 'a' if 'other' is null
   if (is.null(other)) {
     other <- stri_c(mainentity, "a")
     other <- filter(srv$mm, stri_detect(manifest, regex = stri_c("^", other), case_insensitive = TRUE))[["manifest"]]
   }
   
-  # Set names for data (merges) and subset on percent missing
-  names(srv$df)[names(srv$df) %in% mainentity] <- "entity"
-  names(srv$df)[names(srv$df) %in% other] <- "other"
-
-  # Subset the data so it contains only valid observations. Then summarise.
-  df <- filter(srv$df, percent_missing <= cutoff)
-  df <- select(df, entity, one_of(default$latents))
-  df <- bind_rows(df, mutate(df, entity = "Total"))
-  df <- summarise_each(group_by(df, entity), funs(mean(., na.rm = TRUE)))
-  
-  # Get the entities summary
-  ents <- select(srv$ents, entity, n, valid)
-  ents <- bind_rows(ents, data_frame(entity = "Total", n = sum(ents$n, na.rm = TRUE), valid = sum(ents$valid, na.rm = TRUE)))
-  ents <- left_join(ents, df, by = c("entity" = "entity"))
-
-  # Clean NaN's
-  ents[default$latents] <- lapply(ents[default$latents], function(x) ifelse(is.nan(x), NA, x))
-  
-  # Rename columns
-  tr <- filter(select(srv$tr, replacement, original), original %in% default$latents)
-  names(ents) <- ordered_replace(names(ents), setNames(tr$original, tr$replacement))
-  
   lst <- list("entities" = ents)
   
   # Make a table for 'other' if the variable is found
   if (length(other)) {
-    other <- filter(select(srv$df, other), !is.na(other), other != "")
+    other <- select_(srv$df, .dots = setNames(other, "other"))
+    other <- filter(other, !is.na(other), !other %in% c("", " "))
     other <- mutate(other, other = stri_trans_tolower(other))
     other <- summarise(group_by(other, other), n = n())
     other <- arrange(other, desc(n))
@@ -179,8 +167,8 @@ topline <- function(srv, other = NULL) {
   } else {
     warning("A column corresponding to 'other' was not found in the data.", call. = FALSE)
   }
-
-  return(lst)
+  
+  lst
   
 }
 
@@ -199,7 +187,8 @@ topline <- function(srv, other = NULL) {
 #' @examples 
 #' x <- read_sharepoint("https://the.intranet.se/EPSI/example")
 
-read_sharepoint <- function(file, mainentity = "q1", encoding = "latin1") {
+#' @export
+read_sharepoint <- function(file, mainentity = "q1", weights = FALSE) {
   
   # Check path
   if (!tools::file_ext(file) == "") {
@@ -212,40 +201,19 @@ read_sharepoint <- function(file, mainentity = "q1", encoding = "latin1") {
   }
   
   # Check if the specified directory contains the expected folders
-  req_folders <- c("data", "input")
-  dir_folders <- list.files(file)
+  dirs <- list.files(file)
+  miss <- setdiff(c("data", "input"), stri_trans_tolower(dirs))
+  if (length(miss)) {
+    stop("The required (model related) folders were not found in the directory:\n",
+         conjunct_string(miss), call. = FALSE)
+  }
   
   # Create paths for each of the expected folders
-  file_dirs <- file.path(file, dir_folders[stri_trans_tolower(dir_folders) %in% req_folders])
+  dir <- file.path(file, dirs[stri_trans_tolower(dirs) %in% c("data", "input")])
+  dir <- setNames(dir, c("data", "input"))
   
-  if (length(file_dirs) == length(req_folders)) {
-    file_dirs <- setNames(file_dirs, req_folders)
-  } else {
-    mis_dirs <- setdiff(req_folders, stri_trans_tolower(dir_folders))
-    stop("The required (model related) folders were not found in the directory:\n", stri_c(mis_dirs, collapse = ", "), call. = FALSE)
-  }
-  
-  # Read in the dataset if it has been converted to .xlsx
-  data_dir <- list.files(file_dirs["data"])
-  data_files <- data_dir[stri_detect(stri_trans_tolower(data_dir), regex = ".*em\\.sav$")]
-  
-  if (length(data_files) == 1L) {
-    srv <- read_data(file.path(file_dirs["data"], data_files))
-    srv <- if(is.spss(srv)) survey(srv) else add_mm(survey(srv))
-  } else {
-    stop("There is more than one .sav file ending with \"EM\"\n", call. = FALSE)
-  }
-  
-  # Rename andel_missing
-  miss <- names(srv$df)[stri_trans_tolower(names(srv$df)) %in% "andel_missing"]
-  if (length(miss) && !"percent_missing" %in% names(srv$df)) {
-    srv <- rename_(srv, .dots = setNames(miss[1], "percent_missing"))
-  }
-  
-  # Set config (w/percent missing)
-  miss <- max(as.numeric(srv$df$percent_missing), na.rm = TRUE)
-  srv <- set_config(srv)
-  srv$cfg$value[srv$cfg$config %in% "cutoff"] <- miss
+  # Read in the dataset
+  srv <- read_em_data(dir["data"])
   
   # Identify mainentity in manifest
   mainentity <- filter(srv$mm, stri_trans_tolower(manifest) == mainentity)[["manifest"]]
@@ -254,45 +222,132 @@ read_sharepoint <- function(file, mainentity = "q1", encoding = "latin1") {
   } 
   
   # Find and read in the input files
-  input_dir <- list.files(file_dirs["input"])
-  input_files <- input_dir[stri_detect(stri_trans_tolower(input_dir), regex = ".*(config|measurement model).*\\.txt$")]
-  
-  if (length(input_files) == 2L) {
-    input_files <- setNames(file.path(file_dirs["input"], input_files), c("cf", "mm"))
-  } else {
-    stop("The required files were not found in the input directory:\n Measurement model.txt and config.txt.", call. = FALSE)
-  }
-  
-  cols_mm <- list("Manifest" = readr::col_character())
-  input <- list("cf" = read_data(input_files["cf"], 
-                                 encoding = encoding, 
-                                 decimal = ",", 
-                                 col_names = FALSE),
-                "mm" = read_data(input_files["mm"], 
-                                 encoding = encoding, 
-                                 decimal = ",", 
-                                 col_names = TRUE, 
-                                 col_types = cols_mm))
-  
-  # Lowercase for referencing
-  input <- lapply(input, function(x) { names(x) <- stri_trans_tolower(names(x)); x })
-  
-  # Convert to a supported format and extract latent association
-  input$mm <- unlist(lapply(input$mm[-1], function(x, manifest) {manifest[x == -1, 1]}, input$mm[1]))
-  input$mm <- data_frame("latent" = names(input$mm), "manifest" = input$mm)
-  input$mm$latent <- stri_replace_all(input$mm$latent, "$1", regex = "([a-z]+).manifest.*")
+  mm <- read_em_model(dir["input"])
+  cf <- read_em_config(dir["input"])
   
   # Assign latent association to the measurement model (use match in case order differs)
-  srv$mm$latent[match(stri_trans_tolower(input$mm$manifest), stri_trans_tolower(srv$mm$manifest))] <- input$mm$latent
+  srv$mm$latent[match(stri_trans_tolower(mm$manifest), stri_trans_tolower(srv$mm$manifest))] <- mm$latent
   
   # Add entities based on the data and update with marketshares
   srv <- set_association(srv, mainentity = mainentity)
   srv <- add_entities(srv)
-  srv$ents$marketshare <- stri_replace(input$cf[[4]][match(srv$ents$entity, input$cf[[2]])], ".", regex = ",")
-
+  srv$ents$marketshare <- stri_replace(cf[[4]][match(srv$ents$entity, cf[[2]])], ".", regex = ",")
+  
+  # Optionally - also add inner/outer weights
+  if (weights && "output" %in% stri_trans_tolower(dirs)) {
+    dir <- dirs[stri_trans_tolower(dirs) %in% "output"]
+    srv$inner_weights <- read_inner_weights(file.path(file, dir), srv$ents$entity)
+    srv$outer_weights <- read_outer_weights(file.path(file, dir), srv$ents$entity)
+  }
+  
   # Return
   srv
   
+}
+
+read_em_data <- function(dir) {
+  if (!is.string(dir)) stop("dir must be a string.")
+  file <- list.files(dir)
+  file <- file[stri_detect(stri_trans_tolower(file), regex = ".*em\\.sav$")]
+  if (length(file) != 1L) {
+    msg <- if (length(file) > 1L) "There is more than one" else "Found no"
+    stop(stri_c(msg, " .sav file ending with \"EM\"."), call. = FALSE)
+  }
+  
+  # Read in the data
+  srv <- read_data(file.path(dir, file))
+  srv <- if(is.spss(srv)) survey(srv) else add_mm(survey(srv))
+  
+  # Rename andel_missing and set to numeric
+  miss <- names(srv$df)[stri_trans_tolower(names(srv$df)) %in% "andel_missing"]
+  if (length(miss) && !"percent_missing" %in% names(srv$df)) {
+    srv <- rename_(srv, .dots = setNames(miss[1], "percent_missing"))
+  }
+  srv <- mutate(srv, percent_missing = as.numeric(percent_missing))
+  
+  # Set config (w/percent missing)
+  miss <- max(srv$df$percent_missing, na.rm = TRUE)
+  miss <- ceiling(miss*10)/10 # Nearest 10%
+  warning("Setting cutoff to ", miss*100, "%.", call. = FALSE)
+  
+  srv <- set_config(srv)
+  srv$cfg$value[srv$cfg$config %in% "cutoff"] <- miss
+  
+  # Assume that marketshares have been set.
+  srv$cfg$value[srv$cfg$config %in% "marketshares"] <- "yes"
+  
+  srv
+  
+}
+
+read_em_config <- function(dir) {
+  if (!is.string(dir)) stop("dir must be a string.")
+  file <- list.files(dir)
+  file <- file[stri_detect(stri_trans_tolower(file), regex = "config.*\\.txt$")]
+  if (!length(file)) stop("'config.txt' was not found.")
+  
+  cf <- read_data(file.path(dir, file), encoding = "latin1", decimal = ",", col_names = FALSE)
+  names(cf) <- stri_trans_tolower(names(cf))
+  
+  cf
+  
+}
+
+read_em_model <- function(dir) {
+  if (!is.string(dir)) stop("dir must be a string.")
+  file <- list.files(dir)
+  file <- file[stri_detect(stri_trans_tolower(file), regex = "measurement model.*\\.txt$")]
+  if (!length(file)) stop("'measurement model.txt' was not found.")
+  
+  cols_mm <- list("Manifest" = readr::col_character())
+  mm <- read_data(file.path(dir, file), encoding = "latin1", decimal = ",", col_names = TRUE, col_types = cols_mm)
+  names(mm) <- stri_trans_tolower(names(mm))
+  
+  # Convert to correct format and extract latent association
+  mm <- unlist(lapply(mm[-1], function(x, manifest) {manifest[x == -1, 1]}, mm[1]))
+  mm <- data_frame("latent" = names(mm), "manifest" = mm)
+  mm$latent <- stri_replace_all(mm$latent, "$1", regex = "([a-z]+).manifest.*")
+  
+  mm
+  
+}
+
+read_inner_weights <- function(dir, entities) {
+  if (!is.string(dir)) stop("dir must be a string.")
+  file <- list.files(dir)
+  file <- file[stri_detect(stri_trans_tolower(file), regex = "main results.*\\.xlsx$")]
+  if (!length(file)) warning("'main results.xlsx' was not found.")
+  
+  inner_weights <- lapply(entities, function(x) {
+    iw <- read_data(file.path(dir, file), sheet = x, skip = 5)
+    if (nrow(iw) == 0L) stop("Problem reading data from 'main results.xlsx'. This is often solved by opening the file for editing, selecting each sheet in turn, and saving again without further changes.", call. = FALSE)
+    iw <- mutate(iw, mainentity = x)
+    names(iw) <- c("origin", default$latents, "mainentity")
+    iw <- mutate_each(slice(iw, 1:7), funs(as.numeric(.)), image:loyal)
+    select(iw, mainentity, everything())
+  })
+  
+  bind_rows(inner_weights)
+  
+}
+
+read_outer_weights <- function(dir, entities) {
+  if (!is.string(dir)) stop("dir must be a string.")
+  file <- list.files(dir)
+  file <- file[stri_detect(stri_trans_tolower(file), regex = "score weights out.*\\.xlsx$")]
+  if (!length(file)) warning("'score weights out.xlsx' was not found.")
+  
+  outer_weights <- lapply(entities, function(x) {
+    ow <- read_data(file.path(dir, file), sheet = x, skip = 3)
+    if (nrow(ow) == 0L) stop("Problem reading data from 'score weights out.xlsx'. This is often solved by opening the file for editing, selecting each sheet in turn, and saving again without further changes.", call. = FALSE)
+    ow <- mutate(ow[, c(2:7, 9)], mainentity = x)
+    names(ow) <- c("latent", "manifest", "question", "score", "weight", "std", "epsi_effect", "mainentity")
+    ow <- mutate_each(select(ow, mainentity, everything()), funs(as.numeric(.)), score:epsi_effect)
+    filter(ow, !is.na(epsi_effect), epsi_effect > 0L)
+  })
+  
+  bind_rows(outer_weights)
+
 }
 
 #' Write input files
@@ -313,8 +368,6 @@ write_sharepoint <- function(srv, file) {
   # Check the input
   if (!is.survey(srv)) {
     stop("Argument 'sv' is not an object with the class 'survey'. See help(survey).", call. = FALSE)
-  } else if (!is.survey_ents(srv$ents)) {
-    stop("Entities must be added first. See help(add_entities).", call. = FALSE)
   }
   
   # Data must be prepared first
@@ -333,13 +386,6 @@ write_sharepoint <- function(srv, file) {
     }
   }
   
-  # Get mainentity
-  mainentity <- filter(srv$mm, stri_trans_tolower(latent) == "mainentity")[["manifest"]]
-  
-  # Get the measurement model and the cutoff
-  model <- filter(srv$mm, stri_trans_tolower(latent) %in% default$latents)
-  cutoff <- as.numeric(filter(srv$cfg, config == "cutoff")[["value"]])
-
   # Locate or create required directories
   req_folders <- c("Data", "Input")
   dir_folders <- list.files(file)
@@ -353,21 +399,51 @@ write_sharepoint <- function(srv, file) {
   if (!all(folders_exist)) {
     missing <- file.path(file, req_folders[!folders_exist])
     lapply(missing, dir.create, showWarnings = FALSE)
-    warning("Created the following (required) folders:\n", stri_c(req_folders[!folders_exist], collapse = ", "), call. = FALSE)
+    warning("Created the following (required) folders:\n", 
+            conjunct_string(req_folders[!folders_exist]), call. = FALSE)
     dir_folders <- list.files(file)
   }
   
   # Update and create file directories
   is_required <- stri_trans_tolower(dir_folders) %in% stri_trans_tolower(req_folders)
-  file_dirs <- setNames(file.path(file, dir_folders[is_required]), stri_trans_tolower(req_folders))
-
-  # Write data
-  data_file <- filter(srv$cfg, config %in% c("study", "segment", "year"))[["value"]]
-  data_file <- stri_c(stri_trans_totitle(data_file[1]), stri_trans_toupper(data_file[2]), data_file[3], sep = " ")
-  data_file <- file.path(file_dirs["data"], stri_c(data_file, "EM", ".sav"))
-  data_file <- stri_replace_all(data_file, " ", regex = "\\s\\s")
   
-  write_data(srv, file = data_file)
+  # Get output directories
+  output_dir <- file.path(file, dir_folders[is_required])
+  output_dir <- setNames(output_dir, stri_trans_tolower(req_folders))
+  
+  # Write data
+  write_em_data(srv, output_dir["data"])
+  write_em_input(srv, output_dir["input"])
+  
+  # Make sure nothing is printed
+  invisible()
+  
+}
+
+write_em_data <- function(srv, path) {
+  
+  file_name <- get_config(srv, c("study", "segment", "year"))
+  file_name <- stri_c(stri_trans_totitle(file_name[1]), stri_trans_toupper(file_name[2]), file_name[3], sep = " ")
+  file_name <- file.path(path, stri_c(file_name, "EM", ".sav"))
+  file_name <- stri_replace_all(file_name, " ", regex = "\\s\\s")
+  
+  write_data(srv, file = file_name)
+  
+}
+
+write_em_input <- function(srv, dir) {
+  
+  # Entities must be added
+  if (!is.survey_ents(srv$ents)) {
+    stop("Entities must be added first. See help(add_entities).", call. = FALSE)
+  }
+  
+  # Get mainentity and cutoff
+  mainentity <- get_association(srv, "mainentity")
+  cutoff <- get_config(srv, "cutoff")
+  
+  # Get the measurement model
+  model <- filter(srv$mm, stri_trans_tolower(latent) %in% default$latents)
   
   # Input files
   args <- list(sep = "\t", na = "", dec = ",", fileEncoding = "latin1", 
@@ -393,32 +469,32 @@ write_sharepoint <- function(srv, file) {
   em_data <- arrange_(em_data, eval(mainentity))
   em_data <- mutate_each(em_data, funs(clean_score(.)), one_of(model$manifest))
   em_data <- mutate_each(em_data, funs(ifelse(is.na(.), 98, .)), one_of(model$manifest))
-
+  
   do.call(write.table, args = append(list(
     x = em_data,
-    file = file.path(file_dirs["input"], "em_data.txt")),
+    file = file.path(dir, "em_data.txt")),
     args))
   
   # Write config
   args$col.names <- FALSE; args$row.names <- TRUE
   do.call(write.table, args = append(list(
     x = srv$ents[, c("entity", "valid", "marketshare")],
-    file = file.path(file_dirs["input"], "config.txt")),
+    file = file.path(dir, "config.txt")),
     args))
   
   # Q1 names
   args$row.names <- FALSE
   do.call(write.table, args = append(list(
     x = srv$ents$entity,
-    file = file.path(file_dirs["input"], "q1names.txt")),
+    file = file.path(dir, "q1names.txt")),
     args))
   
   # Write question text
   do.call(write.table, args = append(list(
     x = stri_replace(model$question, replacement = "", regex = "^[ -]*"),
-    file = file.path(file_dirs["input"], "qtext.txt")),
-  args))
-
+    file = file.path(dir, "qtext.txt")),
+    args))
+  
   # Create measurement model
   mm <- new_scaffold(c("Manifest", default$latents), size = nrow(model))
   mm$Manifest <- model$manifest
@@ -433,10 +509,11 @@ write_sharepoint <- function(srv, file) {
   args$col.names <- TRUE
   do.call(write.table, args = append(list(
     x = mm,
-    file = file.path(file_dirs["input"], "measurement model.txt")),
+    file = file.path(dir, "measurement model.txt")),
     args))
-
+  
   # Make sure nothing is printed
   invisible()
   
 }
+

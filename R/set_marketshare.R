@@ -30,7 +30,7 @@ set_marketshare <- function(srv, ..., ms = NULL) {
     if (!is.null(nms) && !any(is.na(nms))) {
       missing <- setdiff(nms, srv$ents$entity)
       if (length(missing)) {
-        stop("Entities not found\n:", stri_c(missing, collapse = ", "), call. = FALSE)
+        stop("Entities not found\n:", conjunct_string(missing), call. = FALSE)
       } else {
         srv$ents$marketshare[match(nms, srv$ents$entity)] <- ms
       }
@@ -65,8 +65,7 @@ set_marketshare <- function(srv, ..., ms = NULL) {
   # Throw an error if arguments do not match entity names
   missing_ents <- setdiff(names(args), srv$ents$entity)
   if (length(missing_ents)) {
-    missing_mm <- stri_c(missing_ents, collapse = ", ")
-    stop(stri_c("Entities not found:\n", missing_ents), call. = FALSE)
+    stop(stri_c("Entities not found:\n", conjunct_string(missing_ents)), call. = FALSE)
   }
   
   # Update with a for loop for clarity

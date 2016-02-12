@@ -55,7 +55,7 @@ to_ppt <- function(doc, res) {
   
   # Get the types of data in our results
   type <- result_types(res)
-    
+  
   # Get the actual results
   title <- " "; subtitle <- " "
   
@@ -88,6 +88,10 @@ to_ppt <- function(doc, res) {
       warning("Footnotes are not supported and will not be included.", call. = FALSE)
     } else if (type[i] == "latextable") {
       warning("Latex tables are not supported and will not be included.", call. = FALSE)
+    } else if (type[i] == "warning") {
+      # evaluate::replay(res[[i]])
+    } else if (type[i] == "error") {
+      evaluate::replay(res[[i]])
     }
     
   }
@@ -122,6 +126,10 @@ result_types <- function(res) {
       "table"
     } else if (inherits(x, "FlexTable")) {
       "flextable"
+    } else if (inherits(x, "error")) {
+      "error"
+    } else if (inherits(x, "warning")) {
+      "warning"
     } else {
       "unknown"
     }}, character(1))
