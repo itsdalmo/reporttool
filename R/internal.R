@@ -320,6 +320,7 @@ read_inner_weights <- function(dir, entities) {
   
   inner_weights <- lapply(entities, function(x) {
     iw <- read_data(file.path(dir, file), sheet = x, skip = 5)
+    if (is.null(iw) || length(iw) == 0L) stop("Could not find sheet '", x, "' in 'main results.xlsx'.")
     if (nrow(iw) == 0L) stop("Problem reading data from 'main results.xlsx'. This is often solved by opening the file for editing, selecting each sheet in turn, and saving again without further changes.", call. = FALSE)
     iw <- mutate(iw, mainentity = x)
     names(iw) <- c("origin", default$latents, "mainentity")
@@ -339,6 +340,7 @@ read_outer_weights <- function(dir, entities) {
   
   outer_weights <- lapply(entities, function(x) {
     ow <- read_data(file.path(dir, file), sheet = x, skip = 3)
+    if (is.null(ow) || length(ow) == 0L) stop("Could not find sheet '", x, "' in 'score weights out.xlsx'.")
     if (nrow(ow) == 0L) stop("Problem reading data from 'score weights out.xlsx'. This is often solved by opening the file for editing, selecting each sheet in turn, and saving again without further changes.", call. = FALSE)
     ow <- mutate(ow[, c(2:7, 9)], mainentity = x)
     names(ow) <- c("latent", "manifest", "question", "score", "weight", "std", "epsi_effect", "mainentity")
