@@ -82,7 +82,7 @@ to_ppt <- function(doc, res) {
     } else if (type[i] == "recordedplot") {
       doc <- ReporteRs::addSlide(doc, slide.layout = 'Title and Content')
       doc <- ReporteRs::addTitle(doc, title)
-      doc <- ReporteRs::addPlot(doc, fun = print, x = res[[i]])
+      doc <- ReporteRs::addPlot(doc, fun = print, x = res[[i]], bg = "transparent")
       doc <- ReporteRs::addParagraph(doc, subtitle)
     } else if (type[i] == "footnote") {
       warning("Footnotes are not supported and will not be included.", call. = FALSE)
