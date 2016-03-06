@@ -36,11 +36,11 @@ generate_ppt <- function(entity, dir, envir) {
   
   # Create report and add the first slide
   doc <- ReporteRs::pptx(template = file.path(dir, "PPT", "ppt_template.pptx"))
-  doc <- ReporteRs::addSlide(doc, slide.layout = "titleslide")
+  doc <- ReporteRs::addSlide(doc, slide.layout = "Title Slide")
   doc <- ReporteRs::addTitle(doc, value = yaml$title)
-  doc <- ReporteRs::addParagraph(doc, value = yaml$date)
-  doc <- ReporteRs::addParagraph(doc, value = yaml$author)
   doc <- ReporteRs::addParagraph(doc, value = yaml$subtitle)
+  doc <- ReporteRs::addParagraph(doc, value = yaml$author)
+  doc <- ReporteRs::addParagraph(doc, value = yaml$date)
   
   # Add title etc
   doc <- to_ppt(doc, res)
@@ -65,24 +65,24 @@ to_ppt <- function(doc, res) {
     } else if (type[i] == "subtitle") {
       subtitle <- stri_replace(res[[i]], "", regex = "^##[^#]")
     } else if (type[i] == "table") {
-      doc <- ReporteRs::addSlide(doc, slide.layout = 'tableslide')
+      doc <- ReporteRs::addSlide(doc, slide.layout = 'Title and Content')
       doc <- ReporteRs::addTitle(doc, title)
       doc <- ReporteRs::addFlexTable(doc, format_flextable(res[[i]]))
       doc <- ReporteRs::addParagraph(doc, subtitle)
     } else if (type[i] == "flextable") {
-      doc <- ReporteRs::addSlide(doc, slide.layout = 'tableslide')
+      doc <- ReporteRs::addSlide(doc, slide.layout = 'Title and Content')
       doc <- ReporteRs::addTitle(doc, title)
       doc <- ReporteRs::addFlexTable(doc, res[[i]])
       doc <- ReporteRs::addParagraph(doc, subtitle)
     } else if (type[i] == "markdown") {
-      doc <- ReporteRs::addSlide(doc, slide.layout = 'standardslide')
+      doc <- ReporteRs::addSlide(doc, slide.layout = 'Title and Content')
       doc <- ReporteRs::addTitle(doc, title)
       doc <- ReporteRs::addMarkdown(doc, text = res[[i]])
       doc <- ReporteRs::addParagraph(doc, subtitle)
     } else if (type[i] == "recordedplot") {
-      doc <- ReporteRs::addSlide(doc, slide.layout = 'standardslide')
+      doc <- ReporteRs::addSlide(doc, slide.layout = 'Title and Content')
       doc <- ReporteRs::addTitle(doc, title)
-      doc <- ReporteRs::addPlot(doc, fun = print, x = res[[i]])
+      doc <- ReporteRs::addPlot(doc, fun = print, x = res[[i]], bg = "transparent")
       doc <- ReporteRs::addParagraph(doc, subtitle)
     } else if (type[i] == "footnote") {
       warning("Footnotes are not supported and will not be included.", call. = FALSE)

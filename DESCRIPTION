@@ -28,6 +28,6 @@ Imports:
     utils
 Suggests:
     gridExtra,
-    ReporteRs (>= 0.8.2),
+    ReporteRs (>= 0.8.5),
     testthat
 RoxygenNote: 5.0.1

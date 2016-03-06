@@ -184,7 +184,7 @@ pd <- latent_scores %>%
 # Get the vertical justification for geom text ---------------------------------
 vjust <- pd %>% spread(mainentity, answer)
 vjust$overlap <- if (ncol(vjust) > 3) rowMeans(vjust[, 2:ncol(vjust)]) else vjust[[ncol(vjust)]]
-vjust <- ifelse(vjust[[entity]] < vjust[["overlap"]], "2", "-1")
+vjust <- ifelse(vjust[[entity]] < vjust[["overlap"]], -1.5, 1.5)
 
 # Calculate appropriate range for y-axis ---------------------------------------
 y_max <- ifelse(max(pd[["answer"]]) < 90, round(max(pd[["answer"]])+10, -1), 100)
@@ -197,7 +197,7 @@ p + geom_line(size=1) +
   scale_color_manual(values = fixed_colors(palette, as.character(pd$mainentity))) +
   geom_text(data = filter(pd, mainentity == entity), 
             aes(label=sprintf("%.1f", answer)),  
-            size=4, colour="#23373b", vjust=vjust) + 
+            size=4, colour="#23373b", vjust=.5, nudge_y=vjust) + 
   ylim(y_min, y_max) + 
   guides(linetype=FALSE) +
   plot_theme()
@@ -222,7 +222,7 @@ pd <- srv %>%
 # Get the vertical justification for geom text ---------------------------------
 vjust <- pd %>% spread(subentity, answer)
 vjust$overlap <- if (ncol(vjust) > 3) rowMeans(vjust[, 2:ncol(vjust)]) else vjust[[ncol(vjust)]]
-vjust <- ifelse(vjust[["Snitt"]] < vjust[["overlap"]], "2", "-1")
+vjust <- ifelse(vjust[["Snitt"]] < vjust[["overlap"]], -1.5, 1.5)
 
 # Calculate appropriate range for y-axis ---------------------------------------
 y_max <- ifelse(max(pd[["answer"]]) < 90, round(max(pd[["answer"]])+10, -1), 100)
@@ -238,7 +238,7 @@ p + geom_line(size=1) +
   scale_color_manual(values = fixed_colors(setNames(palette, c(entity, "Snitt")), pd$subentity)) +
   geom_text(data = filter(pd, subentity == "Snitt"), 
             aes(label=sprintf("%.1f", answer)),  
-            size=4, colour="#23373b", vjust=vjust) + 
+            size=4, colour="#23373b", vjust=.5, nudge_y=vjust) + 
   ylim(y_min, y_max) + 
   guides(linetype=FALSE, color=guide_legend(nrow=2, byrow=TRUE)) +
   plot_theme()
@@ -333,7 +333,7 @@ p <- ggplot(data=pd, aes(x=question, y=difference, fill=sign))
 p + geom_bar(stat="identity", width=0.5, position="dodge") + 
   coord_flip(ylim = c(y_min, y_max)) +
   scale_fill_manual(values=setNames(palette, c(1,0))) +
-  geom_hline(xintercept=0, size=.5, colour = "#D0D0D0") +
+  geom_hline(yintercept=0, size=.5, colour = "#D0D0D0") +
   geom_text(data = filter(pd, sign == 1), 
             aes(label=sprintf("%.1f", difference)),  
             size=3, colour="#23373b", vjust=.2, hjust=-.55) +
