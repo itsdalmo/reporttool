@@ -9,7 +9,7 @@ Description: Useful tools for reporting in EPSI.
 License: CC-BY-SA 4.0 International
 Depends:
     R (>= 3.2),
-    dplyr (>= 0.4.3.9000)
+    dplyr (>= 0.4.3)
 Imports:
     evaluate,
     ggplot2,
