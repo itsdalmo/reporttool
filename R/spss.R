@@ -94,7 +94,7 @@ to_labelled <- function(survey) {
     # All factors should be 'labelled'
     if (is.factor(x)) {
       v <- levels(x)
-      x <- as.numeric(x); x <- haven::labelled(x, setNames(as.numeric(1:length(v)), v), is_na = NULL)
+      x <- as.numeric(x); x <- haven::labelled(x, setNames(as.numeric(1:length(v)), v))
     } else if (is.character(x)) {
       # Make sure encoding is native
       x <- collect_warnings(stri_enc_tonative(x))
